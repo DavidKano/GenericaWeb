@@ -16,7 +16,7 @@ import {
 
 export const ProfilePage: React.FC = () => {
   const { repo } = useData();
-  const { user, login } = useAuth(); // Usamos login para refrescar el contexto si es necesario (o solo actualizamos local)
+  const { user } = useAuth();
   
   const [activeTab, setActiveTab] = useState<'appointments' | 'profile'>('appointments');
   const [appointments, setAppointments] = useState<Appointment[]>([]);

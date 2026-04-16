@@ -24,6 +24,7 @@ export interface Appointment {
   serviceId: string;
   dateTimeStart: number; // timestamp
   status: 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED';
+  adminNotes?: string;
 }
 
 export interface BusinessConfig {

@@ -1,18 +1,32 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import type { Appointment, BookingService, DaySchedule, BusinessConfig } from '../services/models';
 import { 
   BarChart3, 
   Settings, 
   Clock, 
-  Users, 
   Plus, 
   Trash2, 
   Save, 
-  Calendar as CalendarIcon,
-  CheckCircle2,
   XCircle
 } from 'lucide-react';
+
+import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
+import { format, parse, startOfWeek, getDay } from 'date-fns';
+import { es } from 'date-fns/locale';
+import 'react-big-calendar/lib/css/react-big-calendar.css';
+
+const locales = {
+  'es': es,
+};
+
+const localizer = dateFnsLocalizer({
+  format,
+  parse,
+  startOfWeek: () => startOfWeek(new Date(), { weekStartsOn: 1 }), // Lunes es el inicio
+  getDay,
+  locales,
+});
 
 type AdminTab = 'stats' | 'services' | 'schedule' | 'config';
 
@@ -29,6 +43,17 @@ export const AdminDashboard: React.FC = () => {
   const [newName, setNewName] = useState('');
   const [newDuration, setNewDuration] = useState(30);
   const [newPrice, setNewPrice] = useState(0);
+  const [newColor, setNewColor] = useState('#3174ad');
+  const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
+  
+  // Controles de Vista de Calendario
+  const [currentView, setCurrentView] = useState<any>('week');
+  const [currentDate, setCurrentDate] = useState(new Date());
+
+  // Variables del Modal de Citas en el Calendario
+  const [selectedEvent, setSelectedEvent] = useState<any>(null);
+  const [showEventModal, setShowEventModal] = useState(false);
+  const [eventNotes, setEventNotes] = useState('');
 
   useEffect(() => {
     loadData();
@@ -47,13 +72,14 @@ export const AdminDashboard: React.FC = () => {
     setConfig(cfg);
   };
 
-  const addService = async () => {
+  const addOrUpdateService = async () => {
     if (!newName.trim()) return;
     const svc: BookingService = {
-      id: 'svc-' + Date.now(),
+      id: editingServiceId || 'svc-' + Date.now(),
       name: newName,
       durationMin: newDuration,
       price: newPrice || undefined,
+      color: newColor,
       isActive: true,
     };
     await repo.saveService(svc);
@@ -66,6 +92,22 @@ export const AdminDashboard: React.FC = () => {
     setNewName('');
     setNewDuration(30);
     setNewPrice(0);
+    setNewColor('#3174ad');
+    setEditingServiceId(null);
+  };
+
+  const openEditService = (svc: BookingService) => {
+    setEditingServiceId(svc.id);
+    setNewName(svc.name);
+    setNewDuration(svc.durationMin);
+    setNewPrice(svc.price || 0);
+    setNewColor(svc.color || '#3174ad');
+    setShowModal(true);
+  };
+  
+  const openNewService = () => {
+    resetServiceForm();
+    setShowModal(true);
   };
 
   const handleScheduleToggle = (dayOfWeek: number) => {
@@ -117,16 +159,63 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
+  const getDayName = (num: number) => {
+    const names = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    return names[num];
+  };
+
+  // Preparar eventos para react-big-calendar
+  const events = useMemo(() => {
+    return appointments.map(app => {
+      const service = services.find(s => s.id === app.serviceId);
+      const duration = service?.durationMin || 30;
+      const start = new Date(app.dateTimeStart);
+      const end = new Date(start.getTime() + duration * 60000);
+      
+      return {
+        id: app.id,
+        title: app.customerId, // Mostrar identificador o nombre del cliente
+        start,
+        end,
+        resource: app,
+        color: service?.color || '#3174ad'
+      };
+    });
+  }, [appointments, services]);
+
+  const eventPropGetter = (event: any) => {
+    return { 
+      style: { 
+        backgroundColor: event.color,
+        borderRadius: '4px',
+        border: 'none',
+        color: 'white',
+        display: 'block',
+        fontSize: '0.85rem'
+      } 
+    };
+  };
+
+  const handleSelectEvent = (event: any) => {
+    setSelectedEvent(event);
+    setEventNotes(event.resource.adminNotes || '');
+    setShowEventModal(true);
+  };
+
+  const updateAppointment = async (updatedFields: Partial<Appointment>) => {
+    if (!selectedEvent) return;
+    const updatedAppt = { ...selectedEvent.resource, ...updatedFields };
+    await repo.saveAppointment(updatedAppt);
+    // Refresh modal local state if status changes dynamically, but typically we close or reload
+    setShowEventModal(false);
+    loadData();
+  };
+
   const todayAppts = appointments.filter(a => {
     const d = new Date(a.dateTimeStart);
     const today = new Date();
     return d.toDateString() === today.toDateString();
   });
-
-  const getDayName = (num: number) => {
-    const names = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-    return names[num];
-  };
 
   return (
     <div className="animate-fade-in">
@@ -157,32 +246,39 @@ export const AdminDashboard: React.FC = () => {
             </div>
           </div>
 
-          <div className="card glass-panel">
-            <h3 style={{ marginBottom: '1rem' }}>Citas Recientes</h3>
-            {appointments.length === 0 ? (
-              <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '2rem' }}>No hay citas registradas todavía.</p>
-            ) : (
-              <table className="appointments-table">
-                <thead>
-                  <tr>
-                    <th>Fecha</th>
-                    <th>Estado</th>
-                    <th>Servicio</th>
-                    <th>Cliente</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {appointments.slice(0, 10).map(a => (
-                    <tr key={a.id}>
-                      <td>{new Date(a.dateTimeStart).toLocaleString('es-ES', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</td>
-                      <td><span className={`status-badge status-${a.status}`}>{a.status}</span></td>
-                      <td>{services.find(s => s.id === a.serviceId)?.name || 'Servicio eliminado'}</td>
-                      <td>{a.customerId}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
+          <div className="card glass-panel" style={{ height: '700px', display: 'flex', flexDirection: 'column' }}>
+            <h3 style={{ marginBottom: '1rem' }}>Calendario de Reservas</h3>
+            <div style={{ flex: 1, minHeight: 0 }}>
+              <Calendar
+                localizer={localizer}
+                events={events}
+                startAccessor="start"
+                endAccessor="end"
+                style={{ height: '100%', background: 'white', color: 'black', borderRadius: '8px', padding: '1rem', fontFamily: 'inherit' }}
+                eventPropGetter={eventPropGetter}
+                onSelectEvent={handleSelectEvent}
+                culture="es"
+                views={['month', 'week', 'day']}
+                view={currentView as any}
+                onView={(v) => setCurrentView(v)}
+                date={currentDate}
+                onNavigate={(d) => setCurrentDate(d)}
+                messages={{
+                  week: 'Semana',
+                  work_week: 'Semana de trabajo',
+                  day: 'Día',
+                  month: 'Mes',
+                  previous: 'Atrás',
+                  next: 'Siguiente',
+                  today: 'Hoy',
+                  agenda: 'Agenda',
+                  noEventsInRange: 'No hay citas en este rango',
+                  showMore: total => `+${total} más`
+                }}
+                min={new Date(1970, 0, 1, 8, 0, 0)} // Start at 8 AM
+                max={new Date(1970, 0, 1, 21, 0, 0)} // End at 9 PM
+              />
+            </div>
           </div>
         </>
       )}
@@ -191,15 +287,22 @@ export const AdminDashboard: React.FC = () => {
         <div className="animate-fade-in">
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
             <h3>Servicios Disponibles</h3>
-            <button className="btn-primary" onClick={() => setShowModal(true)}>+ Añadir Nuevo</button>
+            <button className="btn-primary" onClick={openNewService}>+ Añadir Nuevo</button>
           </div>
           <div className="services-grid">
             {services.map(svc => (
-              <div key={svc.id} className="service-card">
-                <h3>{svc.name}</h3>
+              <div key={svc.id} className="service-card hover-glow" onClick={() => openEditService(svc)} style={{ cursor: 'pointer', transition: 'border 0.2s', border: '1px solid var(--glass-border)' }} onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--primary-color)'} onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--glass-border)'}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h3>{svc.name}</h3>
+                  <span style={{ fontSize: '0.75rem', background: 'rgba(255,255,255,0.1)', padding: '2px 8px', borderRadius: '12px' }}>Editar</span>
+                </div>
                 <div className="service-meta">
                   <span>⏱ {svc.durationMin} min</span>
                   {svc.price !== undefined && <span>💰 {svc.price}€</span>}
+                </div>
+                <div className="service-meta" style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ width: '16px', height: '16px', backgroundColor: svc.color || '#3174ad', borderRadius: '50%', display: 'inline-block' }}></span>
+                  <span style={{ fontSize: '0.8rem' }}>Color en calendario</span>
                 </div>
               </div>
             ))}
@@ -277,7 +380,7 @@ export const AdminDashboard: React.FC = () => {
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <h2>Nuevo Servicio</h2>
+            <h2>{editingServiceId ? 'Editar Servicio' : 'Nuevo Servicio'}</h2>
             <div className="form-group">
               <label>Nombre del servicio</label>
               <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Ej: Corte de pelo" />
@@ -290,9 +393,70 @@ export const AdminDashboard: React.FC = () => {
               <label>Precio (€, opcional)</label>
               <input type="number" value={newPrice} onChange={e => setNewPrice(Number(e.target.value))} />
             </div>
+            <div className="form-group">
+              <label>Color en el Calendario</label>
+              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center'}}>
+                <input type="color" value={newColor} onChange={e => setNewColor(e.target.value)} style={{ width: '50px', height: '40px', padding: '0', cursor: 'pointer', border: 'none', background: 'transparent' }} />
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)'}}>Identificador visual en la agenda</span>
+              </div>
+            </div>
             <div className="modal-actions">
               <button className="btn-secondary" onClick={() => setShowModal(false)}>Cancelar</button>
-              <button className="btn-primary" onClick={addService}>Guardar</button>
+              <button className="btn-primary" onClick={addOrUpdateService}>Guardar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Detalles Cita (Calendario) */}
+      {showEventModal && selectedEvent && (
+        <div className="modal-overlay" onClick={() => setShowEventModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h2>Detalles de Cita</h2>
+                <button className="btn-icon" onClick={() => setShowEventModal(false)}><XCircle /></button>
+            </div>
+            
+            <div className="form-group" style={{ 
+              background: 'rgba(0,0,0,0.2)', padding: '1rem', borderRadius: '8px', borderLeft: `4px solid ${selectedEvent.color}` 
+            }}>
+              <p style={{ margin: '0 0 0.5rem 0' }}><strong>Cliente:</strong> {selectedEvent.resource.customerId}</p>
+              <p style={{ margin: '0 0 0.5rem 0' }}><strong>Servicio:</strong> {services.find(s => s.id === selectedEvent.resource.serviceId)?.name}</p>
+              <p style={{ margin: '0 0 0.5rem 0' }}><strong>Fecha:</strong> {new Date(selectedEvent.start).toLocaleString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+              <p style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <strong>Estado actual:</strong> 
+                  <span className={`status-badge status-${selectedEvent.resource.status}`}>{selectedEvent.resource.status}</span>
+              </p>
+            </div>
+            
+            <div className="form-group">
+              <label>Actualizar Estado</label>
+              <select 
+                value={selectedEvent.resource.status} 
+                onChange={(e) => updateAppointment({ status: e.target.value as any })}
+                style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', background: 'var(--surface-color)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+              >
+                <option value="PENDING">Pendiente</option>
+                <option value="CONFIRMED">Confirmada</option>
+                <option value="COMPLETED">Completada</option>
+                <option value="CANCELLED">Cancelada</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label>Notas Privadas (Administración)</label>
+              <textarea 
+                value={eventNotes} 
+                onChange={e => setEventNotes(e.target.value)} 
+                rows={4}
+                placeholder="Añade notas o recordatorios internos sobre esta cita..."
+                style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', background: 'var(--surface-color)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', fontFamily: 'inherit' }}
+              />
+            </div>
+            
+            <div className="modal-actions" style={{ marginTop: '2rem' }}>
+              <button className="btn-secondary" onClick={() => setShowEventModal(false)}>Cerrar sin guardar notas</button>
+              <button className="btn-primary" onClick={() => updateAppointment({ adminNotes: eventNotes })}>Guardar Notas</button>
             </div>
           </div>
         </div>
