@@ -1,21 +1,17 @@
 import React from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { useData } from '../context/DataContext';
 import { 
   Users, 
   Calendar, 
   LayoutDashboard, 
-  Settings, 
   User as UserIcon, 
   LogOut,
-  Database,
-  Cloud
+  Settings
 } from 'lucide-react';
 
 export const AppLayout: React.FC = () => {
-  const { user, logout, isAdmin } = useAuth();
-  const { mode, switchMode } = useData();
+  const { user, logout, isAdmin, isSuperAdmin } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -32,22 +28,6 @@ export const AppLayout: React.FC = () => {
           <span>v2.0</span>
         </div>
         <div className="app-topbar__actions">
-          {/* Toggle DB Mode */}
-          <div className="data-toggle">
-            <button
-              className={mode === 'local' ? 'active' : ''}
-              onClick={() => switchMode('local')}
-            >
-              <Database size={14} /> Local
-            </button>
-            <button
-              className={mode === 'firebase' ? 'active' : ''}
-              onClick={() => switchMode('firebase')}
-            >
-              <Cloud size={14} /> Nube
-            </button>
-          </div>
-
           {user && (
             <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
               <NavLink to="/profile" className="app-topbar__user" style={{ textDecoration: 'none' }}>
@@ -76,11 +56,13 @@ export const AppLayout: React.FC = () => {
               <NavLink to="/booking" className={({ isActive }) => isActive ? 'active' : ''}>
                 <Calendar size={18} /> Agenda/Citas
               </NavLink>
-              <div style={{ marginTop: 'auto', borderTop: '1px solid var(--glass-border)', paddingTop: '0.5rem' }}>
-                <NavLink to="/super-admin" className={({ isActive }) => isActive ? 'active' : ''}>
-                  <Settings size={18} /> Super Admin
-                </NavLink>
-              </div>
+              {isSuperAdmin && (
+                <div style={{ marginTop: 'auto', borderTop: '1px solid var(--glass-border)', paddingTop: '0.5rem' }}>
+                  <NavLink to="/superadmin" className={({ isActive }) => isActive ? 'active' : ''}>
+                    <Settings size={18} /> Super Admin
+                  </NavLink>
+                </div>
+              )}
             </>
           ) : (
             <>

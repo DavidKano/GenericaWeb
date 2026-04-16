@@ -596,3 +596,72 @@ input[type="time"] {
     font-size: 0.85rem;
   }
 }
+
+/* ==================== REACT BIG CALENDAR OVERRIDES ==================== */
+.rbc-calendar {
+  font-family: var(--font-family) !important;
+  color: var(--text-primary);
+}
+
+.rbc-time-gutter .rbc-timeslot-group {
+  font-size: 0.85rem;
+  color: var(--text-secondary) !important;
+  font-weight: 600;
+}
+
+.rbc-header {
+  padding: 0.75rem !important;
+  font-weight: 600 !important;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: var(--bg-color);
+  border-bottom: 1px solid var(--glass-border) !important;
+}
+
+.rbc-event {
+  font-family: var(--font-family);
+  font-weight: 400 !important;
+  font-size: 0.72rem !important;
+  box-shadow: var(--shadow-sm);
+}
+
+.rbc-timeslot-group {
+  min-height: 55px !important;
+}
+
+.rbc-toolbar button {
+  font-family: var(--font-family);
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  border-radius: 8px !important;
+  padding: 0.4rem 1rem !important;
+  transition: all 0.2s;
+  border: 1px solid var(--glass-border) !important;
+}
+
+.rbc-toolbar button.rbc-active {
+  background-color: var(--primary-color) !important;
+  color: white !important;
+  border-color: var(--primary-color) !important;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+}
+
+.rbc-toolbar button:hover {
+  background-color: rgba(59, 130, 246, 0.05);
+  color: var(--primary-color);
+  border-color: var(--primary-color) !important;
+}
+
+.rbc-time-slot {
+  color: var(--text-secondary);
+}
+
+.rbc-today {
+  background-color: rgba(59, 130, 246, 0.03) !important;
+}
+
+.rbc-off-range-bg {
+  background-color: #f8fafc !important;
+}

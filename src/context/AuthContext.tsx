@@ -8,6 +8,7 @@ type AuthContextType = {
   register: (userData: Omit<User, 'id' | 'role'>, password: string) => Promise<boolean>;
   logout: () => void;
   isAdmin: boolean;
+  isSuperAdmin: boolean;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -16,7 +17,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const PASSWORDS_KEY = 'auth_passwords';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { repo } = useData();
+  const { repo, mode } = useData();
   const [user, setUser] = useState<User | null>(() => {
     const saved = localStorage.getItem('currentUser');
     return saved ? JSON.parse(saved) : null;
@@ -24,6 +25,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Inicializar admin por defecto si no existe
   useEffect(() => {
+    if (mode === 'firebase') return; // En prod no se inyecta la demo
     const initAdmin = async () => {
       const users = await repo.getUsers();
       if (!users.find(u => u.role === 'ADMIN')) {
@@ -41,9 +43,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
     initAdmin();
-  }, [repo]);
+  }, [repo, mode]);
 
   const login = useCallback(async (email: string, password: string): Promise<boolean> => {
+    if (mode === 'firebase') {
+      try {
+        const { getAuth, signInWithEmailAndPassword } = await import('firebase/auth');
+        const auth = getAuth();
+        const cred = await signInWithEmailAndPassword(auth, email, password);
+        const fbUser = await repo.getUserById(cred.user.uid);
+        if (fbUser) {
+          setUser(fbUser);
+          localStorage.setItem('currentUser', JSON.stringify(fbUser));
+          return true;
+        }
+        return false;
+      } catch (err) {
+        console.error(err);
+        return false;
+      }
+    }
+
     const users = await repo.getUsers();
     const foundUser = users.find(u => u.email.toLowerCase() === email.toLowerCase());
     
@@ -56,9 +76,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
     return false;
-  }, [repo]);
+  }, [repo, mode]);
 
   const register = useCallback(async (userData: Omit<User, 'id' | 'role'>, password: string): Promise<boolean> => {
+    if (mode === 'firebase') {
+      try {
+        const { getAuth, createUserWithEmailAndPassword } = await import('firebase/auth');
+        const auth = getAuth();
+        const cred = await createUserWithEmailAndPassword(auth, userData.email, password);
+        const newUser: User = { ...userData, id: cred.user.uid, role: 'CUSTOMER' };
+        await repo.saveUser(newUser);
+        setUser(newUser);
+        localStorage.setItem('currentUser', JSON.stringify(newUser));
+        return true;
+      } catch (err) {
+        console.error(err);
+        return false;
+      }
+    }
+
     const users = await repo.getUsers();
     if (users.find(u => u.email.toLowerCase() === userData.email.toLowerCase())) {
       console.error('El usuario ya existe');
@@ -80,7 +116,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(newUser);
     localStorage.setItem('currentUser', JSON.stringify(newUser));
     return true;
-  }, [repo]);
+  }, [repo, mode]);
 
   const logout = useCallback(() => {
     setUser(null);
@@ -93,7 +129,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       login, 
       register, 
       logout, 
-      isAdmin: user?.role === 'ADMIN' 
+      isAdmin: user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN',
+      isSuperAdmin: user?.role === 'SUPER_ADMIN'
     }}>
       {children}
     </AuthContext.Provider>

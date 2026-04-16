@@ -54,6 +54,10 @@ export const AdminDashboard: React.FC = () => {
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
   const [showEventModal, setShowEventModal] = useState(false);
   const [eventNotes, setEventNotes] = useState('');
+  const [eventDate, setEventDate] = useState('');
+  const [eventTime, setEventTime] = useState('');
+  const [eventServiceId, setEventServiceId] = useState('');
+  const [eventStatus, setEventStatus] = useState<any>('PENDING');
 
   useEffect(() => {
     loadData();
@@ -183,6 +187,71 @@ export const AdminDashboard: React.FC = () => {
     });
   }, [appointments, services]);
 
+  const calendarBounds = useMemo(() => {
+    let minH = 24;
+    let maxH = 0;
+    let hasRanges = false;
+    
+    schedules.forEach(day => {
+      if (day.isOpen) {
+        day.ranges.forEach(r => {
+          hasRanges = true;
+          const startH = parseInt(r.start.split(':')[0], 10);
+          const endH = parseInt(r.end.split(':')[0], 10);
+          if (startH < minH) minH = startH;
+          if (endH > maxH) maxH = endH;
+        });
+      }
+    });
+
+    if (!hasRanges) {
+      minH = 8;
+      maxH = 20;
+    }
+
+    minH = Math.max(0, minH - 1);
+    maxH = Math.min(23, maxH + 1);
+
+    return {
+      min: new Date(1970, 0, 1, minH, 0, 0),
+      max: new Date(1970, 0, 1, maxH, 59, 59),
+    }
+  }, [schedules]);
+
+  const slotPropGetter = (date: Date) => {
+    if (currentView === 'month') return {};
+
+    const dayOfWeek = date.getDay();
+    const daySchedule = schedules.find(s => s.dayOfWeek === dayOfWeek);
+    
+    if (!daySchedule || !daySchedule.isOpen) {
+      return { className: 'rbc-off-range-bg', style: { backgroundColor: 'var(--bg-color)', opacity: 0.5 } };
+    }
+
+    const minutes = date.getHours() * 60 + date.getMinutes();
+    const isWithinAnyRange = daySchedule.ranges.some(r => {
+      const [startH, startM] = r.start.split(':').map(Number);
+      const [endH, endM] = r.end.split(':').map(Number);
+      const startMin = startH * 60 + startM;
+      const endMin = endH * 60 + endM;
+      return minutes >= startMin && minutes < endMin;
+    });
+
+    if (!isWithinAnyRange) {
+       return { className: 'rbc-off-range-bg', style: { backgroundColor: 'var(--bg-color)', opacity: 0.5 } };
+    }
+    
+    return {};
+  };
+
+  const dayPropGetter = (date: Date) => {
+    const daySchedule = schedules.find(s => s.dayOfWeek === date.getDay());
+    if (!daySchedule || !daySchedule.isOpen) {
+       return { className: 'rbc-off-range-bg', style: { backgroundColor: 'var(--bg-color)' } };
+    }
+    return {};
+  };
+
   const eventPropGetter = (event: any) => {
     return { 
       style: { 
@@ -199,7 +268,32 @@ export const AdminDashboard: React.FC = () => {
   const handleSelectEvent = (event: any) => {
     setSelectedEvent(event);
     setEventNotes(event.resource.adminNotes || '');
+    setEventServiceId(event.resource.serviceId);
+    setEventStatus(event.resource.status);
+    
+    // YYYY-MM-DD
+    const d = new Date(event.start);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    setEventDate(`${yyyy}-${mm}-${dd}`);
+    // HH:mm
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mins = String(d.getMinutes()).padStart(2, '0');
+    setEventTime(`${hh}:${mins}`);
+    
     setShowEventModal(true);
+  };
+
+  const handleSaveEventEdits = () => {
+    if (!selectedEvent) return;
+    const newDate = new Date(`${eventDate}T${eventTime}`);
+    updateAppointment({
+      serviceId: eventServiceId,
+      dateTimeStart: newDate.getTime(),
+      adminNotes: eventNotes,
+      status: eventStatus
+    });
   };
 
   const updateAppointment = async (updatedFields: Partial<Appointment>) => {
@@ -263,6 +357,9 @@ export const AdminDashboard: React.FC = () => {
                 onView={(v) => setCurrentView(v)}
                 date={currentDate}
                 onNavigate={(d) => setCurrentDate(d)}
+                formats={{
+                  eventTimeRangeFormat: () => '',
+                }}
                 messages={{
                   week: 'Semana',
                   work_week: 'Semana de trabajo',
@@ -275,8 +372,10 @@ export const AdminDashboard: React.FC = () => {
                   noEventsInRange: 'No hay citas en este rango',
                   showMore: total => `+${total} más`
                 }}
-                min={new Date(1970, 0, 1, 8, 0, 0)} // Start at 8 AM
-                max={new Date(1970, 0, 1, 21, 0, 0)} // End at 9 PM
+                min={calendarBounds.min}
+                max={calendarBounds.max}
+                slotPropGetter={slotPropGetter}
+                dayPropGetter={dayPropGetter}
               />
             </div>
           </div>
@@ -417,46 +516,70 @@ export const AdminDashboard: React.FC = () => {
                 <button className="btn-icon" onClick={() => setShowEventModal(false)}><XCircle /></button>
             </div>
             
-            <div className="form-group" style={{ 
-              background: 'rgba(0,0,0,0.2)', padding: '1rem', borderRadius: '8px', borderLeft: `4px solid ${selectedEvent.color}` 
-            }}>
-              <p style={{ margin: '0 0 0.5rem 0' }}><strong>Cliente:</strong> {selectedEvent.resource.customerId}</p>
-              <p style={{ margin: '0 0 0.5rem 0' }}><strong>Servicio:</strong> {services.find(s => s.id === selectedEvent.resource.serviceId)?.name}</p>
-              <p style={{ margin: '0 0 0.5rem 0' }}><strong>Fecha:</strong> {new Date(selectedEvent.start).toLocaleString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
-              <p style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <strong>Estado actual:</strong> 
-                  <span className={`status-badge status-${selectedEvent.resource.status}`}>{selectedEvent.resource.status}</span>
-              </p>
+            <div className="form-group" style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+               <h3 style={{ margin: 0, color: 'var(--primary-color)' }}>{selectedEvent.resource.customerId}</h3>
             </div>
             
             <div className="form-group">
+              <label>Cambiar Servicio</label>
+              <select 
+                value={eventServiceId} 
+                onChange={e => setEventServiceId(e.target.value)}
+                style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', background: 'var(--surface-color)', border: '1px solid var(--glass-border)', color: 'var(--text-primary)' }}
+              >
+                {services.map(s => <option key={s.id} value={s.id}>{s.name} ({s.durationMin} min)</option>)}
+              </select>
+            </div>
+
+            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.25rem' }}>
+              <div className="form-group" style={{ flex: 1, margin: 0 }}>
+                <label>Fecha de la Cita</label>
+                <input 
+                  type="date" 
+                  value={eventDate} 
+                  onChange={e => setEventDate(e.target.value)} 
+                  style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'var(--surface-color)', color: 'var(--text-primary)', fontFamily: 'inherit' }} 
+                />
+              </div>
+              <div className="form-group" style={{ flex: 1, margin: 0 }}>
+                <label>Hora de Inicio</label>
+                <input 
+                  type="time" 
+                  value={eventTime} 
+                  onChange={e => setEventTime(e.target.value)} 
+                  style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'var(--surface-color)', color: 'var(--text-primary)', fontFamily: 'inherit' }} 
+                />
+              </div>
+            </div>
+
+            <div className="form-group">
               <label>Actualizar Estado</label>
               <select 
-                value={selectedEvent.resource.status} 
-                onChange={(e) => updateAppointment({ status: e.target.value as any })}
-                style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', background: 'var(--surface-color)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+                value={eventStatus} 
+                onChange={(e) => setEventStatus(e.target.value)}
+                style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', background: 'var(--surface-color)', border: '1px solid var(--glass-border)', color: 'var(--text-primary)' }}
               >
                 <option value="PENDING">Pendiente</option>
                 <option value="CONFIRMED">Confirmada</option>
                 <option value="COMPLETED">Completada</option>
-                <option value="CANCELLED">Cancelada</option>
+                <option value="CANCELLED">Cancelada (Anular)</option>
               </select>
             </div>
 
-            <div className="form-group">
+            <div className="form-group" style={{ marginTop: '1.25rem' }}>
               <label>Notas Privadas (Administración)</label>
               <textarea 
                 value={eventNotes} 
                 onChange={e => setEventNotes(e.target.value)} 
-                rows={4}
+                rows={3}
                 placeholder="Añade notas o recordatorios internos sobre esta cita..."
-                style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', background: 'var(--surface-color)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', fontFamily: 'inherit' }}
+                style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', background: 'var(--surface-color)', border: '1px solid var(--glass-border)', color: 'var(--text-primary)', fontFamily: 'inherit' }}
               />
             </div>
             
             <div className="modal-actions" style={{ marginTop: '2rem' }}>
-              <button className="btn-secondary" onClick={() => setShowEventModal(false)}>Cerrar sin guardar notas</button>
-              <button className="btn-primary" onClick={() => updateAppointment({ adminNotes: eventNotes })}>Guardar Notas</button>
+              <button className="btn-secondary" onClick={() => setShowEventModal(false)}>Cancelar</button>
+              <button className="btn-primary" onClick={handleSaveEventEdits}>Guardar Cambios</button>
             </div>
           </div>
         </div>
