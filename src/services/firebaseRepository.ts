@@ -1,5 +1,5 @@
 import type { DataRepository } from './repository';
-import type { User, BookingService, Appointment, BusinessConfig, DaySchedule, BlockedDay } from './models';
+import type { User, BookingService, Appointment, BusinessConfig, DaySchedule, BlockedDay, CompanyData, DesignConfig } from './models';
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc, getDoc } from 'firebase/firestore';
 
@@ -84,5 +84,24 @@ export class FirebaseRepository implements DataRepository {
 
   async deleteBlockedDay(id: string): Promise<void> {
     await deleteDoc(doc(this.db, 'blockedDays', id));
+  }
+
+  // --- SaaS License / Core Data ---
+  async getCompanyData(): Promise<CompanyData | null> {
+    const d = await getDoc(doc(this.db, 'system', 'company_data'));
+    return d.exists() ? (d.data() as CompanyData) : null;
+  }
+
+  async saveCompanyData(data: CompanyData): Promise<void> {
+    await setDoc(doc(this.db, 'system', 'company_data'), data);
+  }
+
+  async getDesignConfig(): Promise<DesignConfig | null> {
+    const d = await getDoc(doc(this.db, 'system', 'design_config'));
+    return d.exists() ? (d.data() as DesignConfig) : null;
+  }
+
+  async saveDesignConfig(data: DesignConfig): Promise<void> {
+    await setDoc(doc(this.db, 'system', 'design_config'), data);
   }
 }

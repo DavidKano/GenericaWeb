@@ -1,82 +1,126 @@
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
-import { AppLayout } from './components/AppLayout';
+import { useData } from './context/DataContext';
 import { LoginPage } from './pages/LoginPage';
-import { AdminDashboard } from './pages/AdminDashboard';
-import { AdminUsersPage } from './pages/AdminUsersPage';
+import { SystemIgnition } from './pages/SystemIgnition';
+
+// Portals & Pages
+import { CustomerLayout } from './components/layouts/CustomerLayout';
 import { BookingPage } from './pages/BookingPage';
 import { ProfilePage } from './pages/ProfilePage';
-import { SystemIgnition } from './pages/SystemIgnition';
-import { SuperAdminPanel } from './components/SuperAdminPanel';
+
+import { AdminLayout } from './components/layouts/AdminLayout';
+import { AdminDashboard } from './pages/AdminDashboard';
+import { AdminUsersPage } from './pages/AdminUsersPage';
+
+import { SuperAdminLayout } from './components/layouts/SuperAdminLayout';
+import { AdminCoreDatos, AdminCoreDiseno, AdminCorePoliticas, AdminCoreCss } from './pages/AdminCorePages';
+
 import './App.css';
 
-function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode, allowedRoles?: ('SUPER_ADMIN' | 'ADMIN' | 'CUSTOMER')[] }) {
+function PortalGuard({ children, allowedRoles, portalType }: { children: React.ReactNode, allowedRoles: ('SUPER_ADMIN' | 'ADMIN' | 'CUSTOMER')[], portalType: 'SUPER_ADMIN' | 'ADMIN' | 'CUSTOMER' }) {
   const { user } = useAuth();
-  const location = useLocation();
 
   if (!user) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    // Si no está logueado, escupe la pantalla de login directamente SIN cambiar la URL
+    return <LoginPage type={portalType} />;
   }
 
-  if (allowedRoles && !allowedRoles.includes(user.role)) {
-    // Redirigir a su página de inicio si intenta entrar en ruta no permitida
-    return <Navigate to={user.role === 'ADMIN' || user.role === 'SUPER_ADMIN' ? '/' : '/booking'} replace />;
+  // Si está logueado pero intenta estar donde no le incumbe, lo repelemos
+  if (!allowedRoles.includes(user.role)) {
+    if (user.role === 'SUPER_ADMIN') return <Navigate to="/superadmin" replace />;
+    if (user.role === 'ADMIN') return <Navigate to="/admin" replace />;
+    return <Navigate to="/booking" replace />;
   }
 
   return <>{children}</>;
 }
 
-function RoleBasedHome() {
-  const { user } = useAuth();
-  if (user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN') return <AdminDashboard />;
-  return <Navigate to="/booking" replace />;
+function GlobalThemeInjector({ children }: { children: React.ReactNode }) {
+  const { repo } = useData();
+
+  useEffect(() => {
+    // Escuchamos cambios de ruta para decidir si inyectar o limpiar
+    const isSuperAdmin = window.location.pathname.startsWith('/superadmin');
+
+    if (isSuperAdmin) {
+      // Resetear a los valores CORE (Inter, Gris, etc)
+      document.documentElement.style.setProperty('--primary-color', '#3b82f6');
+      document.documentElement.style.setProperty('--font-family', "'Inter', sans-serif");
+      document.documentElement.style.setProperty('--bg-color', '#f3f4f6');
+      return;
+    }
+
+    repo.getDesignConfig().then(cfg => {
+      if (cfg?.primaryColor) {
+        document.documentElement.style.setProperty('--primary-color', cfg.primaryColor);
+        document.documentElement.style.setProperty('--secondary-color', cfg.secondaryColor || '#2563eb');
+      }
+      if (cfg?.primaryTextColor) {
+        document.documentElement.style.setProperty('--primary-text-color', cfg.primaryTextColor);
+      }
+      if (cfg?.fontFamily) {
+        document.documentElement.style.setProperty('--font-family', cfg.fontFamily);
+      }
+      if (cfg?.backgroundColor) {
+        document.documentElement.style.setProperty('--bg-color', cfg.backgroundColor);
+      }
+    });
+  }, [repo, window.location.pathname]);
+
+  return <>{children}</>;
 }
 
 function App() {
   return (
-    <BrowserRouter>
+    <GlobalThemeInjector>
+      <BrowserRouter>
       <Routes>
-        <Route path="/login" element={<LoginPage />} />
+        {/* Core Initialization Route */}
         <Route path="/initconfig" element={<SystemIgnition />} />
-        
-        <Route element={<AppLayout />}>
-          {/* Ruta raíz inteligente */}
-          <Route path="/" element={
-            <ProtectedRoute>
-              <RoleBasedHome />
-            </ProtectedRoute>
-          } />
 
-          {/* Gestión de Administrador */}
-          <Route path="/admin/users" element={
-            <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'ADMIN']}>
-              <AdminUsersPage />
-            </ProtectedRoute>
-          } />
-
-          <Route path="/superadmin" element={
-            <ProtectedRoute allowedRoles={['SUPER_ADMIN']}>
-              <SuperAdminPanel />
-            </ProtectedRoute>
-          } />
-
-          {/* Funciones de Cliente */}
-          <Route path="/booking" element={
-            <ProtectedRoute allowedRoles={['CUSTOMER', 'ADMIN', 'SUPER_ADMIN']}>
-              <BookingPage />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/profile" element={
-            <ProtectedRoute allowedRoles={['CUSTOMER', 'ADMIN', 'SUPER_ADMIN']}>
-              <ProfilePage />
-            </ProtectedRoute>
-          } />
+        {/* ---------------- ADMIN PORTAL ---------------- */}
+        <Route path="/admin" element={
+           <PortalGuard allowedRoles={['ADMIN', 'SUPER_ADMIN']} portalType="ADMIN">
+             <AdminLayout />
+           </PortalGuard>
+        }>
+          <Route index element={<AdminDashboard />} />
+          <Route path="users" element={<AdminUsersPage />} />
+          <Route path="agenda" element={<AdminDashboard />} /> /* Dummy wrapper for now */
         </Route>
 
+        {/* ---------------- SUPER ADMIN PORTAL ---------------- */}
+        <Route path="/superadmin" element={
+           <PortalGuard allowedRoles={['SUPER_ADMIN']} portalType="SUPER_ADMIN">
+             <SuperAdminLayout />
+           </PortalGuard>
+        }>
+          <Route index element={<Navigate to="datos" replace />} />
+          <Route path="datos" element={<AdminCoreDatos />} />
+          <Route path="diseno" element={<AdminCoreDiseno />} />
+          <Route path="politicas" element={<AdminCorePoliticas />} />
+          <Route path="css" element={<AdminCoreCss />} />
+        </Route>
+
+        {/* ---------------- CUSTOMER PORTAL (ROOT) ---------------- */}
+        <Route path="/" element={
+           <PortalGuard allowedRoles={['CUSTOMER', 'ADMIN', 'SUPER_ADMIN']} portalType="CUSTOMER">
+             <CustomerLayout />
+           </PortalGuard>
+        }>
+          <Route index element={<Navigate to="/booking" replace />} />
+          <Route path="booking" element={<BookingPage />} />
+          <Route path="profile" element={<ProfilePage />} />
+        </Route>
+        
+        {/* Alias explícito por si acaso escriben /login */}
+        <Route path="/login" element={<Navigate to="/" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
+    </GlobalThemeInjector>
   );
 }
 

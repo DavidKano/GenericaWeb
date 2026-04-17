@@ -1,0 +1,68 @@
+import React from 'react';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+import { LayoutDashboard, Users, Calendar, User as UserIcon, LogOut } from 'lucide-react';
+import { useData } from '../../context/DataContext';
+import type { DesignConfig } from '../../services/models';
+
+export const AdminLayout: React.FC = () => {
+  const { user, logout } = useAuth();
+  const { repo } = useData();
+  const navigate = useNavigate();
+  const [design, setDesign] = React.useState<DesignConfig | null>(null);
+
+  React.useEffect(() => {
+    repo.getDesignConfig().then(setDesign);
+  }, [repo]);
+
+  const handleLogout = () => {
+    logout();
+    navigate('/admin/login');
+  };
+
+  return (
+    <div className="app-layout">
+      {design?.customCssAdmin && <style dangerouslySetInnerHTML={{ __html: design.customCssAdmin }} />}
+      {/* Top Bar */}
+      <header className="app-topbar admin-portal-topbar">
+        <div className="app-topbar__brand" onClick={() => navigate('/admin')} style={{ cursor: 'pointer' }}>
+          Workspace Admin
+        </div>
+        <div className="app-topbar__actions">
+          {user && (
+            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+              <div className="app-topbar__user" style={{ textDecoration: 'none', cursor: 'default' }}>
+                <UserIcon size={16} />
+                {user.name} (Dueño)
+              </div>
+              <button className="btn-logout" onClick={handleLogout} title="Cerrar sesión">
+                <LogOut size={16} />
+              </button>
+            </div>
+          )}
+        </div>
+      </header>
+
+      {/* Body: Sidebar + Content */}
+      <div className="app-container" style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+        <nav className="admin-sidebar glass-panel">
+          <NavLink to="/admin" className={({ isActive }) => isActive ? 'active' : ''} end>
+            <LayoutDashboard size={18} /> Panel Control
+          </NavLink>
+          <NavLink to="/admin/users" className={({ isActive }) => isActive ? 'active' : ''}>
+            <Users size={18} /> Gestión Clientes
+          </NavLink>
+          <NavLink to="/admin/agenda" className={({ isActive }) => isActive ? 'active' : ''}>
+            <Calendar size={18} /> Agenda/Citas
+          </NavLink>
+        </nav>
+        
+        <main className="app-content" style={{ flex: 1, padding: '1.5rem', overflowY: 'auto' }}>
+          <div style={{ maxWidth: '100%', margin: '0 auto' }}>
+            <Outlet />
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+};

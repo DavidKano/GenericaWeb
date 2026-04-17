@@ -28,19 +28,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (mode === 'firebase') return; // En prod no se inyecta la demo
     const initAdmin = async () => {
       const users = await repo.getUsers();
-      if (!users.find(u => u.role === 'ADMIN')) {
-        const adminUser: User = {
-          id: 'admin-001',
-          name: 'Administrador',
-          email: 'admin@demo.com',
-          phone: '600000000',
-          role: 'ADMIN',
-        };
-        await repo.saveUser(adminUser);
-        const passwords = JSON.parse(localStorage.getItem(PASSWORDS_KEY) || '{}');
-        passwords['admin@demo.com'] = 'admin';
-        localStorage.setItem(PASSWORDS_KEY, JSON.stringify(passwords));
-      }
+        if (!users.find(u => u.role === 'ADMIN')) {
+          const adminUser: User = {
+            id: 'admin-001',
+            name: 'Administrador',
+            email: 'admin@demo.com',
+            phone: '600000000',
+            role: 'ADMIN',
+          };
+          await repo.saveUser(adminUser);
+          const passwords = JSON.parse(localStorage.getItem(PASSWORDS_KEY) || '{}');
+          passwords['admin@demo.com'] = 'admin';
+          localStorage.setItem(PASSWORDS_KEY, JSON.stringify(passwords));
+        }
+
+        if (!users.find(u => u.role === 'SUPER_ADMIN')) {
+          const superAdminUser: User = {
+            id: 'superadmin-001',
+            name: 'Super Administrador',
+            email: 'superadmin@demo.com',
+            phone: '600000001',
+            role: 'SUPER_ADMIN',
+          };
+          await repo.saveUser(superAdminUser);
+          const passwords = JSON.parse(localStorage.getItem(PASSWORDS_KEY) || '{}');
+          passwords['superadmin@demo.com'] = 'superadmin';
+          localStorage.setItem(PASSWORDS_KEY, JSON.stringify(passwords));
+        }
+
+        if (!users.find(u => u.email === 'cliente@demo.com')) {
+          const customerUser: User = {
+            id: 'customer-001',
+            name: 'Cliente Demo',
+            email: 'cliente@demo.com',
+            phone: '600000002',
+            role: 'CUSTOMER',
+          };
+          await repo.saveUser(customerUser);
+          const passwords = JSON.parse(localStorage.getItem(PASSWORDS_KEY) || '{}');
+          passwords['cliente@demo.com'] = 'cliente';
+          localStorage.setItem(PASSWORDS_KEY, JSON.stringify(passwords));
+        }
     };
     initAdmin();
   }, [repo, mode]);

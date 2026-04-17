@@ -1,5 +1,5 @@
 import type { DataRepository } from './repository';
-import type { User, BookingService, Appointment, BusinessConfig, DaySchedule, BlockedDay } from './models';
+import type { User, BookingService, Appointment, BusinessConfig, DaySchedule, BlockedDay, CompanyData, DesignConfig } from './models';
 
 // Utilidad simple para leer/escribir JSON en localStorage
 const getLocal = <T>(key: string): T[] => JSON.parse(localStorage.getItem(key) || '[]');
@@ -92,5 +92,24 @@ export class LocalRepository implements DataRepository {
   async deleteBlockedDay(id: string): Promise<void> {
     const days = getLocal<BlockedDay>('blockedDays');
     setLocal('blockedDays', days.filter(d => d.id !== id));
+  }
+
+  // --- SaaS License / Core Data ---
+  async getCompanyData(): Promise<CompanyData | null> {
+    const data = localStorage.getItem('companyDataGlobal');
+    return data ? JSON.parse(data) : null;
+  }
+
+  async saveCompanyData(data: CompanyData): Promise<void> {
+    setLocal('companyDataGlobal', data);
+  }
+
+  async getDesignConfig(): Promise<DesignConfig | null> {
+    const data = localStorage.getItem('designConfigGlobal');
+    return data ? JSON.parse(data) : null;
+  }
+
+  async saveDesignConfig(data: DesignConfig): Promise<void> {
+    setLocal('designConfigGlobal', data);
   }
 }

@@ -1,9 +1,15 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { User, Phone, Mail, Lock, UserPlus, LogIn } from 'lucide-react';
+import { User, Phone, Mail, Lock, UserPlus, LogIn, ShieldAlert, Briefcase } from 'lucide-react';
+import { useData } from '../context/DataContext';
+import type { CompanyData } from '../services/models';
+import { LegalModal } from '../components/ui/LegalModal';
 
-export const LoginPage: React.FC = () => {
+interface LoginPageProps {
+  type?: 'CUSTOMER' | 'ADMIN' | 'SUPER_ADMIN';
+}
+
+export const LoginPage: React.FC<LoginPageProps> = ({ type = 'CUSTOMER' }) => {
   const [isRegister, setIsRegister] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -13,7 +19,14 @@ export const LoginPage: React.FC = () => {
   
   const [error, setError] = useState('');
   const { login, register } = useAuth();
-  const navigate = useNavigate();
+  const { mode, repo } = useData();
+  const [company, setCompany] = useState<CompanyData | null>(null);
+  const [showPrivacy, setShowPrivacy] = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
+
+  React.useEffect(() => {
+    repo.getCompanyData().then(setCompany);
+  }, [repo]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,47 +38,41 @@ export const LoginPage: React.FC = () => {
         return;
       }
       const ok = await register({ name, email, phone }, password);
-      if (ok) {
-        navigate('/booking'); // Clientes van a reservas
-      } else {
+      if (!ok) {
         setError('Error al registrar. El email podría ya estar en uso.');
       }
     } else {
       const ok = await login(email, password);
-      if (ok) {
-        // La redirección inteligente se hará en App.tsx o aquí
-        // Por ahora redirigimos según rol manualmente si queremos ser rápidos
-        if (email.toLowerCase().includes('admin')) {
-          navigate('/');
-        } else {
-          navigate('/booking');
-        }
-      } else {
+      if (!ok) {
         setError('Credenciales incorrectas');
       }
     }
   };
 
+  const isDark = type === 'SUPER_ADMIN';
+
   return (
-    <div className="login-page">
-      <div className="login-card animate-fade-in">
+    <div className="login-page" style={isDark ? { background: '#111' } : {}}>
+      <div className="login-card animate-fade-in" style={isDark ? { background: '#262626', color: '#fff', border: '1px solid #333' } : {}}>
         <div className="login-header" style={{ textAlign: 'center', marginBottom: '2rem' }}>
           <div className="logo-icon" style={{ 
             width: '60px', 
             height: '60px', 
-            background: 'var(--primary-color)', 
+            background: isDark ? '#eab308' : (type === 'ADMIN' ? '#10b981' : 'var(--primary-color)'), 
             borderRadius: '15px', 
             margin: '0 auto 1rem',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: 'white',
-            boxShadow: '0 8px 16px rgba(59, 130, 246, 0.2)'
+            color: isDark ? '#111' : 'white',
+            boxShadow: isDark ? '0 8px 16px rgba(234, 179, 8, 0.2)' : '0 8px 16px rgba(0, 0, 0, 0.1)'
           }}>
-            {isRegister ? <UserPlus size={30} /> : <LogIn size={30} />}
+            {type === 'SUPER_ADMIN' ? <ShieldAlert size={30} /> : type === 'ADMIN' ? <Briefcase size={30} /> : (isRegister ? <UserPlus size={30} /> : <LogIn size={30} />)}
           </div>
-          <h1>{isRegister ? 'Crear Cuenta' : 'Bienvenido'}</h1>
-          <p className="subtitle">{isRegister ? 'Regístrate para empezar a reservar' : 'Inicia sesión para gestionar tus citas'}</p>
+          <h1>{type === 'SUPER_ADMIN' ? 'ADMIN CORE' : type === 'ADMIN' ? 'Admin Portal' : (isRegister ? 'Crear Cuenta' : 'Bienvenido')}</h1>
+          <p className="subtitle" style={isDark ? { color: '#a3a3a3' } : {}}>
+            {type === 'SUPER_ADMIN' ? 'Ingreso maestro al sistema' : type === 'ADMIN' ? 'Gestión del negocio virtual' : (isRegister ? 'Regístrate para empezar a reservar' : 'Inicia sesión para gestionar tus citas')}
+          </p>
         </div>
 
         {error && (
@@ -144,32 +151,47 @@ export const LoginPage: React.FC = () => {
             </div>
           )}
 
-          <button type="submit" className="btn-primary" style={{ width: '100%', padding: '1rem', marginTop: '0.5rem' }}>
+          <button type="submit" className="btn-primary" style={{ width: '100%', padding: '1rem', marginTop: '0.5rem', background: isDark ? '#eab308' : undefined, borderColor: isDark ? '#eab308' : undefined, color: isDark ? '#111' : undefined }}>
             {isRegister ? 'Registrarse ahora' : 'Entrar'}
           </button>
         </form>
 
-        <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
-          <button 
-            className="btn-text" 
-            onClick={() => { setIsRegister(!isRegister); setError(''); }}
-            style={{ color: 'var(--primary-color)', fontSize: '0.9rem' }}
-          >
-            {isRegister ? '¿Ya tienes cuenta? Inicia sesión' : '¿No tienes cuenta? Regístrate gratis'}
-          </button>
-        </div>
+        {type === 'CUSTOMER' && (
+          <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
+            <button 
+              className="btn-text" 
+              onClick={() => { setIsRegister(!isRegister); setError(''); }}
+              style={{ color: 'var(--primary-color)', fontSize: '0.9rem' }}
+            >
+              {isRegister ? '¿Ya tienes cuenta? Inicia sesión' : '¿No tienes cuenta? Regístrate gratis'}
+            </button>
+          </div>
+        )}
 
-        {!isRegister && (
+        {!isRegister && mode !== 'firebase' && (
           <div className="login-demo" style={{ 
             marginTop: '2rem', 
             padding: '1rem', 
-            background: 'var(--bg-color)', 
+            background: isDark ? '#1a1a1a' : 'var(--bg-color)', 
             borderRadius: '10px',
             fontSize: '0.8rem',
             opacity: 0.8
           }}>
-            <p style={{ fontWeight: 700, marginBottom: '0.5rem' }}>Acceso rápido (Demo):</p>
-            <p>Admin: <code>admin@demo.com</code> / <code>admin</code></p>
+            <p style={{ fontWeight: 700, marginBottom: '0.5rem' }}>Accesos de desarrollo (se autodestruirán en prod):</p>
+            {type === 'CUSTOMER' && <p>Cliente: <code>cliente@demo.com</code> / <code>cliente</code></p>}
+            {type === 'ADMIN' && <p>Admin: <code>admin@demo.com</code> / <code>admin</code></p>}
+            {type === 'SUPER_ADMIN' && <p>SuperAdmin: <code>superadmin@demo.com</code> / <code>superadmin</code></p>}
+          </div>
+        )}
+        {company && (
+          <div style={{ textAlign: 'center', marginTop: '2rem', fontSize: '0.8rem', color: isDark ? '#6b7280' : 'var(--text-secondary)' }}>
+            <span style={{ display: 'block', marginBottom: '0.5rem' }}>&copy; {new Date().getFullYear()} {company.nombreEmpresa}</span>
+            <button type="button" onClick={() => setShowTerms(true)} style={{ background: 'none', border: 'none', color: 'inherit', textDecoration: 'underline', cursor: 'pointer', padding: 0, margin: '0 0.5rem' }}>Condiciones de Uso</button>
+            |
+            <button type="button" onClick={() => setShowPrivacy(true)} style={{ background: 'none', border: 'none', color: 'inherit', textDecoration: 'underline', cursor: 'pointer', padding: 0, margin: '0 0.5rem' }}>Política de Privacidad</button>
+            
+            <LegalModal isOpen={showTerms} onClose={() => setShowTerms(false)} title="Condiciones de Uso" content={company.termsOfUse || ''} />
+            <LegalModal isOpen={showPrivacy} onClose={() => setShowPrivacy(false)} title="Política de Privacidad" content={company.privacyPolicy || ''} />
           </div>
         )}
       </div>

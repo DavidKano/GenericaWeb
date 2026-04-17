@@ -8,6 +8,35 @@ export interface User {
   dob?: string;
   adminNotes?: string;
 }
+export interface CompanyData {
+  nombreEmpresa: string;
+  personaContacto: string;
+  cifNif: string;
+  direccion: string;
+  cp: string;
+  localidad: string;
+  provincia: string;
+  fechaPuestaMarcha: string; // ISO date YYYY-MM-DD
+  precioActual: number;
+  fechaRenovacion: string; // ISO date YYYY-MM-DD
+  privacyPolicy?: string;
+  termsOfUse?: string;
+}
+
+export interface DesignConfig {
+  sourceLogoUrl?: string; 
+  pwaIcon: string;        
+  adminHeaderUrl: string; 
+  faviconUrl: string;     
+  qrCardUrl: string;      
+  primaryColor?: string;
+  secondaryColor?: string;
+  primaryTextColor?: string;
+  backgroundColor?: string;
+  fontFamily?: string;
+  customCssCustomer?: string;
+  customCssAdmin?: string;
+}
 
 export interface BookingService {
   id: string;

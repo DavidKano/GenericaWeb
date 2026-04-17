@@ -1,4 +1,4 @@
-import type { User, BookingService, Appointment, BusinessConfig, DaySchedule, BlockedDay } from './models';
+import type { User, BookingService, Appointment, BusinessConfig, DaySchedule, BlockedDay, CompanyData, DesignConfig } from './models';
 
 export interface DataRepository {
   // Users
@@ -25,4 +25,11 @@ export interface DataRepository {
   getBlockedDays(): Promise<BlockedDay[]>;
   saveBlockedDay(day: BlockedDay): Promise<void>;
   deleteBlockedDay(id: string): Promise<void>;
+
+  // SaaS License / Core Data
+  getCompanyData(): Promise<CompanyData | null>;
+  saveCompanyData(data: CompanyData): Promise<void>;
+
+  getDesignConfig(): Promise<DesignConfig | null>;
+  saveDesignConfig(data: DesignConfig): Promise<void>;
 }
