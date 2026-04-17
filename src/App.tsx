@@ -4,6 +4,7 @@ import { useAuth } from './context/AuthContext';
 import { useData } from './context/DataContext';
 import { LoginPage } from './pages/LoginPage';
 import { SystemIgnition } from './pages/SystemIgnition';
+import { WelcomePage } from './pages/WelcomePage';
 
 // Portals & Pages
 import { CustomerLayout } from './components/layouts/CustomerLayout';
@@ -52,7 +53,35 @@ function GlobalThemeInjector({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    repo.getDesignConfig().then(cfg => {
+    Promise.all([repo.getCompanyData(), repo.getDesignConfig()]).then(([company, cfg]) => {
+      // 1. Dynamic manifest generation
+      const manifest = {
+        name: company?.nombreEmpresa || "Reservas App",
+        short_name: company?.nombreEmpresa || "Reservas",
+        description: "Gestión de Reservas Web App",
+        start_url: "/booking",
+        display: "standalone",
+        background_color: cfg?.backgroundColor || "#f3f4f6",
+        theme_color: cfg?.primaryColor || "#3b82f6",
+        icons: [
+          {
+            src: cfg?.pwaIcon || "/icons.svg",
+            sizes: "512x512",
+            type: "image/png"
+          }
+        ]
+      };
+
+      const stringManifest = JSON.stringify(manifest);
+      const blob = new Blob([stringManifest], { type: 'application/json' });
+      const manifestURL = URL.createObjectURL(blob);
+      const linkTag = document.getElementById('dynamic-manifest') as HTMLLinkElement;
+      if (linkTag) linkTag.href = manifestURL;
+
+      const themeColorMeta = document.getElementById('meta-theme-color') as HTMLMetaElement;
+      if (themeColorMeta && cfg?.primaryColor) themeColorMeta.content = cfg.primaryColor;
+
+      // 2. CSS variables injection
       if (cfg?.primaryColor) {
         document.documentElement.style.setProperty('--primary-color', cfg.primaryColor);
         document.documentElement.style.setProperty('--secondary-color', cfg.secondaryColor || '#2563eb');
@@ -76,50 +105,53 @@ function App() {
   return (
     <GlobalThemeInjector>
       <BrowserRouter>
-      <Routes>
-        {/* Core Initialization Route */}
-        <Route path="/initconfig" element={<SystemIgnition />} />
+        <Routes>
+          {/* Core Initialization Route */}
+          <Route path="/initconfig" element={<SystemIgnition />} />
 
-        {/* ---------------- ADMIN PORTAL ---------------- */}
-        <Route path="/admin" element={
-           <PortalGuard allowedRoles={['ADMIN', 'SUPER_ADMIN']} portalType="ADMIN">
-             <AdminLayout />
-           </PortalGuard>
-        }>
-          <Route index element={<AdminDashboard />} />
-          <Route path="users" element={<AdminUsersPage />} />
-          <Route path="agenda" element={<AdminDashboard />} /> /* Dummy wrapper for now */
-        </Route>
+          {/* PWA Landing Page */}
+          <Route path="/welcome" element={<WelcomePage />} />
 
-        {/* ---------------- SUPER ADMIN PORTAL ---------------- */}
-        <Route path="/superadmin" element={
-           <PortalGuard allowedRoles={['SUPER_ADMIN']} portalType="SUPER_ADMIN">
-             <SuperAdminLayout />
-           </PortalGuard>
-        }>
-          <Route index element={<Navigate to="datos" replace />} />
-          <Route path="datos" element={<AdminCoreDatos />} />
-          <Route path="diseno" element={<AdminCoreDiseno />} />
-          <Route path="politicas" element={<AdminCorePoliticas />} />
-          <Route path="css" element={<AdminCoreCss />} />
-        </Route>
+          {/* ---------------- ADMIN PORTAL ---------------- */}
+          <Route path="/admin" element={
+            <PortalGuard allowedRoles={['ADMIN', 'SUPER_ADMIN']} portalType="ADMIN">
+              <AdminLayout />
+            </PortalGuard>
+          }>
+            <Route index element={<AdminDashboard />} />
+            <Route path="users" element={<AdminUsersPage />} />
+            <Route path="agenda" element={<AdminDashboard />} /> /* Dummy wrapper for now */
+          </Route>
 
-        {/* ---------------- CUSTOMER PORTAL (ROOT) ---------------- */}
-        <Route path="/" element={
-           <PortalGuard allowedRoles={['CUSTOMER', 'ADMIN', 'SUPER_ADMIN']} portalType="CUSTOMER">
-             <CustomerLayout />
-           </PortalGuard>
-        }>
-          <Route index element={<Navigate to="/booking" replace />} />
-          <Route path="booking" element={<BookingPage />} />
-          <Route path="profile" element={<ProfilePage />} />
-        </Route>
-        
-        {/* Alias explícito por si acaso escriben /login */}
-        <Route path="/login" element={<Navigate to="/" replace />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </BrowserRouter>
+          {/* ---------------- SUPER ADMIN PORTAL ---------------- */}
+          <Route path="/superadmin" element={
+            <PortalGuard allowedRoles={['SUPER_ADMIN']} portalType="SUPER_ADMIN">
+              <SuperAdminLayout />
+            </PortalGuard>
+          }>
+            <Route index element={<Navigate to="datos" replace />} />
+            <Route path="datos" element={<AdminCoreDatos />} />
+            <Route path="diseno" element={<AdminCoreDiseno />} />
+            <Route path="politicas" element={<AdminCorePoliticas />} />
+            <Route path="css" element={<AdminCoreCss />} />
+          </Route>
+
+          {/* ---------------- CUSTOMER PORTAL (ROOT) ---------------- */}
+          <Route path="/" element={
+            <PortalGuard allowedRoles={['CUSTOMER', 'ADMIN', 'SUPER_ADMIN']} portalType="CUSTOMER">
+              <CustomerLayout />
+            </PortalGuard>
+          }>
+            <Route index element={<Navigate to="/booking" replace />} />
+            <Route path="booking" element={<BookingPage />} />
+            <Route path="profile" element={<ProfilePage />} />
+          </Route>
+
+          {/* Alias explícito por si acaso escriben /login */}
+          <Route path="/login" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </BrowserRouter>
     </GlobalThemeInjector>
   );
 }

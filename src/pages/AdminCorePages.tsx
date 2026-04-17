@@ -137,7 +137,7 @@ export const AdminCoreDiseno: React.FC = () => {
   const [processing, setProcessing] = useState(false);
   const [savingColors, setSavingColors] = useState(false);
   const [toast, setToast] = useState('');
-  const [qrUrl, setQrUrl] = useState('https://miturno.app');
+  const [qrUrl, setQrUrl] = useState(`${window.location.origin}/welcome`);
   const [rgbInput, setRgbInput] = useState({ r: 59, g: 130, b: 246 });
   const [textRgbInput, setTextRgbInput] = useState({ r: 255, g: 255, b: 255 });
   const [bgRgbInput, setBgRgbInput] = useState({ r: 243, g: 244, b: 246 }); // #f3f4f6
