@@ -9,6 +9,7 @@ type AuthContextType = {
   logout: () => void;
   isAdmin: boolean;
   isSuperAdmin: boolean;
+  isInitialized: boolean;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -22,6 +23,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const saved = localStorage.getItem('currentUser');
     return saved ? JSON.parse(saved) : null;
   });
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Inicializar admin por defecto SOLO en desarrollo local (localhost)
   // JAMÁS se ejecuta en producción, incluso si mode es 'local' por algún bug.
@@ -75,6 +77,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
     initAdmin();
   }, [repo, mode]);
+
+  // Sincronizar el estado de Auth con Firebase para asegurar que los permisos estén listos
+  useEffect(() => {
+    if (mode !== 'firebase') {
+      setIsInitialized(true);
+      return;
+    }
+
+    const initAuth = async () => {
+      const { getAuth, onAuthStateChanged } = await import('firebase/auth');
+      const auth = getAuth();
+      
+      // El observador onAuthStateChanged se dispara cuando la sesión ya está recuperada
+      const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
+        if (fbUser) {
+          try {
+            const userData = await repo.getUserById(fbUser.uid);
+            if (userData) {
+              setUser(userData);
+              localStorage.setItem('currentUser', JSON.stringify(userData));
+            }
+          } catch (err) {
+            console.error('Error sincronizando usuario tras login:', err);
+          }
+        } else {
+          // Si no hay sesión en Firebase, pero teníamos una en localStorage, la limpiamos para evitar inconsistencias
+          if (user && !isLocalhost()) {
+             setUser(null);
+             localStorage.removeItem('currentUser');
+          }
+        }
+        setIsInitialized(true);
+      });
+
+      return unsubscribe;
+    };
+
+    let unsub: (() => void) | undefined;
+    initAuth().then(u => unsub = u);
+    return () => { if (unsub) unsub(); };
+  }, [mode, repo]);
+
+  const isLocalhost = () => window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
   const login = useCallback(async (email: string, password: string): Promise<boolean> => {
     if (mode === 'firebase') {
@@ -161,7 +206,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       register, 
       logout, 
       isAdmin: user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN',
-      isSuperAdmin: user?.role === 'SUPER_ADMIN'
+      isSuperAdmin: user?.role === 'SUPER_ADMIN',
+      isInitialized
     }}>
       {children}
     </AuthContext.Provider>

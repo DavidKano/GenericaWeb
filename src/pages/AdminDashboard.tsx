@@ -14,6 +14,7 @@ import {
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useAuth } from '../context/AuthContext';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 
 const locales = {
@@ -32,6 +33,7 @@ type AdminTab = 'stats' | 'services' | 'schedule' | 'config';
 
 export const AdminDashboard: React.FC = () => {
   const { repo } = useData();
+  const { isInitialized } = useAuth();
   const [activeTab, setActiveTab] = useState<AdminTab>('stats');
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -62,25 +64,36 @@ export const AdminDashboard: React.FC = () => {
   const [eventStatus, setEventStatus] = useState<any>('PENDING');
 
   useEffect(() => {
-    loadData();
-  }, [repo]);
+    if (isInitialized) {
+      loadData();
+    }
+  }, [repo, isInitialized]);
 
   const loadData = async () => {
     setIsLoading(true);
     setErrorMessage(null);
+    
     try {
+      // Cargamos cada recurso individualmente para identificar cuál falla específicamente
+      const apptsPromise = repo.getAppointments().catch(e => { throw new Error(`Citas: ${e.message}`); });
+      const svcsPromise = repo.getServices().catch(e => { throw new Error(`Servicios: ${e.message}`); });
+      const schsPromise = repo.getSchedules().catch(e => { throw new Error(`Horarios: ${e.message}`); });
+      const cfgPromise = repo.getConfig().catch(e => { throw new Error(`Configuración: ${e.message}`); });
+
       const [appts, svcs, schs, cfg] = await Promise.all([
-        repo.getAppointments(),
-        repo.getServices(),
-        repo.getSchedules(),
-        repo.getConfig(),
+        apptsPromise,
+        svcsPromise,
+        schsPromise,
+        cfgPromise,
       ]);
+
       setAppointments(appts);
       setServices(svcs);
       setSchedules(schs);
       setConfig(cfg);
     } catch (err: any) {
       console.error('Error cargando panel de administrador:', err);
+      // El mensaje ahora dirá algo como "Servicios: Missing or insufficient permissions"
       setErrorMessage(err.message || 'Error de conexión con Firestore');
     } finally {
       setIsLoading(false);

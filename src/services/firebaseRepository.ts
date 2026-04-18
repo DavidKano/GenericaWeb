@@ -3,13 +3,16 @@ import type { User, BookingService, Appointment, BusinessConfig, DaySchedule, Bl
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import type { FirebaseOptions } from 'firebase/app';
 import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc, getDoc } from 'firebase/firestore';
+import { getStorage, ref, uploadString, getDownloadURL } from 'firebase/storage';
 
 export class FirebaseRepository implements DataRepository {
   private db: any;
+  private storage: any;
 
   constructor(config: FirebaseOptions) {
     const app = !getApps().length ? initializeApp(config) : getApp();
     this.db = getFirestore(app);
+    this.storage = getStorage(app);
   }
 
   async getUsers(): Promise<User[]> {
@@ -98,5 +101,14 @@ export class FirebaseRepository implements DataRepository {
 
   async saveDesignConfig(data: DesignConfig): Promise<void> {
     await setDoc(doc(this.db, 'system', 'design_config'), data);
+  }
+
+  // --- Storage ---
+  async uploadImage(path: string, base64: string): Promise<string> {
+    const storageRef = ref(this.storage, path);
+    // Extraemos el formato y los datos puros del dataURL
+    // Formato esperado: data:image/png;base64,.....
+    await uploadString(storageRef, base64, 'data_url');
+    return await getDownloadURL(storageRef);
   }
 }

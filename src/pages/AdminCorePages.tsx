@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useData } from '../context/DataContext';
-import { Briefcase, ShieldCheck, ShieldAlert, Code, Save, Loader2, UploadCloud, CheckCircle, Palette, Type } from 'lucide-react';
+import { Briefcase, ShieldCheck, ShieldAlert, Code, Save, Loader2, UploadCloud, CheckCircle, Palette, Type, QrCode } from 'lucide-react';
 import type { CompanyData, DesignConfig } from '../services/models';
 import QRCode from 'qrcode';
 import { getDefaultPrivacyPolicy, getDefaultTermsOfUse } from '../services/policyDefaults';
@@ -247,54 +247,37 @@ export const AdminCoreDiseno: React.FC = () => {
         const srcCtx = srcCanvas.getContext('2d')!;
         srcCtx.drawImage(img, 0, 0);
 
-        const sourceLogoUrl = resizeImage(srcCanvas, Math.min(img.width, 800), Math.min(img.height, 800));
-        const pwaIcon = resizeImage(srcCanvas, 512, 512);
-        const faviconUrl = resizeImage(srcCanvas, 32, 32);
-        const adminHeaderUrl = resizeImage(srcCanvas, 200, 50);
+        const logoBase64 = resizeImage(srcCanvas, Math.min(img.width, 800), Math.min(img.height, 800), 'image/png');
+        const pwaIconBase64 = resizeImage(srcCanvas, 512, 512, 'image/png');
+        const faviconBase64 = resizeImage(srcCanvas, 32, 32, 'image/png');
+        const adminHeaderBase64 = resizeImage(srcCanvas, 200, 50, 'image/png');
 
-        const qrCanvas = document.createElement('canvas');
-        await QRCode.toCanvas(qrCanvas, qrUrl, { width: 400, margin: 2 });
-        
-        const cardCanvas = document.createElement('canvas');
-        cardCanvas.width = 800;
-        cardCanvas.height = 400;
-        const cardCtx = cardCanvas.getContext('2d')!;
-        cardCtx.fillStyle = '#ffffff';
-        cardCtx.fillRect(0, 0, 800, 400);
-
-        const logoScale = Math.min(300 / img.width, 300 / img.height);
-        const lx = 50 + (150 - (img.width * logoScale / 2));
-        const ly = 200 - (img.height * logoScale / 2);
-        cardCtx.drawImage(img, lx, ly, img.width * logoScale, img.height * logoScale);
-        cardCtx.drawImage(qrCanvas, 400, 0, 400, 400);
-
-        const qrCardUrl = cardCanvas.toDataURL('image/jpeg', 0.6); // Bajamos calidad para ahorrar espacio
-
-        const newConfig: DesignConfig = {
-          sourceLogoUrl,
-          pwaIcon,
-          adminHeaderUrl,
-          faviconUrl,
-          qrCardUrl,
-          primaryColor: config?.primaryColor || '#3b82f6',
-          secondaryColor: config?.secondaryColor || '#2563eb'
-        };
-
-        // Verificamos tamaño aproximado del JSON (Límite Firestore 1MB)
-        const sizeKB = Math.round(JSON.stringify(newConfig).length / 1024);
-        if (sizeKB > 800) {
-          alert(`⚠️ El logotipo es demasiado pesado (${sizeKB}KB). Por favor, usa una imagen más pequeña o con menos resolución para evitar bloqueos en el sistema.`);
-          setProcessing(false);
-          return;
-        }
+        const qrCardBase64 = await generateQrCard(img);
 
         try {
+          // Subir a Firebase Storage y obtener URLs reales
+          const sourceLogoUrl = await repo.uploadImage('branding/logo.png', logoBase64);
+          const pwaIcon = await repo.uploadImage('branding/pwa-icon.png', pwaIconBase64);
+          const faviconUrl = await repo.uploadImage('branding/favicon.png', faviconBase64);
+          const adminHeaderUrl = await repo.uploadImage('branding/admin-header.png', adminHeaderBase64);
+          const qrCardUrl = await repo.uploadImage('branding/qr-card.png', qrCardBase64);
+
+          const newConfig: DesignConfig = {
+            sourceLogoUrl,
+            pwaIcon,
+            adminHeaderUrl,
+            faviconUrl,
+            qrCardUrl,
+            primaryColor: config?.primaryColor || '#3b82f6',
+            secondaryColor: config?.secondaryColor || '#2563eb'
+          };
+
           setConfig(newConfig);
           await repo.saveDesignConfig(newConfig);
-          setToast('Assets gráficos actualizados y persistidos');
-        } catch (err) {
-          console.error('Error al guardar configuración de diseño:', err);
-          alert('Error crítico: No se pudo guardar el diseño. Es posible que el logotipo sea demasiado grande para la base de datos.');
+          setToast('Assets gráficos subidos a la nube y persistidos');
+        } catch (err: any) {
+          console.error('Error al subir/guardar configuración de diseño:', err);
+          alert('Error: No se pudo subir la imagen a Firebase Storage. Asegúrate de haber activado "Storage" en tu consola de Firebase.');
         } finally {
           setProcessing(false);
           setTimeout(() => setToast(''), 3000);
@@ -303,6 +286,57 @@ export const AdminCoreDiseno: React.FC = () => {
       img.src = event.target?.result as string;
     };
     reader.readAsDataURL(file);
+  };
+
+  const generateQrCard = async (img: HTMLImageElement): Promise<string> => {
+    const qrCanvas = document.createElement('canvas');
+    await QRCode.toCanvas(qrCanvas, qrUrl, { width: 400, margin: 2 });
+    
+    const cardCanvas = document.createElement('canvas');
+    cardCanvas.width = 800;
+    cardCanvas.height = 400;
+    const cardCtx = cardCanvas.getContext('2d')!;
+    cardCtx.fillStyle = '#ffffff';
+    cardCtx.fillRect(0, 0, 800, 400);
+
+    const logoScale = Math.min(300 / img.width, 300 / img.height);
+    const lx = 50 + (150 - (img.width * logoScale / 2));
+    const ly = 200 - (img.height * logoScale / 2);
+    cardCtx.drawImage(img, lx, ly, img.width * logoScale, img.height * logoScale);
+    cardCtx.drawImage(qrCanvas, 400, 0, 400, 400);
+
+    return cardCanvas.toDataURL('image/png');
+  };
+
+  const handleManualQrGenerate = async () => {
+    if (!config?.sourceLogoUrl) {
+      alert('Primero debes subir un logotipo para poder generar la tarjeta QR con marca corporativa.');
+      return;
+    }
+    setProcessing(true);
+    try {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = config.sourceLogoUrl!;
+      });
+
+      const qrCardBase64 = await generateQrCard(img);
+      const qrCardUrl = await repo.uploadImage('branding/qr-card.png', qrCardBase64);
+      
+      const newConfig = { ...config, qrCardUrl };
+      setConfig(newConfig);
+      await repo.saveDesignConfig(newConfig);
+      setToast('Tarjeta QR regenerada y subida a la nube');
+    } catch (err) {
+      console.error('Error al generar QR manual:', err);
+      alert('No se pudo generar la tarjeta QR. Verifica que el logotipo sea válido.');
+    } finally {
+      setProcessing(false);
+      setTimeout(() => setToast(''), 3000);
+    }
   };
 
   const handleHexChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -568,48 +602,73 @@ export const AdminCoreDiseno: React.FC = () => {
       </div>
 
       {config?.pwaIcon && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
-          <div style={{ background: '#111827', padding: '1.5rem', borderRadius: '8px', border: '1px solid #374151' }}>
-            <h4 style={{ color: '#9ca3af', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-              <CheckCircle size={16} color="#10b981" /> Icono PWA (512x512)
-            </h4>
-            <div style={{ background: '#fff', padding: '1rem', borderRadius: '8px', display: 'inline-block' }}>
-              <img src={config.pwaIcon} alt="PWA Icon" style={{ width: '150px', height: '150px', objectFit: 'contain' }} />
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+            <div style={{ background: '#111827', padding: '1.5rem', borderRadius: '8px', border: '1px solid #374151' }}>
+              <h4 style={{ color: '#9ca3af', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                <CheckCircle size={16} color="#10b981" /> Icono PWA (512x512)
+              </h4>
+              <div style={{ background: '#fff', padding: '1rem', borderRadius: '8px', display: 'inline-block' }}>
+                <img src={config.pwaIcon} alt="PWA Icon" style={{ width: '150px', height: '150px', objectFit: 'contain' }} />
+              </div>
+              <p style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '0.5rem' }}>Auto-optimizado para Instalación Móvil</p>
             </div>
-            <p style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '0.5rem' }}>Auto-optimizado para Instalación Móvil</p>
-          </div>
 
-          <div style={{ background: '#111827', padding: '1.5rem', borderRadius: '8px', border: '1px solid #374151' }}>
-            <h4 style={{ color: '#9ca3af', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-              <CheckCircle size={16} color="#10b981" /> Favicon (32x32)
-            </h4>
-            <div style={{ background: '#fff', padding: '0.5rem', borderRadius: '4px', display: 'inline-block' }}>
-              <img src={config.faviconUrl} alt="Favicon" style={{ width: '32px', height: '32px', objectFit: 'contain' }} />
+            <div style={{ background: '#111827', padding: '1.5rem', borderRadius: '8px', border: '1px solid #374151' }}>
+              <h4 style={{ color: '#9ca3af', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                <CheckCircle size={16} color="#10b981" /> Favicon (32x32)
+              </h4>
+              <div style={{ background: '#fff', padding: '0.5rem', borderRadius: '4px', display: 'inline-block' }}>
+                <img src={config.faviconUrl} alt="Favicon" style={{ width: '32px', height: '32px', objectFit: 'contain' }} />
+              </div>
+              <p style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '0.5rem' }}>Icono de Pestaña del Navegador</p>
             </div>
-            <p style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '0.5rem' }}>Icono de Pestaña del Navegador</p>
-          </div>
 
-          <div style={{ background: '#111827', padding: '1.5rem', borderRadius: '8px', border: '1px solid #374151' }}>
-            <h4 style={{ color: '#9ca3af', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-              <CheckCircle size={16} color="#10b981" /> Cabecera ADMIN (200x50)
-            </h4>
-            <div style={{ background: '#fff', padding: '1rem', borderRadius: '8px', display: 'inline-block' }}>
-              <img src={config.adminHeaderUrl} alt="Admin Header" style={{ width: '200px', height: '50px', objectFit: 'contain' }} />
+            <div style={{ background: '#111827', padding: '1.5rem', borderRadius: '8px', border: '1px solid #374151' }}>
+              <h4 style={{ color: '#9ca3af', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                <CheckCircle size={16} color="#10b981" /> Cabecera ADMIN (200x50)
+              </h4>
+              <div style={{ background: '#fff', padding: '1rem', borderRadius: '8px', display: 'inline-block' }}>
+                <img src={config.adminHeaderUrl} alt="Admin Header" style={{ width: '200px', height: '50px', objectFit: 'contain' }} />
+              </div>
+              <p style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '0.5rem' }}>Redimensionado para TopBar Corporativo</p>
             </div>
-            <p style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '0.5rem' }}>Redimensionado para TopBar Corporativo</p>
           </div>
+        </>
+      )}
 
-          <div style={{ background: '#111827', padding: '1.5rem', borderRadius: '8px', border: '1px solid #374151', gridColumn: '1 / -1' }}>
-            <h4 style={{ color: '#9ca3af', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-              <CheckCircle size={16} color="#10b981" /> Tarjeta Impresión QR (800x400 JPG Alta)
-            </h4>
-            <div style={{ borderRadius: '8px', overflow: 'hidden', display: 'inline-block', border: '1px solid #374151' }}>
-              <img src={config.qrCardUrl} alt="QR Card" style={{ width: '100%', maxWidth: '600px', height: 'auto', display: 'block' }} />
-            </div>
-            <p style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '0.5rem' }}>Fondo acoplado e inyección QRCode HD usando: {qrUrl}</p>
+      {/* SECCIÓN PREVIA DE QR (Visible siempre) */}
+      <div style={{ background: '#111827', padding: '1.5rem', borderRadius: '8px', border: '1px solid #374151', marginTop: '2rem' }}>
+        <h4 style={{ color: '#9ca3af', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+          <QrCode size={16} color="#eab308" /> Cartel de Instalación QR (Molde de Marketing)
+        </h4>
+        <div style={{ display: 'flex', gap: '2rem', alignItems: 'flex-start' }}>
+          <div style={{ background: '#fff', padding: '1rem', borderRadius: '8px', flex: 1, minHeight: '150px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {config?.qrCardUrl ? (
+              <img src={config.qrCardUrl} alt="QR Card Preview" style={{ width: '100%', height: 'auto', borderRadius: '4px' }} />
+            ) : (
+              <div style={{ textAlign: 'center', color: '#6b7280' }}>
+                <QrCode size={48} style={{ opacity: 0.2, marginBottom: '1rem' }} />
+                <p>Sin tarjeta QR generada.<br/><small>Sube un logo primero.</small></p>
+              </div>
+            )}
+          </div>
+          <div style={{ width: '300px' }}>
+            <p style={{ fontSize: '0.85rem', color: '#9ca3af', lineHeight: '1.5', marginBottom: '1rem' }}>
+              Esta tarjeta combina tu logotipo con el código QR de acceso. Es el activo principal para que los clientes instalen la App.
+            </p>
+            <button 
+              onClick={handleManualQrGenerate} 
+              disabled={processing}
+              className="btn-primary" 
+              style={{ width: '100%', padding: '0.75rem', background: '#3b82f6', borderColor: '#3b82f6', color: '#fff', fontSize: '0.9rem', cursor: 'pointer', opacity: config?.sourceLogoUrl ? 1 : 0.5 }}
+            >
+              {processing ? <Loader2 className="animate-spin" size={16} /> : <QrCode size={16} />}
+              {config?.qrCardUrl ? 'Regenerar Tarjeta QR' : 'Generar Tarjeta QR'}
+            </button>
           </div>
         </div>
-      )}
+      </div>
 
       {/* Toast Notification */}
       {toast && (

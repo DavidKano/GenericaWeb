@@ -112,4 +112,9 @@ export class LocalRepository implements DataRepository {
   async saveDesignConfig(data: DesignConfig): Promise<void> {
     setLocal('designConfigGlobal', data);
   }
+
+  async uploadImage(_path: string, base64: string): Promise<string> {
+    // En el repositorio local, no hay nube. Devolvemos el mismo base64 que servirá como fuente de imagen.
+    return Promise.resolve(base64);
+  }
 }

@@ -32,4 +32,7 @@ export interface DataRepository {
 
   getDesignConfig(): Promise<DesignConfig | null>;
   saveDesignConfig(data: DesignConfig): Promise<void>;
+
+  // Storage
+  uploadImage(path: string, base64: string): Promise<string>;
 }
