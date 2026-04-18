@@ -18,12 +18,12 @@ service cloud.firestore {
 
     // --- COLECCIÓN DE USUARIOS ---
     match /users/{userId} {
-      // Regla 1: Lectura de ficha propia (SIN RECURSIVIDAD)
-      allow read: if isSignedIn() && request.auth.uid == userId;
+      // Permitir leer una ficha individual: Propietario o Administradores
+      allow get: if isSignedIn() && (request.auth.uid == userId || getRole() in ['ADMIN', 'SUPER_ADMIN']);
       
-      // Regla 2: Acceso administrativo a otras fichas
-      // Solo evaluamos esto si NO es la propia ficha para evitar bucles de lectura
-      allow read: if isSignedIn() && request.auth.uid != userId && getRole() in ['ADMIN', 'SUPER_ADMIN'];
+      // Permitir listar la colección completa: Solo Administradores
+      // Al no depender de 'userId', Firestore puede validar esta regla una sola vez para toda la consulta
+      allow list: if isSignedIn() && getRole() in ['ADMIN', 'SUPER_ADMIN'];
       
       // Creación: Solo para uno mismo
       allow create: if isSignedIn() && request.auth.uid == userId;
@@ -33,7 +33,7 @@ service cloud.firestore {
          (request.auth.uid == userId && request.resource.data.role == resource.data.role) ||
          (request.auth.uid != userId && getRole() in ['ADMIN', 'SUPER_ADMIN'])
       );
-
+ 
       // Borrado: Solo Administradores
       allow delete: if isSignedIn() && getRole() in ['ADMIN', 'SUPER_ADMIN'];
     }

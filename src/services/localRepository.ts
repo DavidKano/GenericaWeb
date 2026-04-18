@@ -46,6 +46,12 @@ export class LocalRepository implements DataRepository {
     return getLocal<Appointment>('appointments');
   }
 
+  subscribeToAppointments(callback: (appts: Appointment[]) => void): () => void {
+    // Implementación básica para local: llama una vez y devuelve un no-op
+    callback(getLocal<Appointment>('appointments'));
+    return () => {};
+  }
+
   async saveAppointment(appointment: Appointment): Promise<void> {
     const appts = getLocal<Appointment>('appointments');
     const idx = appts.findIndex(a => a.id === appointment.id);

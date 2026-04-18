@@ -65,14 +65,37 @@ export const AdminUsersPage: React.FC = () => {
     <div className="admin-users-layout animate-fade-in" style={{ display: 'grid', gridTemplateColumns: '350px 1fr', gap: '1.5rem', height: 'calc(100vh - 120px)' }}>
       {/* Sidebar de Usuarios */}
       <div className="card glass-panel" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '1rem' }}>
-        <div className="search-box" style={{ position: 'relative', marginBottom: '1rem' }}>
-          <Search size={18} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+        <div className="search-box" style={{ 
+          position: 'relative', 
+          marginBottom: '1.5rem',
+          marginTop: '0.5rem'
+        }}>
+          <Search size={18} style={{ 
+            position: 'absolute', 
+            left: '12px', 
+            top: '50%', 
+            transform: 'translateY(-50%)', 
+            color: 'var(--text-secondary)',
+            opacity: 0.6,
+            zIndex: 1
+          }} />
           <input 
             type="text" 
-            placeholder="Buscar cliente..." 
+            placeholder="Buscar por nombre, email o teléfono..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            style={{ paddingLeft: '2.5rem', background: 'var(--bg-color)' }}
+            className="premium-input-search"
+            style={{ 
+              width: '100%',
+              padding: '0.75rem 1rem 0.75rem 2.75rem', 
+              background: 'rgba(255, 255, 255, 0.5)',
+              border: '1px solid var(--glass-border)',
+              borderRadius: '100px',
+              fontSize: '0.9rem',
+              outline: 'none',
+              transition: 'all 0.3s ease',
+              boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)'
+            }}
           />
         </div>
 

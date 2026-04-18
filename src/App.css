@@ -577,6 +577,24 @@ input[type="time"] {
   opacity: 0.5;
 }
 
+.calendar-cell.full {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.05);
+  cursor: not-allowed;
+  border: 1px dashed rgba(239, 68, 68, 0.3);
+}
+
+.calendar-cell.full::after {
+  content: "Completo";
+  position: absolute;
+  bottom: 4px;
+  font-size: 0.55rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  opacity: 0.8;
+}
+
 .calendar-blocked-dot {
   position: absolute;
   bottom: 6px;

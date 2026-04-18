@@ -5,11 +5,21 @@ import type { TimeRange } from '../services/models';
  * Genera una lista de slots (HH:mm) para un conjunto de rangos horarios
  * y una duración específica, evitando solapamientos y citas pasadas.
  */
+/**
+ * Genera una lista de slots (HH:mm) para un conjunto de rangos horarios
+ * y una duración específica, respetando la capacidad de simultaneidad del negocio.
+ */
+export interface AppointmentRange {
+  start: number;
+  end: number;
+}
+
 export const generateTimeSlots = (
   ranges: TimeRange[],
   durationMin: number,
   selectedDate: Date,
-  existingAppointments: number[] // timestamps de inicio
+  existingAppointments: AppointmentRange[],
+  concurrentSlots: number = 1
 ): string[] => {
   const slots: string[] = [];
   const now = new Date();
@@ -17,25 +27,25 @@ export const generateTimeSlots = (
 
   ranges.forEach(range => {
     let current = parse(range.start, 'HH:mm', selectedDate);
-    const end = parse(range.end, 'HH:mm', selectedDate);
+    const endBound = parse(range.end, 'HH:mm', selectedDate);
 
-    while (addMinutes(current, durationMin) <= end) {
+    while (addMinutes(current, durationMin) <= endBound) {
       const slotTime = format(current, 'HH:mm');
-      const slotTimestamp = current.getTime();
+      const slotStart = current.getTime();
+      const slotEnd = addMinutes(current, durationMin).getTime();
 
-      // Validar si el slot ya pasó (si es hoy)
-      const isPast = isToday && isBefore(current, addMinutes(now, 15)); // 15 min de margen
+      // 1. Validar si el slot ya pasó (si es hoy)
+      const isPast = isToday && isBefore(current, addMinutes(now, 5)); // 5 min de margen
 
-      // Validar si hay colisión con citas existentes
-      // Nota: Aquí se asume que una cita ocupa exactamente su duración o bloquea el slot de inicio.
-      // Para un sistema más robusto, se debería comprobar el rango completo [start, start+duration].
-      const isBooked = existingAppointments.some(apptTime => {
-        // Colisión simple: si el inicio coincide o está dentro del rango
-        // Para este MVP, comprobamos coincidencia exacta o solapamiento básico.
-        return Math.abs(apptTime - slotTimestamp) < durationMin * 60000;
-      });
+      // 2. Contar solapamientos con citas existentes
+      // Una cita solapa si: (apptStart < slotEnd) && (apptEnd > slotStart)
+      const overlapCount = existingAppointments.filter(appt => {
+        return (appt.start < slotEnd) && (appt.end > slotStart);
+      }).length;
 
-      if (!isPast && !isBooked) {
+      const isFull = overlapCount >= concurrentSlots;
+
+      if (!isPast && !isFull) {
         slots.push(slotTime);
       }
 

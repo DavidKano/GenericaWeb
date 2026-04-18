@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
-import type { Appointment, BookingService, DaySchedule, BusinessConfig } from '../services/models';
+import type { User, Appointment, BookingService, DaySchedule, BusinessConfig } from '../services/models';
+import { INITIAL_SCHEDULES } from '../services/scheduleDefaults';
 import { 
   BarChart3, 
   Settings, 
@@ -8,7 +9,8 @@ import {
   Plus, 
   Trash2, 
   Save, 
-  XCircle
+  XCircle,
+  User as UserIcon
 } from 'lucide-react';
 
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
@@ -40,12 +42,15 @@ export const AdminDashboard: React.FC = () => {
   
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [services, setServices] = useState<BookingService[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [schedules, setSchedules] = useState<DaySchedule[]>([]);
   const [config, setConfig] = useState<BusinessConfig | null>(null);
   
   const [showModal, setShowModal] = useState(false);
   const [newName, setNewName] = useState('');
-  const [newDuration, setNewDuration] = useState(30);
+  const [newDays, setNewDays] = useState(0);
+  const [newHours, setNewHours] = useState(0);
+  const [newMinutes, setNewMinutes] = useState(0);
   const [newPrice, setNewPrice] = useState(0);
   const [newColor, setNewColor] = useState('#3174ad');
   const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
@@ -77,19 +82,22 @@ export const AdminDashboard: React.FC = () => {
       // Cargamos cada recurso individualmente para identificar cuál falla específicamente
       const apptsPromise = repo.getAppointments().catch(e => { throw new Error(`Citas: ${e.message}`); });
       const svcsPromise = repo.getServices().catch(e => { throw new Error(`Servicios: ${e.message}`); });
+      const usersPromise = repo.getUsers().catch(e => { throw new Error(`Usuarios: ${e.message}`); });
       const schsPromise = repo.getSchedules().catch(e => { throw new Error(`Horarios: ${e.message}`); });
       const cfgPromise = repo.getConfig().catch(e => { throw new Error(`Configuración: ${e.message}`); });
-
-      const [appts, svcs, schs, cfg] = await Promise.all([
+ 
+      const [appts, svcs, usrs, schs, cfg] = await Promise.all([
         apptsPromise,
         svcsPromise,
+        usersPromise,
         schsPromise,
         cfgPromise,
       ]);
-
+ 
       setAppointments(appts);
       setServices(svcs);
-      setSchedules(schs);
+      setUsers(usrs);
+      setSchedules(schs.length > 0 ? schs : INITIAL_SCHEDULES);
       setConfig(cfg);
     } catch (err: any) {
       console.error('Error cargando panel de administrador:', err);
@@ -102,10 +110,11 @@ export const AdminDashboard: React.FC = () => {
 
   const addOrUpdateService = async () => {
     if (!newName.trim()) return;
+    const totalDuration = (newDays * 1440) + (newHours * 60) + newMinutes;
     const svc: BookingService = {
       id: editingServiceId || 'svc-' + Date.now(),
       name: newName,
-      durationMin: newDuration,
+      durationMin: totalDuration,
       price: newPrice || undefined,
       color: newColor,
       isActive: true,
@@ -118,7 +127,9 @@ export const AdminDashboard: React.FC = () => {
 
   const resetServiceForm = () => {
     setNewName('');
-    setNewDuration(30);
+    setNewDays(0);
+    setNewHours(0);
+    setNewMinutes(0);
     setNewPrice(0);
     setNewColor('#3174ad');
     setEditingServiceId(null);
@@ -127,7 +138,17 @@ export const AdminDashboard: React.FC = () => {
   const openEditService = (svc: BookingService) => {
     setEditingServiceId(svc.id);
     setNewName(svc.name);
-    setNewDuration(svc.durationMin);
+    
+    // Split durationMin into d/h/m
+    const total = svc.durationMin || 0;
+    const d = Math.floor(total / 1440);
+    const h = Math.floor((total % 1440) / 60);
+    const m = total % 60;
+    
+    setNewDays(d);
+    setNewHours(h);
+    setNewMinutes(m);
+    
     setNewPrice(svc.price || 0);
     setNewColor(svc.color || '#3174ad');
     setShowModal(true);
@@ -196,20 +217,21 @@ export const AdminDashboard: React.FC = () => {
   const events = useMemo(() => {
     return appointments.map(app => {
       const service = services.find(s => s.id === app.serviceId);
+      const customer = users.find(u => u.id === app.customerId);
       const duration = service?.durationMin || 30;
       const start = new Date(app.dateTimeStart);
       const end = new Date(start.getTime() + duration * 60000);
       
       return {
         id: app.id,
-        title: app.customerId, // Mostrar identificador o nombre del cliente
+        title: `${customer?.name || 'Cliente'} - ${service?.name || ''}`,
         start,
         end,
         resource: app,
         color: service?.color || '#3174ad'
       };
     });
-  }, [appointments, services]);
+  }, [appointments, services, users]);
 
   const calendarBounds = useMemo(() => {
     let minH = 24;
@@ -512,6 +534,20 @@ export const AdminDashboard: React.FC = () => {
             />
           </div>
 
+          <div className="form-group" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.5rem' }}>
+            <div>
+              <label style={{ margin: 0 }}>Servicios simultáneos (Capacidad)</label>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Define cuántas citas se pueden realizar a la vez en la misma franja horaria (Ej: número de puestos o empleados).</p>
+            </div>
+            <input 
+              type="number" 
+              min="1"
+              value={config?.concurrentSlots || 1} 
+              onChange={(e) => setConfig(prev => prev ? { ...prev, concurrentSlots: Math.max(1, parseInt(e.target.value) || 1) } : null)}
+              style={{ width: '80px', textAlign: 'center' }}
+            />
+          </div>
+
           <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid var(--glass-border)' }}>
             <button className="btn-primary" onClick={saveGlobalConfig} style={{ width: '100%' }}>Guardar Ajustes</button>
           </div>
@@ -520,16 +556,29 @@ export const AdminDashboard: React.FC = () => {
 
       {/* Modal Nuevo Servicio */}
       {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
+        <div className="modal-overlay">
+          <div className="modal-content">
             <h2>{editingServiceId ? 'Editar Servicio' : 'Nuevo Servicio'}</h2>
             <div className="form-group">
               <label>Nombre del servicio</label>
               <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Ej: Corte de pelo" />
             </div>
             <div className="form-group">
-              <label>Duración (minutos)</label>
-              <input type="number" value={newDuration} onChange={e => setNewDuration(Number(e.target.value))} />
+              <label>Duración del Servicio</label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+                <div>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Días</span>
+                  <input type="number" min="0" value={newDays} onChange={e => setNewDays(Math.max(0, Number(e.target.value)))} />
+                </div>
+                <div>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Horas</span>
+                  <input type="number" min="0" max="23" value={newHours} onChange={e => setNewHours(Math.max(0, Number(e.target.value)))} />
+                </div>
+                <div>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Minutos</span>
+                  <input type="number" min="0" max="59" value={newMinutes} onChange={e => setNewMinutes(Math.max(0, Number(e.target.value)))} />
+                </div>
+              </div>
             </div>
             <div className="form-group">
               <label>Precio (€, opcional)</label>
@@ -542,7 +591,7 @@ export const AdminDashboard: React.FC = () => {
                 <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)'}}>Identificador visual en la agenda</span>
               </div>
             </div>
-            <div className="modal-actions">
+            <div className="modal-actions" style={{ marginTop: '2rem' }}>
               <button className="btn-secondary" onClick={() => setShowModal(false)}>Cancelar</button>
               <button className="btn-primary" onClick={addOrUpdateService}>Guardar</button>
             </div>
@@ -559,8 +608,18 @@ export const AdminDashboard: React.FC = () => {
                 <button className="btn-icon" onClick={() => setShowEventModal(false)}><XCircle /></button>
             </div>
             
-            <div className="form-group" style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-               <h3 style={{ margin: 0, color: 'var(--primary-color)' }}>{selectedEvent.resource.customerId}</h3>
+            <div className="form-group" style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+               <div style={{ background: 'var(--primary-color)', color: 'white', padding: '8px', borderRadius: '8px' }}>
+                 <UserIcon size={24} />
+               </div>
+               <div>
+                 <h3 style={{ margin: 0, color: 'var(--primary-color)' }}>
+                   {users.find(u => u.id === selectedEvent.resource.customerId)?.name || selectedEvent.resource.customerId}
+                 </h3>
+                 <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                   {users.find(u => u.id === selectedEvent.resource.customerId)?.phone || 'Sin teléfono'}
+                 </p>
+               </div>
             </div>
             
             <div className="form-group">

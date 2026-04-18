@@ -43,24 +43,39 @@ function GlobalThemeInjector({ children }: { children: React.ReactNode }) {
   const { repo } = useData();
 
   useEffect(() => {
-    // Escuchamos cambios de ruta para decidir si inyectar o limpiar
     const isSuperAdmin = window.location.pathname.startsWith('/superadmin');
-
-    if (isSuperAdmin) {
-      // Resetear a los valores CORE (Inter, Gris, etc)
-      document.documentElement.style.setProperty('--primary-color', '#3b82f6');
-      document.documentElement.style.setProperty('--font-family', "'Inter', sans-serif");
-      document.documentElement.style.setProperty('--bg-color', '#f3f4f6');
-      return;
-    }
+    const isWelcome = window.location.pathname.startsWith('/welcome');
 
     Promise.all([repo.getCompanyData(), repo.getDesignConfig()]).then(([company, cfg]) => {
+      // 0. Update Page Title and Favicon
+      const companyName = company?.nombreEmpresa || "Reservas App";
+      
+      if (isSuperAdmin) {
+        document.title = `CORE | ${companyName}`;
+      } else {
+        document.title = companyName;
+      }
+
+      const faviconTag = document.getElementById('dynamic-favicon') as HTMLLinkElement;
+      if (faviconTag && cfg?.faviconUrl) {
+        faviconTag.href = cfg.faviconUrl;
+        faviconTag.type = 'image/png'; // El favicon generado es PNG
+      }
+
+      if (isSuperAdmin) {
+        // Resetear a los valores CORE (Inter, Gris, etc) en el portal de control maestro
+        document.documentElement.style.setProperty('--primary-color', '#3b82f6');
+        document.documentElement.style.setProperty('--font-family', "'Inter', sans-serif");
+        document.documentElement.style.setProperty('--bg-color', '#f3f4f6');
+        return;
+      }
+
       // 1. Dynamic manifest generation
       const manifest = {
-        name: company?.nombreEmpresa || "Reservas App",
+        name: companyName,
         short_name: company?.nombreEmpresa || "Reservas",
         description: "Gestión de Reservas Web App",
-        start_url: "/booking",
+        start_url: isWelcome ? "/welcome" : "/booking",
         display: "standalone",
         background_color: cfg?.backgroundColor || "#f3f4f6",
         theme_color: cfg?.primaryColor || "#3b82f6",
@@ -127,7 +142,6 @@ function App() {
           }>
             <Route index element={<AdminDashboard />} />
             <Route path="users" element={<AdminUsersPage />} />
-            <Route path="agenda" element={<AdminDashboard />} /> /* Dummy wrapper for now */
             <Route path="promote" element={<AdminPromotePage />} />
           </Route>
 

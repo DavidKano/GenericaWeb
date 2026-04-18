@@ -22,6 +22,7 @@ export interface CompanyData {
   privacyPolicy?: string;
   termsOfUse?: string;
   supportEmail?: string;
+  renewalType?: 'Mensual' | 'Anual';
 }
 
 export interface DesignConfig {
@@ -63,6 +64,7 @@ export interface BusinessConfig {
   contactEmail: string;
   bookingEnabled: boolean;
   allowClientCancellation: boolean;
+  concurrentSlots: number;
 }
 
 export interface TimeRange {

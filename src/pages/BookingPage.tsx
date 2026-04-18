@@ -1,10 +1,12 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
-import type { BookingService, Appointment, DaySchedule, BlockedDay } from '../services/models';
+import type { BusinessConfig, BookingService, Appointment, DaySchedule, BlockedDay } from '../services/models';
 import { Calendar } from '../components/Calendar';
 import { generateTimeSlots } from '../utils/timeSlots';
-import { format } from 'date-fns';
+import { format, addDays, startOfDay, endOfDay } from 'date-fns';
+import { INITIAL_SCHEDULES } from '../services/scheduleDefaults';
+import { es } from 'date-fns/locale';
 
 export const BookingPage: React.FC = () => {
   const { repo } = useData();
@@ -14,6 +16,7 @@ export const BookingPage: React.FC = () => {
   const [schedules, setSchedules] = useState<DaySchedule[]>([]);
   const [blockedDays, setBlockedDays] = useState<BlockedDay[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [businessConfig, setBusinessConfig] = useState<BusinessConfig | null>(null);
   
   const [step, setStep] = useState(1);
   const [selectedService, setSelectedService] = useState<BookingService | null>(null);
@@ -22,19 +25,26 @@ export const BookingPage: React.FC = () => {
   const [booked, setBooked] = useState(false);
 
   useEffect(() => {
-    const loadInitial = async () => {
-      const [svcs, schs, bDays, appts] = await Promise.all([
+    const loadStatic = async () => {
+      const [svcs, schs, bDays, cfg] = await Promise.all([
         repo.getServices(),
         repo.getSchedules(),
         repo.getBlockedDays(),
-        repo.getAppointments()
+        repo.getConfig()
       ]);
       setServices(svcs);
-      setSchedules(schs);
+      setSchedules(schs.length > 0 ? schs : INITIAL_SCHEDULES);
       setBlockedDays(bDays);
-      setAppointments(appts);
+      setBusinessConfig(cfg);
     };
-    loadInitial();
+    loadStatic();
+
+    // Suscripción en tiempo real para citas
+    const unsubscribe = repo.subscribeToAppointments((appts) => {
+      setAppointments(appts);
+    });
+
+    return () => unsubscribe();
   }, [repo]);
 
   // Calcular slots disponibles para el día seleccionado
@@ -51,21 +61,80 @@ export const BookingPage: React.FC = () => {
     const dayEnd = new Date(selectedDate);
     dayEnd.setHours(23,59,59,999);
 
-    const existingApptTimes = appointments
+    const existingApptRanges = appointments
       .filter(a => a.dateTimeStart >= dayStart.getTime() && a.dateTimeStart <= dayEnd.getTime())
-      .map(a => a.dateTimeStart);
+      .map(a => {
+        const svc = services.find(s => s.id === a.serviceId);
+        const duration = svc?.durationMin || 30;
+        return {
+          start: a.dateTimeStart,
+          end: a.dateTimeStart + (duration * 60000)
+        };
+      });
 
     return generateTimeSlots(
       schedule.ranges,
       selectedService.durationMin,
       selectedDate,
-      existingApptTimes
+      existingApptRanges,
+      businessConfig?.concurrentSlots || 1
     );
-  }, [selectedDate, selectedService, schedules, appointments]);
+  }, [selectedDate, selectedService, schedules, appointments, services, businessConfig]);
+
+  // Calcular qué días están COMPLETOS (sin huecos libres) para los próximos 2 meses
+  const fullDates = useMemo(() => {
+    if (!selectedService || !schedules.length) return [];
+    
+    const results: string[] = [];
+    const today = startOfDay(new Date());
+    
+    for (let i = 0; i < 62; i++) {
+        const date = addDays(today, i);
+        const dayOfWeek = date.getDay();
+        const schedule = schedules.find(s => s.dayOfWeek === dayOfWeek);
+        
+        if (!schedule || !schedule.isOpen) continue;
+        const dateKey = format(date, 'yyyy-MM-dd');
+        if (blockedDays.some(b => b.date === dateKey)) continue;
+
+        const dStart = startOfDay(date);
+        const dEnd = endOfDay(date);
+        const dayAppts = appointments
+            .filter(a => a.dateTimeStart >= dStart.getTime() && a.dateTimeStart <= dEnd.getTime())
+            .map(a => {
+                const svc = services.find(s => s.id === a.serviceId);
+                return {
+                  start: a.dateTimeStart,
+                  end: a.dateTimeStart + ((svc?.durationMin || 30) * 60000)
+                };
+            });
+
+        const slots = generateTimeSlots(
+            schedule.ranges,
+            selectedService.durationMin,
+            date,
+            dayAppts,
+            businessConfig?.concurrentSlots || 1
+        );
+
+        if (slots.length === 0) {
+            results.push(dateKey);
+        }
+    }
+    return results;
+  }, [selectedService, schedules, appointments, services, businessConfig, blockedDays]);
 
   const handleConfirm = async () => {
     if (!selectedService || !selectedDate || !selectedTime || !user) return;
     
+    // Validación final de seguridad (Double Check)
+    // Comprobamos si a estas alturas el slot sigue estando disponible en tiempo real
+    if (!availableSlots.includes(selectedTime)) {
+      alert('Lo sentimos, esta franja horaria acaba de ser ocupada por otro cliente. Por favor, selecciona una nueva hora.');
+      setStep(3); // Devolver al paso de selección de hora
+      return;
+    }
+
     const [h, m] = selectedTime.split(':').map(Number);
     const dateObj = new Date(selectedDate);
     dateObj.setHours(h, m, 0, 0);
@@ -142,13 +211,14 @@ export const BookingPage: React.FC = () => {
             Servicio: <strong>{selectedService?.name}</strong>
           </p>
           
-          <Calendar
-            selectedDate={selectedDate}
+          <Calendar 
+            selectedDate={selectedDate} 
             onDateSelect={(date) => {
               setSelectedDate(date);
               setStep(3);
             }}
-            blockedDates={blockedDays.map(d => d.date)}
+            blockedDates={blockedDays.map(b => b.date)}
+            fullDates={fullDates}
             closedDays={schedules.filter(s => !s.isOpen).map(s => s.dayOfWeek)}
           />
 
@@ -223,6 +293,3 @@ export const BookingPage: React.FC = () => {
     </div>
   );
 };
-
-// Import inline for simplicity in this file for now
-import { es } from 'date-fns/locale';

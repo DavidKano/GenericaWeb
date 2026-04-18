@@ -12,6 +12,7 @@ export interface DataRepository {
 
   // Appointments
   getAppointments(): Promise<Appointment[]>;
+  subscribeToAppointments(callback: (appts: Appointment[]) => void): () => void;
   saveAppointment(appointment: Appointment): Promise<void>;
   deleteAppointment(id: string): Promise<void>;
 

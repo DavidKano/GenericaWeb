@@ -8,7 +8,7 @@ import { getDefaultPrivacyPolicy, getDefaultTermsOfUse } from '../services/polic
 export const AdminCoreDatos: React.FC = () => {
   const { repo } = useData();
   const [companyData, setCompanyData] = useState<CompanyData>({
-    nombreEmpresa: '', personaContacto: '', cifNif: '', direccion: '', cp: '', localidad: '', provincia: '', fechaPuestaMarcha: '', precioActual: 0, fechaRenovacion: '', supportEmail: ''
+    nombreEmpresa: '', personaContacto: '', cifNif: '', direccion: '', cp: '', localidad: '', provincia: '', fechaPuestaMarcha: '', precioActual: 0, fechaRenovacion: '', supportEmail: '', renewalType: 'Anual'
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -75,20 +75,27 @@ export const AdminCoreDatos: React.FC = () => {
           Variables maestras que alimentan la lógica legal y de facturación.
         </p>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '70% 1fr', gap: '1.5rem' }}>
           <div className="form-group">
             <label style={{ color: '#d1d5db' }}>Nombre de Empresa</label>
             <input type="text" value={companyData.nombreEmpresa} onChange={e => handleCompanyChange('nombreEmpresa', e.target.value)} required style={{ background: '#111827', color: '#fff', border: '1px solid #4b5563' }} />
           </div>
           <div className="form-group">
-            <label style={{ color: '#d1d5db' }}>Persona de Contacto</label>
-            <input type="text" value={companyData.personaContacto} onChange={e => handleCompanyChange('personaContacto', e.target.value)} required style={{ background: '#111827', color: '#fff', border: '1px solid #4b5563' }} />
+            <label style={{ color: '#d1d5db' }}>CIF/NIF</label>
+            <input 
+              type="text" 
+              maxLength={10} 
+              value={companyData.cifNif} 
+              onChange={e => handleCompanyChange('cifNif', e.target.value)} 
+              required 
+              style={{ background: '#111827', color: '#fff', border: '1px solid #4b5563' }} 
+            />
           </div>
         </div>
 
         <div className="form-group" style={{ marginTop: '1.5rem' }}>
-          <label style={{ color: '#d1d5db' }}>CIF/NIF</label>
-          <input type="text" value={companyData.cifNif} onChange={e => handleCompanyChange('cifNif', e.target.value)} required style={{ background: '#111827', color: '#fff', border: '1px solid #4b5563' }} />
+          <label style={{ color: '#d1d5db' }}>Persona de Contacto</label>
+          <input type="text" value={companyData.personaContacto} onChange={e => handleCompanyChange('personaContacto', e.target.value)} required style={{ background: '#111827', color: '#fff', border: '1px solid #4b5563' }} />
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem', marginTop: '1.5rem' }}>
@@ -122,7 +129,7 @@ export const AdminCoreDatos: React.FC = () => {
 
         <h3 style={{ color: '#eab308', marginBottom: '1.5rem', fontSize: '1rem' }}>Suscripción y Ciclo de Vida</h3>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1.5rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '1.5rem' }}>
           <div className="form-group">
             <label style={{ color: '#d1d5db' }}>Activación</label>
             <input type="date" value={companyData.fechaPuestaMarcha} onChange={e => handleCompanyChange('fechaPuestaMarcha', e.target.value)} style={{ background: '#111827', color: '#fff', border: '1px solid #4b5563', colorScheme: 'dark' }} />
@@ -134,6 +141,17 @@ export const AdminCoreDatos: React.FC = () => {
           <div className="form-group">
             <label style={{ color: '#d1d5db' }}>Fecha Renovación</label>
             <input type="date" value={companyData.fechaRenovacion} onChange={e => handleCompanyChange('fechaRenovacion', e.target.value)} style={{ background: '#111827', color: '#fff', border: '1px solid #4b5563', colorScheme: 'dark' }} />
+          </div>
+          <div className="form-group">
+            <label style={{ color: '#d1d5db' }}>Tipo de renovación</label>
+            <select 
+              value={companyData.renewalType || 'Anual'} 
+              onChange={e => handleCompanyChange('renewalType', e.target.value)}
+              style={{ width: '100%', padding: '0.6rem', background: '#111827', color: '#fff', border: '1px solid #4b5563', borderRadius: '4px' }}
+            >
+              <option value="Mensual">Mensual</option>
+              <option value="Anual">Anual</option>
+            </select>
           </div>
         </div>
 

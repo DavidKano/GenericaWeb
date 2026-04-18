@@ -2,7 +2,7 @@ import type { DataRepository } from './repository';
 import type { User, BookingService, Appointment, BusinessConfig, DaySchedule, BlockedDay, CompanyData, DesignConfig } from './models';
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import type { FirebaseOptions } from 'firebase/app';
-import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc, getDoc } from 'firebase/firestore';
+import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc, getDoc, onSnapshot } from 'firebase/firestore';
 import { getStorage, ref, uploadString, getDownloadURL } from 'firebase/storage';
 
 export class FirebaseRepository implements DataRepository {
@@ -41,6 +41,14 @@ export class FirebaseRepository implements DataRepository {
   async getAppointments(): Promise<Appointment[]> {
     const snapshot = await getDocs(collection(this.db, 'appointments'));
     return snapshot.docs.map(doc => doc.data() as Appointment);
+  }
+
+  subscribeToAppointments(callback: (appts: Appointment[]) => void): () => void {
+    const q = collection(this.db, 'appointments');
+    return onSnapshot(q, (snapshot) => {
+      const appts = snapshot.docs.map(doc => doc.data() as Appointment);
+      callback(appts);
+    });
   }
 
   async saveAppointment(appointment: Appointment): Promise<void> {

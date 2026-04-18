@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { LayoutDashboard, Users, Calendar, User as UserIcon, LogOut, QrCode } from 'lucide-react';
+import { LayoutDashboard, Users, User as UserIcon, LogOut, QrCode } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import type { DesignConfig, CompanyData } from '../../services/models';
 
@@ -60,9 +60,6 @@ export const AdminLayout: React.FC = () => {
           </NavLink>
           <NavLink to="/admin/users" className={({ isActive }) => isActive ? 'active' : ''}>
             <Users size={18} /> Gestión Clientes
-          </NavLink>
-          <NavLink to="/admin/agenda" className={({ isActive }) => isActive ? 'active' : ''}>
-            <Calendar size={18} /> Agenda/Citas
           </NavLink>
           <NavLink to="/admin/promote" className={({ isActive }) => isActive ? 'active' : ''}>
             <QrCode size={18} /> Promocionar App

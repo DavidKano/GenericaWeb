@@ -20,6 +20,7 @@ interface CalendarProps {
   selectedDate: Date | null;
   onDateSelect: (date: Date) => void;
   blockedDates?: string[]; // Array de strings "YYYY-MM-DD"
+  fullDates?: string[];    // Array de strings "YYYY-MM-DD" (sin huecos)
   closedDays?: number[];   // Array de números 0-6
   minDate?: Date;
 }
@@ -28,6 +29,7 @@ export const Calendar: React.FC<CalendarProps> = ({
   selectedDate, 
   onDateSelect, 
   blockedDates = [], 
+  fullDates = [],
   closedDays = [],
   minDate = startOfDay(new Date())
 }) => {
@@ -78,9 +80,10 @@ export const Calendar: React.FC<CalendarProps> = ({
         const dateKey = format(day, 'yyyy-MM-dd');
         
         const isBlocked = blockedDates.includes(dateKey);
+        const isFull = fullDates.includes(dateKey);
         const isClosed = closedDays.includes(day.getDay());
         const isPast = isBefore(day, minDate) && !isSameDay(day, minDate);
-        const isDisabled = isBlocked || isClosed || isPast;
+        const isDisabled = isBlocked || isFull || isClosed || isPast;
         const isCurrentMonth = isSameMonth(day, monthStart);
         const isSelected = selectedDate ? isSameDay(day, selectedDate) : false;
 
@@ -88,7 +91,7 @@ export const Calendar: React.FC<CalendarProps> = ({
           <div
             key={day.toString()}
             className={`calendar-cell ${
-              !isCurrentMonth ? "disabled" : isDisabled ? "blocked" : isSelected ? "selected" : ""
+              !isCurrentMonth ? "disabled" : isBlocked || isClosed ? "blocked" : isFull ? "full" : isSelected ? "selected" : ""
             }`}
             onClick={() => !isDisabled && isCurrentMonth && onDateSelect(cloneDay)}
           >
