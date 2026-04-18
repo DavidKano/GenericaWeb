@@ -144,7 +144,7 @@ function App() {
 
           {/* ---------------- CUSTOMER PORTAL (ROOT) ---------------- */}
           <Route path="/" element={
-            <PortalGuard allowedRoles={['CUSTOMER', 'ADMIN', 'SUPER_ADMIN']} portalType="CUSTOMER">
+            <PortalGuard allowedRoles={['CUSTOMER']} portalType="CUSTOMER">
               <CustomerLayout />
             </PortalGuard>
           }>

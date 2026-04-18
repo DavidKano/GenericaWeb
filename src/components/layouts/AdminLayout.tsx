@@ -3,16 +3,18 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { LayoutDashboard, Users, Calendar, User as UserIcon, LogOut } from 'lucide-react';
 import { useData } from '../../context/DataContext';
-import type { DesignConfig } from '../../services/models';
+import type { DesignConfig, CompanyData } from '../../services/models';
 
 export const AdminLayout: React.FC = () => {
   const { user, logout } = useAuth();
   const { repo } = useData();
   const navigate = useNavigate();
   const [design, setDesign] = React.useState<DesignConfig | null>(null);
+  const [company, setCompany] = React.useState<CompanyData | null>(null);
 
   React.useEffect(() => {
     repo.getDesignConfig().then(setDesign);
+    repo.getCompanyData().then(setCompany);
   }, [repo]);
 
   const handleLogout = () => {
@@ -29,6 +31,13 @@ export const AdminLayout: React.FC = () => {
           Workspace Admin
         </div>
         <div className="app-topbar__actions">
+          <a 
+            href={`mailto:${company?.supportEmail || ''}?subject=Consulta Técnica de ${user?.name || 'Admin'}`}
+            className="btn-text"
+            style={{ fontSize: '0.85rem', color: design?.primaryColor || 'var(--primary-color)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.4rem 0.8rem', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '6px', fontWeight: 600, marginRight: '0.5rem' }}
+          >
+            Contactar Soporte Técnico
+          </a>
           {user && (
             <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
               <div className="app-topbar__user" style={{ textDecoration: 'none', cursor: 'default' }}>

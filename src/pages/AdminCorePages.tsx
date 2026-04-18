@@ -8,7 +8,7 @@ import { getDefaultPrivacyPolicy, getDefaultTermsOfUse } from '../services/polic
 export const AdminCoreDatos: React.FC = () => {
   const { repo } = useData();
   const [companyData, setCompanyData] = useState<CompanyData>({
-    nombreEmpresa: '', personaContacto: '', cifNif: '', direccion: '', cp: '', localidad: '', provincia: '', fechaPuestaMarcha: '', precioActual: 0, fechaRenovacion: ''
+    nombreEmpresa: '', personaContacto: '', cifNif: '', direccion: '', cp: '', localidad: '', provincia: '', fechaPuestaMarcha: '', precioActual: 0, fechaRenovacion: '', supportEmail: ''
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -111,6 +111,11 @@ export const AdminCoreDatos: React.FC = () => {
             <label style={{ color: '#d1d5db' }}>Provincia</label>
             <input type="text" value={companyData.provincia} onChange={e => handleCompanyChange('provincia', e.target.value)} style={{ background: '#111827', color: '#fff', border: '1px solid #4b5563' }} />
           </div>
+        </div>
+
+        <div className="form-group" style={{ marginTop: '1.5rem' }}>
+          <label style={{ color: '#d1d5db' }}>Email de Soporte Técnico (Peticiones de ayuda de los admins)</label>
+          <input type="email" value={companyData.supportEmail || ''} onChange={e => handleCompanyChange('supportEmail', e.target.value)} placeholder="soporte@tuempresa.com" style={{ background: '#111827', color: '#fff', border: '1px solid #4b5563' }} />
         </div>
 
         <hr style={{ borderColor: '#374151', margin: '2rem 0' }} />

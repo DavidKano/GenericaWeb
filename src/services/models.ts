@@ -21,6 +21,7 @@ export interface CompanyData {
   fechaRenovacion: string; // ISO date YYYY-MM-DD
   privacyPolicy?: string;
   termsOfUse?: string;
+  supportEmail?: string;
 }
 
 export interface DesignConfig {
