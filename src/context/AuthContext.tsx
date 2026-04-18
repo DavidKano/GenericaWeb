@@ -23,9 +23,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return saved ? JSON.parse(saved) : null;
   });
 
-  // Inicializar admin por defecto si no existe
+  // Inicializar admin por defecto SOLO en desarrollo local (localhost)
+  // JAMÁS se ejecuta en producción, incluso si mode es 'local' por algún bug.
   useEffect(() => {
-    if (mode === 'firebase') return; // En prod no se inyecta la demo
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (mode !== 'local' || !isLocalhost) return;
+    
     const initAdmin = async () => {
       const users = await repo.getUsers();
         if (!users.find(u => u.role === 'ADMIN')) {

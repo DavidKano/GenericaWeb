@@ -5,6 +5,7 @@ import { useData } from '../../context/DataContext';
 import { Calendar, Users, User as UserIcon, LogOut } from 'lucide-react';
 import type { CompanyData, DesignConfig } from '../../services/models';
 import { LegalModal } from '../ui/LegalModal';
+import { getDefaultPrivacyPolicy, getDefaultTermsOfUse } from '../../services/policyDefaults';
 
 export const CustomerLayout: React.FC = () => {
   const { user, logout } = useAuth();
@@ -71,8 +72,8 @@ export const CustomerLayout: React.FC = () => {
               |
               <button type="button" onClick={() => setShowPrivacy(true)} style={{ background: 'none', border: 'none', color: 'inherit', textDecoration: 'underline', cursor: 'pointer', padding: 0, margin: '0 0.5rem' }}>Política de Privacidad</button>
               
-              <LegalModal isOpen={showTerms} onClose={() => setShowTerms(false)} title="Condiciones de Uso" content={company.termsOfUse || ''} />
-              <LegalModal isOpen={showPrivacy} onClose={() => setShowPrivacy(false)} title="Política de Privacidad" content={company.privacyPolicy || ''} />
+              <LegalModal isOpen={showTerms} onClose={() => setShowTerms(false)} title="Condiciones de Uso" content={company.termsOfUse || getDefaultTermsOfUse(company)} />
+              <LegalModal isOpen={showPrivacy} onClose={() => setShowPrivacy(false)} title="Política de Privacidad" content={company.privacyPolicy || getDefaultPrivacyPolicy(company)} />
             </div>
           )}
         </main>

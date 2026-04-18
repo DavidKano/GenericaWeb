@@ -4,6 +4,7 @@ import { User, Phone, Mail, Lock, UserPlus, LogIn, ShieldAlert, Briefcase } from
 import { useData } from '../context/DataContext';
 import type { CompanyData } from '../services/models';
 import { LegalModal } from '../components/ui/LegalModal';
+import { getDefaultPrivacyPolicy, getDefaultTermsOfUse } from '../services/policyDefaults';
 
 interface LoginPageProps {
   type?: 'CUSTOMER' | 'ADMIN' | 'SUPER_ADMIN';
@@ -168,7 +169,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ type = 'CUSTOMER' }) => {
           </div>
         )}
 
-        {!isRegister && mode !== 'firebase' && (
+        {!isRegister && mode === 'local' && import.meta.env.DEV && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && (
           <div className="login-demo" style={{ 
             marginTop: '2rem', 
             padding: '1rem', 
@@ -190,8 +191,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ type = 'CUSTOMER' }) => {
             |
             <button type="button" onClick={() => setShowPrivacy(true)} style={{ background: 'none', border: 'none', color: 'inherit', textDecoration: 'underline', cursor: 'pointer', padding: 0, margin: '0 0.5rem' }}>Política de Privacidad</button>
             
-            <LegalModal isOpen={showTerms} onClose={() => setShowTerms(false)} title="Condiciones de Uso" content={company.termsOfUse || ''} />
-            <LegalModal isOpen={showPrivacy} onClose={() => setShowPrivacy(false)} title="Política de Privacidad" content={company.privacyPolicy || ''} />
+            <LegalModal isOpen={showTerms} onClose={() => setShowTerms(false)} title="Condiciones de Uso" content={company.termsOfUse || getDefaultTermsOfUse(company)} />
+            <LegalModal isOpen={showPrivacy} onClose={() => setShowPrivacy(false)} title="Política de Privacidad" content={company.privacyPolicy || getDefaultPrivacyPolicy(company)} />
           </div>
         )}
       </div>

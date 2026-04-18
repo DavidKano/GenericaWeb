@@ -7,25 +7,49 @@ export const SystemIgnition: React.FC = () => {
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
 
-  // Firebase config
-  const [apiKey, setApiKey] = useState('');
-  const [authDomain, setAuthDomain] = useState('');
-  const [projectId, setProjectId] = useState('');
-  const [storageBucket, setStorageBucket] = useState('');
-  const [messagingSenderId, setMessagingSenderId] = useState('');
-  const [appId, setAppId] = useState('');
-
   // Master Admin Auth
   const [adminEmail, setAdminEmail] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
-    // Autodestrucción si ya existe configuración persistente
-    const existingConfig = localStorage.getItem('firebaseConfig');
-    if (existingConfig) {
-      navigate('/login', { replace: true });
-    }
+    // Autodestrucción: comprobar si ya existe un SUPER_ADMIN en Firestore.
+    // Si ya existe, esta ruta no tiene razón de existir. Redirigir inmediatamente.
+    const checkExistingAdmin = async () => {
+      try {
+        // Obtener la config de Firebase directamente del servidor
+        const response = await fetch('/__/firebase/init.json');
+        if (!response.ok) {
+          // Si no estamos en Firebase Hosting (ej: localhost), permitir acceso
+          setIsChecking(false);
+          return;
+        }
+        const config = await response.json();
+
+        const { initializeApp, getApps, getApp } = await import('firebase/app');
+        const { getFirestore, collection, getDocs } = await import('firebase/firestore');
+
+        const app = !getApps().length ? initializeApp(config) : getApp();
+        const db = getFirestore(app);
+
+        // Buscar si ya existe algún usuario con rol SUPER_ADMIN
+        const snapshot = await getDocs(collection(db, 'users'));
+        const hasSuperAdmin = snapshot.docs.some(d => d.data().role === 'SUPER_ADMIN');
+
+        if (hasSuperAdmin) {
+          // Ya está inicializado. Autodestrucción.
+          navigate('/', { replace: true });
+          return;
+        }
+      } catch (err) {
+        console.error('Error verificando estado del sistema:', err);
+        // Si falla la comprobación, dejamos entrar por seguridad (puede ser localhost)
+      }
+      setIsChecking(false);
+    };
+
+    checkExistingAdmin();
   }, [navigate]);
 
   const handleLogin = (e: React.FormEvent) => {
@@ -39,33 +63,32 @@ export const SystemIgnition: React.FC = () => {
 
   const handleIgnite = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!apiKey || !projectId || !adminEmail || !adminPassword) {
-      alert('Faltan campos maestros requeridos.');
+    if (!adminEmail || !adminPassword) {
+      alert('Introduce el email y la contraseña del administrador maestro.');
       return;
     }
 
     setIsLoading(true);
 
-    const fbConfig = {
-      apiKey,
-      authDomain,
-      projectId,
-      storageBucket,
-      messagingSenderId,
-      appId
-    };
-
     try {
-      // Dynamically import Firebase to avoid cluttering main bundle
-      const { initializeApp } = await import('firebase/app');
+      // Obtener la configuración de Firebase del propio servidor
+      let fbConfig: any;
+      const response = await fetch('/__/firebase/init.json');
+      if (response.ok) {
+        fbConfig = await response.json();
+      } else {
+        throw new Error('No se pudo obtener la configuración del servidor. Asegúrate de que la app está desplegada en Firebase Hosting.');
+      }
+
+      const { initializeApp, getApps, getApp } = await import('firebase/app');
       const { getAuth, createUserWithEmailAndPassword } = await import('firebase/auth');
       const { getFirestore, doc, setDoc } = await import('firebase/firestore');
 
-      const app = initializeApp(fbConfig);
+      const app = !getApps().length ? initializeApp(fbConfig) : getApp();
       const auth = getAuth(app);
       const db = getFirestore(app);
 
-      // Crear Admin Maestro
+      // Crear Admin Maestro en Firebase Authentication
       const userCredential = await createUserWithEmailAndPassword(auth, adminEmail, adminPassword);
       const user = userCredential.user;
 
@@ -79,11 +102,8 @@ export const SystemIgnition: React.FC = () => {
         createdAt: Date.now()
       });
 
-      // Guardar Configuración Maestramente
-      localStorage.setItem('firebaseConfig', JSON.stringify(fbConfig));
-
-      alert('Configuración guardada exitosamente. El sistema se reiniciará en modo producción.');
-      window.location.href = '/login'; // Full reload to catch DataContext evaluation
+      alert('✅ Sistema inicializado correctamente. El Administrador Maestro ha sido creado. La app se reiniciará.');
+      window.location.href = '/'; // Full reload para que DataContext reconecte
 
     } catch (err: any) {
       alert('Fallo catastrófico al enlazar Firebase: ' + err.message);
@@ -92,6 +112,16 @@ export const SystemIgnition: React.FC = () => {
     }
   };
 
+  // Pantalla de verificación inicial
+  if (isChecking) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#000', color: '#0f0', fontFamily: 'monospace' }}>
+        <p>Verificando estado del sistema...</p>
+      </div>
+    );
+  }
+
+  // Pantalla de acceso seguro
   if (!isLogged) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#000', color: '#0f0' }}>
@@ -105,30 +135,23 @@ export const SystemIgnition: React.FC = () => {
     );
   }
 
+  // Formulario de inicialización (solo email + contraseña del admin)
   return (
     <div style={{ minHeight: '100vh', padding: '2rem', background: '#e5e7eb', display: 'flex', alignItems: 'flex-start', justifyContent: 'center' }}>
       <div style={{ maxWidth: '600px', width: '100%', background: 'white', padding: '2rem', borderRadius: '12px', boxShadow: '0 10px 20px rgba(0,0,0,0.1)' }}>
         <h1 style={{ color: '#ef4444', marginBottom: '1.5rem', borderBottom: '2px solid #ef4444', paddingBottom: '0.5rem' }}>🔥 CORE IGNITION SETUP</h1>
-        <p style={{ fontSize: '0.9rem', color: '#4b5563', marginBottom: '2rem' }}>
-          Aviso: Esta acción enlazará el sistema a una instancia de Firebase Production. Al completarse exitosamente, esta ruta se bloqueará para prevenir un reajuste malintencionado.
+        <p style={{ fontSize: '0.9rem', color: '#4b5563', marginBottom: '1rem' }}>
+          Aviso: Esta acción creará el Administrador Maestro del sistema. 
+          La conexión con Firebase se establece automáticamente desde el servidor.
+        </p>
+        <p style={{ fontSize: '0.85rem', color: '#10b981', marginBottom: '2rem', padding: '0.75rem', background: '#ecfdf5', borderRadius: '8px', border: '1px solid #a7f3d0' }}>
+          ✅ La configuración de Firebase se obtiene automáticamente del servidor. No necesitas introducir claves SDK.
         </p>
         <form onSubmit={handleIgnite} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           
-          <div>
-            <h3 style={{ marginBottom: '1rem' }}>1. Firebase SDK Config</h3>
-            <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: '1fr 1fr' }}>
-              <input value={apiKey} onChange={e=>setApiKey(e.target.value)} placeholder="apiKey" required style={{ width: '100%', padding: '0.8rem', border: '1px solid #d1d5db', borderRadius: '6px' }} />
-              <input value={projectId} onChange={e=>setProjectId(e.target.value)} placeholder="projectId" required style={{ width: '100%', padding: '0.8rem', border: '1px solid #d1d5db', borderRadius: '6px' }} />
-              <input value={authDomain} onChange={e=>setAuthDomain(e.target.value)} placeholder="authDomain" style={{ width: '100%', padding: '0.8rem', border: '1px solid #d1d5db', borderRadius: '6px' }} />
-              <input value={storageBucket} onChange={e=>setStorageBucket(e.target.value)} placeholder="storageBucket" style={{ width: '100%', padding: '0.8rem', border: '1px solid #d1d5db', borderRadius: '6px' }} />
-              <input value={messagingSenderId} onChange={e=>setMessagingSenderId(e.target.value)} placeholder="messagingSenderId" style={{ width: '100%', padding: '0.8rem', border: '1px solid #d1d5db', borderRadius: '6px' }} />
-              <input value={appId} onChange={e=>setAppId(e.target.value)} placeholder="appId" style={{ width: '100%', padding: '0.8rem', border: '1px solid #d1d5db', borderRadius: '6px' }} />
-            </div>
-          </div>
-
           <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '1.5rem' }}>
-            <h3 style={{ marginBottom: '1rem' }}>2. Master Admin Account</h3>
-            <p style={{ fontSize: '0.8rem', color: '#4b5563', marginBottom: '1rem' }}>Se creará el administrador irrevocable en la nube utilizando Auth.</p>
+            <h3 style={{ marginBottom: '1rem' }}>Administrador Maestro</h3>
+            <p style={{ fontSize: '0.8rem', color: '#4b5563', marginBottom: '1rem' }}>Se creará la cuenta irrevocable de SUPER_ADMIN en Firebase Authentication.</p>
             <div style={{ display: 'grid', gap: '1rem' }}>
               <input type="email" value={adminEmail} onChange={e=>setAdminEmail(e.target.value)} placeholder="Email del Administrador" required style={{ width: '100%', padding: '0.8rem', border: '1px solid #d1d5db', borderRadius: '6px' }} />
               <input type="password" value={adminPassword} onChange={e=>setAdminPassword(e.target.value)} placeholder="Contraseña Maestra" required style={{ width: '100%', padding: '0.8rem', border: '1px solid #d1d5db', borderRadius: '6px' }} />
@@ -136,7 +159,7 @@ export const SystemIgnition: React.FC = () => {
           </div>
 
           <button disabled={isLoading} type="submit" style={{ background: isLoading ? '#9ca3af' : '#ef4444', color: 'white', padding: '1rem', border: 'none', borderRadius: '8px', cursor: isLoading ? 'not-allowed' : 'pointer', fontWeight: 'bold', fontSize: '1rem', marginTop: '1rem' }}>
-            {isLoading ? 'ENLAZANDO...' : 'INICIALIZAR PRODUCCIÓN'}
+            {isLoading ? 'CREANDO ADMINISTRADOR...' : 'INICIALIZAR SISTEMA'}
           </button>
         </form>
       </div>

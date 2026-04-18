@@ -1,0 +1,72 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Funciones de ayuda para roles
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    // Recupera el rol directamente evitando recursividad en las reglas
+    function getRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    // --- COLECCIÓN DE USUARIOS ---
+    match /users/{userId} {
+      // Un usuario siempre puede leer su propia ficha. Para ver otras fichas, debe ser admin.
+      allow read: if isSignedIn() && (request.auth.uid == userId || getRole() in ['ADMIN', 'SUPER_ADMIN']);
+      
+      // Permitir creación inicial para cualquier usuario logueado.
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      
+      // Permitir actualización si es Admin o si es el dueño (sin cambiar el rol).
+      allow update: if isSignedIn() && (
+         (request.auth.uid == userId && request.resource.data.role == resource.data.role) ||
+         getRole() in ['ADMIN', 'SUPER_ADMIN']
+      );
+
+      allow delete: if isSignedIn() && getRole() in ['ADMIN', 'SUPER_ADMIN'];
+    }
+
+    // --- COLECCIONES DEL SISTEMA (SAAS / CORE) ---
+    // Lectura pública: el nombre de la empresa, colores y logo deben ser visibles
+    // en la pantalla de login ANTES de que el usuario se autentique.
+    match /system/{document=**} {
+      allow read: if true;
+      allow write: if isSignedIn() && getRole() == 'SUPER_ADMIN';
+    }
+
+    // --- CONFIGURACIÓN DE NEGOCIO ---
+    match /config/{document=**} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && getRole() in ['ADMIN', 'SUPER_ADMIN'];
+    }
+
+    match /services/{document=**} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && getRole() in ['ADMIN', 'SUPER_ADMIN'];
+    }
+
+    match /schedules/{document=**} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && getRole() in ['ADMIN', 'SUPER_ADMIN'];
+    }
+
+    match /blockedDays/{document=**} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && getRole() in ['ADMIN', 'SUPER_ADMIN'];
+    }
+
+    // --- CITAS / AGENDA ---
+    match /appointments/{appointmentId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.customerId == request.auth.uid;
+      allow update, delete: if isSignedIn() && (
+        resource.data.customerId == request.auth.uid || 
+        getRole() in ['ADMIN', 'SUPER_ADMIN']
+      );
+    }
+  }
+}

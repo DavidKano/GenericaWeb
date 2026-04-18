@@ -33,6 +33,8 @@ type AdminTab = 'stats' | 'services' | 'schedule' | 'config';
 export const AdminDashboard: React.FC = () => {
   const { repo } = useData();
   const [activeTab, setActiveTab] = useState<AdminTab>('stats');
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [services, setServices] = useState<BookingService[]>([]);
@@ -64,16 +66,25 @@ export const AdminDashboard: React.FC = () => {
   }, [repo]);
 
   const loadData = async () => {
-    const [appts, svcs, schs, cfg] = await Promise.all([
-      repo.getAppointments(),
-      repo.getServices(),
-      repo.getSchedules(),
-      repo.getConfig(),
-    ]);
-    setAppointments(appts);
-    setServices(svcs);
-    setSchedules(schs);
-    setConfig(cfg);
+    setIsLoading(true);
+    setErrorMessage(null);
+    try {
+      const [appts, svcs, schs, cfg] = await Promise.all([
+        repo.getAppointments(),
+        repo.getServices(),
+        repo.getSchedules(),
+        repo.getConfig(),
+      ]);
+      setAppointments(appts);
+      setServices(svcs);
+      setSchedules(schs);
+      setConfig(cfg);
+    } catch (err: any) {
+      console.error('Error cargando panel de administrador:', err);
+      setErrorMessage(err.message || 'Error de conexión con Firestore');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const addOrUpdateService = async () => {
@@ -323,7 +334,26 @@ export const AdminDashboard: React.FC = () => {
         </div>
       </div>
 
-      {activeTab === 'stats' && (
+      {isLoading && (
+        <div style={{ padding: '5rem', textAlign: 'center' }}>
+          <div className="animate-spin" style={{ width: '40px', height: '40px', border: '4px solid var(--primary-color)', borderTopColor: 'transparent', borderRadius: '50%', margin: '0 auto' }}></div>
+          <p style={{ marginTop: '1.5rem', color: 'var(--text-secondary)' }}>Cargando agenda de negocio...</p>
+        </div>
+      )}
+
+      {errorMessage && (
+        <div className="card glass-panel" style={{ padding: '3rem', textAlign: 'center', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
+          <div style={{ color: '#ef4444', fontSize: '3rem', marginBottom: '1rem' }}>⚠️</div>
+          <h3 style={{ color: '#ef4444', marginBottom: '1.5rem' }}>Error de Conexión</h3>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>{errorMessage}</p>
+          <div style={{ background: 'rgba(0,0,0,0.2)', padding: '1rem', borderRadius: '8px', fontSize: '0.8rem', marginBottom: '2rem', textAlign: 'left' }}>
+            <p><strong>Posible causa:</strong> Las reglas de Firestore no están publicadas o no tienes permisos suficientes para acceder a estos datos.</p>
+          </div>
+          <button className="btn-primary" onClick={loadData}>Reintentar Conexión</button>
+        </div>
+      )}
+
+      {!isLoading && !errorMessage && activeTab === 'stats' && (
         <>
           <div className="dashboard-stats">
             <div className="stat-card">

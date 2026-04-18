@@ -1,19 +1,14 @@
 import type { DataRepository } from './repository';
 import type { User, BookingService, Appointment, BusinessConfig, DaySchedule, BlockedDay, CompanyData, DesignConfig } from './models';
 import { initializeApp, getApps, getApp } from 'firebase/app';
+import type { FirebaseOptions } from 'firebase/app';
 import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc, getDoc } from 'firebase/firestore';
 
 export class FirebaseRepository implements DataRepository {
   private db: any;
 
-  constructor() {
-    const configStr = localStorage.getItem('firebaseConfig');
-    if (!configStr) {
-      throw new Error('Firebase configuration not found context');
-    }
-    const fbConfig = JSON.parse(configStr);
-    
-    const app = !getApps().length ? initializeApp(fbConfig) : getApp();
+  constructor(config: FirebaseOptions) {
+    const app = !getApps().length ? initializeApp(config) : getApp();
     this.db = getFirestore(app);
   }
 

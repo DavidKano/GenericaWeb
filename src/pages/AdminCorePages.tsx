@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useData } from '../context/DataContext';
-import { Briefcase, ShieldCheck, Code, Save, Loader2, UploadCloud, CheckCircle, Palette, Type } from 'lucide-react';
+import { Briefcase, ShieldCheck, ShieldAlert, Code, Save, Loader2, UploadCloud, CheckCircle, Palette, Type } from 'lucide-react';
 import type { CompanyData, DesignConfig } from '../services/models';
 import QRCode from 'qrcode';
+import { getDefaultPrivacyPolicy, getDefaultTermsOfUse } from '../services/policyDefaults';
 
 export const AdminCoreDatos: React.FC = () => {
   const { repo } = useData();
@@ -12,13 +13,21 @@ export const AdminCoreDatos: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState('');
+  const [error, setError] = useState('');
 
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      const data = await repo.getCompanyData();
-      if (data) setCompanyData(data);
-      setLoading(false);
+      setError('');
+      try {
+        const data = await repo.getCompanyData();
+        if (data) setCompanyData(data);
+      } catch (err: any) {
+        console.error('Error cargando datos de empresa:', err);
+        setError(err.message || 'Error de conexión');
+      } finally {
+        setLoading(false);
+      }
     };
     loadData();
   }, [repo]);
@@ -41,6 +50,17 @@ export const AdminCoreDatos: React.FC = () => {
       <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>
         <Loader2 className="animate-spin" size={32} style={{ margin: '0 auto 1rem' }} />
         <p>Cargando metadatos CORE...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="card glass-panel" style={{ padding: '3rem', textAlign: 'center', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)' }}>
+        <ShieldAlert size={48} style={{ margin: '0 auto 1rem' }} />
+        <h3>Acceso Restringido</h3>
+        <p style={{ marginTop: '0.5rem', color: '#9ca3af' }}>{error}</p>
+        <button className="btn-primary" style={{ marginTop: '1.5rem', background: '#eab308', color: '#111' }} onClick={() => window.location.reload()}>Reintentar Carga</button>
       </div>
     );
   }
@@ -137,6 +157,7 @@ export const AdminCoreDiseno: React.FC = () => {
   const [processing, setProcessing] = useState(false);
   const [savingColors, setSavingColors] = useState(false);
   const [toast, setToast] = useState('');
+  const [error, setError] = useState('');
   const [qrUrl, setQrUrl] = useState(`${window.location.origin}/welcome`);
   const [rgbInput, setRgbInput] = useState({ r: 59, g: 130, b: 246 });
   const [textRgbInput, setTextRgbInput] = useState({ r: 255, g: 255, b: 255 });
@@ -168,20 +189,28 @@ export const AdminCoreDiseno: React.FC = () => {
 
   useEffect(() => {
     const load = async () => {
-      const cfg = await repo.getDesignConfig();
-      if (cfg) {
-        setConfig(cfg);
-        if (cfg.primaryColor) {
-           setRgbInput(hexToRgb(cfg.primaryColor));
+      setLoading(true);
+      setError('');
+      try {
+        const cfg = await repo.getDesignConfig();
+        if (cfg) {
+          setConfig(cfg);
+          if (cfg.primaryColor) {
+             setRgbInput(hexToRgb(cfg.primaryColor));
+          }
+          if (cfg.primaryTextColor) {
+             setTextRgbInput(hexToRgb(cfg.primaryTextColor));
+          }
+          if (cfg.backgroundColor) {
+             setBgRgbInput(hexToRgb(cfg.backgroundColor));
+          }
         }
-        if (cfg.primaryTextColor) {
-           setTextRgbInput(hexToRgb(cfg.primaryTextColor));
-        }
-        if (cfg.backgroundColor) {
-           setBgRgbInput(hexToRgb(cfg.backgroundColor));
-        }
+      } catch (err: any) {
+        console.error('Error cargando diseño:', err);
+        setError(err.message || 'Error de permisos');
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
     load();
   }, [repo]);
@@ -234,7 +263,7 @@ export const AdminCoreDiseno: React.FC = () => {
         cardCtx.drawImage(img, lx, ly, img.width * logoScale, img.height * logoScale);
         cardCtx.drawImage(qrCanvas, 400, 0, 400, 400);
 
-        const qrCardUrl = cardCanvas.toDataURL('image/jpeg', 0.85);
+        const qrCardUrl = cardCanvas.toDataURL('image/jpeg', 0.6); // Bajamos calidad para ahorrar espacio
 
         const newConfig: DesignConfig = {
           sourceLogoUrl,
@@ -246,9 +275,25 @@ export const AdminCoreDiseno: React.FC = () => {
           secondaryColor: config?.secondaryColor || '#2563eb'
         };
 
-        setConfig(newConfig);
-        await repo.saveDesignConfig(newConfig);
-        setProcessing(false);
+        // Verificamos tamaño aproximado del JSON (Límite Firestore 1MB)
+        const sizeKB = Math.round(JSON.stringify(newConfig).length / 1024);
+        if (sizeKB > 800) {
+          alert(`⚠️ El logotipo es demasiado pesado (${sizeKB}KB). Por favor, usa una imagen más pequeña o con menos resolución para evitar bloqueos en el sistema.`);
+          setProcessing(false);
+          return;
+        }
+
+        try {
+          setConfig(newConfig);
+          await repo.saveDesignConfig(newConfig);
+          setToast('Assets gráficos actualizados y persistidos');
+        } catch (err) {
+          console.error('Error al guardar configuración de diseño:', err);
+          alert('Error crítico: No se pudo guardar el diseño. Es posible que el logotipo sea demasiado grande para la base de datos.');
+        } finally {
+          setProcessing(false);
+          setTimeout(() => setToast(''), 3000);
+        }
       };
       img.src = event.target?.result as string;
     };
@@ -327,10 +372,16 @@ export const AdminCoreDiseno: React.FC = () => {
   const saveColors = async () => {
     if (!config) return;
     setSavingColors(true);
-    await repo.saveDesignConfig(config);
-    setSavingColors(false);
-    setToast('Identidad visual desplegada en el ecosistema');
-    setTimeout(() => setToast(''), 3000);
+    try {
+      await repo.saveDesignConfig(config);
+      setToast('Identidad visual desplegada en el ecosistema');
+    } catch (err) {
+      console.error('Error al guardar colores:', err);
+      alert('Error: No se pudo actualizar el diseño en la nube.');
+    } finally {
+      setSavingColors(false);
+      setTimeout(() => setToast(''), 3000);
+    }
   };
 
   if (loading) {
@@ -338,6 +389,17 @@ export const AdminCoreDiseno: React.FC = () => {
       <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>
         <Loader2 className="animate-spin" size={32} style={{ margin: '0 auto 1rem' }} />
         <p>Cargando laboratorio gráfico y paletas...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="card glass-panel" style={{ padding: '3rem', textAlign: 'center', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)' }}>
+        <ShieldAlert size={48} style={{ margin: '0 auto 1rem' }} />
+        <h3>Acceso Restringido</h3>
+        <p style={{ marginTop: '0.5rem', color: '#9ca3af' }}>{error}</p>
+        <button className="btn-primary" style={{ marginTop: '1.5rem', background: '#eab308', color: '#111' }} onClick={() => window.location.reload()}>Reintentar Carga</button>
       </div>
     );
   }
@@ -568,13 +630,8 @@ export const AdminCorePoliticas: React.FC = () => {
     repo.getCompanyData().then(data => {
       if (data) {
         setCompany(data);
-        
-        const fallbackPrivacy = `POLÍTICA DE PRIVACIDAD\n\nEn nombre de la empresa ${data.nombreEmpresa || '[EMPRESA]'} con NIF/CIF ${data.cifNif || '[NIF/CIF]'}, con dirección comercial en ${data.direccion || '[DIRECCION]'}, le informamos de que tratamos la información que nos facilita con el fin de prestarles el servicio de reservas de citas y gestión comercial.\n\nLos datos proporcionados se conservarán mientras se mantenga la relación comercial o durante los años necesarios para cumplir con las obligaciones legales. Los datos no se cederán a terceros salvo en los casos en que exista una obligación legal.\n\nUsted tiene derecho a obtener confirmación sobre si en ${data.nombreEmpresa || '[EMPRESA]'} estamos tratando sus datos personales por tanto tiene derecho a acceder a sus datos personales, rectificar los datos inexactos o solicitar su supresión cuando los datos ya no sean necesarios escribiendo directamente a los administradores.`;
-        
-        const fallbackTerms = `CONDICIONES DE USO\n\nEl uso del servicio de la plataforma instalada bajo ${data.nombreEmpresa || '[EMPRESA]'} está sujeto a la aceptación explícita de los siguientes términos y condiciones:\n\n1. OBLIGACIONES DEL USUARIO\nEl usuario se compromete a usar las utilidades del software de manera adecuada para la gestión de citas de forma leal, no sobrecargando intencionadamente los recursos de red y presentando datos de contacto válidos.\n\n2. CANCELACIONES DE CITAS\nLas cancelaciones de las citas se deben notificar siguiendo las reglas propias de la agenda. ${data.nombreEmpresa || '[EMPRESA]'} no se hace responsable de daños causados por fallos del sistema o inasistencias derivadas de fuerza mayor.\n\n3. EXCLUSIÓN DE RESPONSABILIDAD\nEl desarrollador del sistema no será en ningún caso responsable del lucro cesante o daño emergente asociado a un mal uso del motor de citas. Limitamos nuestra competencia al mantenimiento lógico de la plataforma bajo el servicio "Software as a Service".`;
-
-        setPrivacy(data.privacyPolicy || fallbackPrivacy);
-        setTerms(data.termsOfUse || fallbackTerms);
+        setPrivacy(data.privacyPolicy || getDefaultPrivacyPolicy(data));
+        setTerms(data.termsOfUse || getDefaultTermsOfUse(data));
       }
       setLoading(false);
     });

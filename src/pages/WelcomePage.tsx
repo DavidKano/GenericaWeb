@@ -13,12 +13,10 @@ export const WelcomePage: React.FC = () => {
   
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isIOS, setIsIOS] = useState(false);
-  const [isStandalone, setIsStandalone] = useState(false);
 
   useEffect(() => {
     // 1. Detect if already installed / running as standalone
     const _isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
-    setIsStandalone(_isStandalone);
 
     if (_isStandalone) {
       navigate('/booking', { replace: true });
@@ -42,14 +40,20 @@ export const WelcomePage: React.FC = () => {
 
     // 4. Load info
     const loadInfo = async () => {
-      const company = await repo.getCompanyData();
-      const design = await repo.getDesignConfig();
-      
-      if (company && company.nombreEmpresa) setAppName(company.nombreEmpresa);
-      if (design && design.primaryColor) setPrimaryColor(design.primaryColor);
-      if (design && design.pwaIcon) setLogoUrl(design.pwaIcon);
-      
-      setLoading(false);
+      try {
+        const [company, design] = await Promise.all([
+          repo.getCompanyData(),
+          repo.getDesignConfig()
+        ]);
+        
+        if (company && company.nombreEmpresa) setAppName(company.nombreEmpresa);
+        if (design && design.primaryColor) setPrimaryColor(design.primaryColor);
+        if (design && design.pwaIcon) setLogoUrl(design.pwaIcon);
+      } catch (err) {
+        console.error('Error precargando datos en WelcomePage:', err);
+      } finally {
+        setLoading(false);
+      }
     };
     
     loadInfo();

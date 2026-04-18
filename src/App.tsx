@@ -95,6 +95,12 @@ function GlobalThemeInjector({ children }: { children: React.ReactNode }) {
       if (cfg?.backgroundColor) {
         document.documentElement.style.setProperty('--bg-color', cfg.backgroundColor);
       }
+    }).catch(err => {
+      console.error('CRITICAL: Fallo en la inyección de temas core:', err);
+      // Fallback a colores básicos para que la app no muera
+      document.documentElement.style.setProperty('--primary-color', '#3b82f6');
+      document.documentElement.style.setProperty('--font-family', "'Inter', sans-serif");
+      document.documentElement.style.setProperty('--bg-color', '#f3f4f6');
     });
   }, [repo, window.location.pathname]);
 
