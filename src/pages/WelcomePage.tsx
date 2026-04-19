@@ -13,6 +13,7 @@ export const WelcomePage: React.FC = () => {
   
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isIOS, setIsIOS] = useState(false);
+  const [isSafariBrowser, setIsSafariBrowser] = useState(false);
 
   useEffect(() => {
     // 1. Detect if already installed / running as standalone
@@ -28,9 +29,10 @@ export const WelcomePage: React.FC = () => {
     const isIPad = !!ua.match(/iPad/i);
     const isIPhone = !!ua.match(/iPhone/i);
     const isIOSDevice = isIPad || isIPhone;
-    const isSafari = isIOSDevice && webkit && !ua.match(/CriOS/i);
+    const isSafari = isIOSDevice && webkit && !ua.match(/CriOS/i) && !ua.match(/FxiOS/i);
     
-    setIsIOS(isIOSDevice && isSafari);
+    setIsIOS(isIOSDevice);
+    setIsSafariBrowser(isSafari);
 
     // 3. Listen for Android installation prompt
     window.addEventListener('beforeinstallprompt', (e) => {
@@ -129,8 +131,15 @@ export const WelcomePage: React.FC = () => {
             <h3 style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
                <Apple size={20} /> Para instalar en iPhone:
             </h3>
+
+            {!isSafariBrowser && (
+              <div style={{ marginBottom: '1rem', padding: '0.75rem', background: '#fef3c7', color: '#d97706', borderRadius: '8px', fontSize: '0.9rem', fontWeight: 600 }}>
+                ⚠️ Abre este enlace usando el navegador Safari para instalar la App.
+              </div>
+            )}
+
             <ol style={{ paddingLeft: '1.5rem', color: '#475569', margin: 0, lineHeight: '1.8' }}>
-              <li>Toca el botón <b>Compartir</b> <span style={{display:'inline-block', width:'24px', height:'24px', verticalAlign:'middle', background:'url(https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.x/svgs/solid/arrow-up-from-bracket.svg) center/contain no-repeat', opacity: 0.6}}></span> en la barra inferior.</li>
+              <li>En Safari, toca el botón <b>Compartir</b> <span style={{display:'inline-block', width:'24px', height:'24px', verticalAlign:'middle', background:'url(https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.x/svgs/solid/arrow-up-from-bracket.svg) center/contain no-repeat', opacity: 0.6}}></span> en la barra inferior.</li>
               <li>Selecciona <b>"Añadir a pantalla de inicio"</b> <span style={{display:'inline-block', width:'20px', height:'20px', verticalAlign:'middle', background:'url(https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.x/svgs/solid/plus-square.svg) center/contain no-repeat', opacity: 0.6}}></span>.</li>
             </ol>
           </div>

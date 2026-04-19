@@ -84,4 +84,6 @@ export interface BlockedDay {
   id: string;
   date: string; // ISO "YYYY-MM-DD"
   reason?: string;
+  isFullDay?: boolean; // false = bloqueo parcial por horas
+  blockedRanges?: TimeRange[]; // Franjas ["HH:mm", "HH:mm"] bloqueadas si isFullDay es false
 }

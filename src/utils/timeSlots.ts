@@ -19,7 +19,8 @@ export const generateTimeSlots = (
   durationMin: number,
   selectedDate: Date,
   existingAppointments: AppointmentRange[],
-  concurrentSlots: number = 1
+  concurrentSlots: number = 1,
+  blockedTimeRanges: AppointmentRange[] = []
 ): string[] => {
   const slots: string[] = [];
   const now = new Date();
@@ -45,7 +46,12 @@ export const generateTimeSlots = (
 
       const isFull = overlapCount >= concurrentSlots;
 
-      if (!isPast && !isFull) {
+      // 3. Validar bloqueos parciales del administrador
+      const isBlocked = blockedTimeRanges.some(b => {
+        return (b.start < slotEnd) && (b.end > slotStart);
+      });
+
+      if (!isPast && !isFull && !isBlocked) {
         slots.push(slotTime);
       }
 

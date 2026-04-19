@@ -72,12 +72,22 @@ export const BookingPage: React.FC = () => {
         };
       });
 
+    const dateKey = format(selectedDate, 'yyyy-MM-dd');
+    const ptBlockedConfig = blockedDays.find(b => b.date === dateKey && b.isFullDay === false);
+    const ptBlockedRanges = ptBlockedConfig?.blockedRanges
+      ? ptBlockedConfig.blockedRanges.map(br => ({
+          start: parse(br.start, 'HH:mm', selectedDate).getTime(),
+          end: parse(br.end, 'HH:mm', selectedDate).getTime()
+        }))
+      : [];
+
     return generateTimeSlots(
       schedule.ranges,
       selectedService.durationMin,
       selectedDate,
       existingApptRanges,
-      businessConfig?.concurrentSlots || 1
+      businessConfig?.concurrentSlots || 1,
+      ptBlockedRanges
     );
   }, [selectedDate, selectedService, schedules, appointments, services, businessConfig]);
 
@@ -95,7 +105,15 @@ export const BookingPage: React.FC = () => {
         
         if (!schedule || !schedule.isOpen) continue;
         const dateKey = format(date, 'yyyy-MM-dd');
-        if (blockedDays.some(b => b.date === dateKey)) continue;
+        if (blockedDays.some(b => b.date === dateKey && b.isFullDay !== false)) continue;
+
+        const ptBlockedConfig = blockedDays.find(b => b.date === dateKey && b.isFullDay === false);
+        const ptBlockedRanges = ptBlockedConfig?.blockedRanges
+            ? ptBlockedConfig.blockedRanges.map(br => ({
+                start: parse(br.start, 'HH:mm', date).getTime(),
+                end: parse(br.end, 'HH:mm', date).getTime()
+            }))
+            : [];
 
         const dStart = startOfDay(date);
         const dEnd = endOfDay(date);
@@ -114,7 +132,8 @@ export const BookingPage: React.FC = () => {
             selectedService.durationMin,
             date,
             dayAppts,
-            businessConfig?.concurrentSlots || 1
+            businessConfig?.concurrentSlots || 1,
+            ptBlockedRanges
         );
 
         if (slots.length === 0) {
@@ -217,7 +236,7 @@ export const BookingPage: React.FC = () => {
               setSelectedDate(date);
               setStep(3);
             }}
-            blockedDates={blockedDays.map(b => b.date)}
+            blockedDates={blockedDays.filter(b => b.isFullDay !== false).map(b => b.date)}
             fullDates={fullDates}
             closedDays={schedules.filter(s => !s.isOpen).map(s => s.dayOfWeek)}
           />
