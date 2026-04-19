@@ -16,7 +16,7 @@ import { AdminDashboard } from './pages/AdminDashboard';
 import { AdminUsersPage } from './pages/AdminUsersPage';
 
 import { SuperAdminLayout } from './components/layouts/SuperAdminLayout';
-import { AdminCoreDatos, AdminCoreDiseno, AdminCorePoliticas, AdminCoreCss } from './pages/AdminCorePages';
+import { AdminCoreDatos, AdminCoreDiseno, AdminCorePoliticas, AdminCoreCss, AdminCoreAccesos } from './pages/AdminCorePages';
 import { AdminPromotePage } from './pages/AdminPromotePage';
 
 import './App.css';
@@ -155,6 +155,7 @@ function App() {
             <Route path="datos" element={<AdminCoreDatos />} />
             <Route path="diseno" element={<AdminCoreDiseno />} />
             <Route path="politicas" element={<AdminCorePoliticas />} />
+            <Route path="accesos" element={<AdminCoreAccesos />} />
             <Route path="css" element={<AdminCoreCss />} />
           </Route>
 

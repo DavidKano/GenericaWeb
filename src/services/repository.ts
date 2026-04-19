@@ -5,6 +5,7 @@ export interface DataRepository {
   getUsers(): Promise<User[]>;
   getUserById(id: string): Promise<User | null>;
   saveUser(user: User): Promise<void>;
+  deleteUser(id: string): Promise<void>;
 
   // Services
   getServices(): Promise<BookingService[]>;

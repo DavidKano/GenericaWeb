@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { ShieldAlert, User as UserIcon, LogOut, Briefcase, Paintbrush, ShieldCheck, Code } from 'lucide-react';
+import { ShieldAlert, User as UserIcon, LogOut, Briefcase, Paintbrush, ShieldCheck, Code, Users } from 'lucide-react';
 
 export const SuperAdminLayout: React.FC = () => {
   const { user, logout } = useAuth();
@@ -45,6 +45,9 @@ export const SuperAdminLayout: React.FC = () => {
           </NavLink>
           <NavLink to="/superadmin/politicas" className={({ isActive }) => isActive ? 'active' : ''} style={({isActive}) => ({ color: isActive ? '#eab308' : '#9ca3af', borderLeft: isActive ? '3px solid #eab308' : '3px solid transparent', background: isActive ? 'rgba(234, 179, 8, 0.1)' : 'transparent'})}>
              <ShieldCheck size={18} /> Políticas
+          </NavLink>
+          <NavLink to="/superadmin/accesos" className={({ isActive }) => isActive ? 'active' : ''} style={({isActive}) => ({ color: isActive ? '#eab308' : '#9ca3af', borderLeft: isActive ? '3px solid #eab308' : '3px solid transparent', background: isActive ? 'rgba(234, 179, 8, 0.1)' : 'transparent'})}>
+             <Users size={18} /> Accesos Admin
           </NavLink>
           <NavLink to="/superadmin/css" className={({ isActive }) => isActive ? 'active' : ''} style={({isActive}) => ({ color: isActive ? '#eab308' : '#9ca3af', borderLeft: isActive ? '3px solid #eab308' : '3px solid transparent', background: isActive ? 'rgba(234, 179, 8, 0.1)' : 'transparent'})}>
              <Code size={18} /> CSS Personalizado

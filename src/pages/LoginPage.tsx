@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { User, Phone, Mail, Lock, UserPlus, LogIn, ShieldAlert, Briefcase } from 'lucide-react';
+import { User, Phone, Mail, Lock, UserPlus, LogIn, ShieldAlert, Briefcase, CheckCircle, Loader2 } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import type { CompanyData } from '../services/models';
 import { LegalModal } from '../components/ui/LegalModal';
@@ -19,11 +19,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({ type = 'CUSTOMER' }) => {
   const [phone, setPhone] = useState('');
   
   const [error, setError] = useState('');
-  const { login, register } = useAuth();
+  const { login, register, resetPassword } = useAuth();
   const { mode, repo } = useData();
   const [company, setCompany] = useState<CompanyData | null>(null);
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   React.useEffect(() => {
     repo.getCompanyData().then(setCompany);
@@ -32,21 +35,33 @@ export const LoginPage: React.FC<LoginPageProps> = ({ type = 'CUSTOMER' }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
 
-    if (isRegister) {
-      if (password !== confirmPassword) {
-        setError('Las contraseñas no coinciden');
-        return;
+    try {
+      if (isForgotPassword) {
+        const ok = await resetPassword(email);
+        if (ok) {
+          setResetSent(true);
+        } else {
+          setError('No se pudo enviar el email. Verifica que el correo sea correcto.');
+        }
+      } else if (isRegister) {
+        if (password !== confirmPassword) {
+          setError('Las contraseñas no coinciden');
+          return;
+        }
+        const ok = await register({ name, email, phone }, password);
+        if (!ok) {
+          setError('Error al registrar. El email podría ya estar en uso.');
+        }
+      } else {
+        const ok = await login(email, password);
+        if (!ok) {
+          setError('Credenciales incorrectas');
+        }
       }
-      const ok = await register({ name, email, phone }, password);
-      if (!ok) {
-        setError('Error al registrar. El email podría ya estar en uso.');
-      }
-    } else {
-      const ok = await login(email, password);
-      if (!ok) {
-        setError('Credenciales incorrectas');
-      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -68,11 +83,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({ type = 'CUSTOMER' }) => {
             color: isDark ? '#111' : 'white',
             boxShadow: isDark ? '0 8px 16px rgba(234, 179, 8, 0.2)' : '0 8px 16px rgba(0, 0, 0, 0.1)'
           }}>
-            {type === 'SUPER_ADMIN' ? <ShieldAlert size={30} /> : type === 'ADMIN' ? <Briefcase size={30} /> : (isRegister ? <UserPlus size={30} /> : <LogIn size={30} />)}
+            {type === 'SUPER_ADMIN' ? <ShieldAlert size={30} /> : type === 'ADMIN' ? <Briefcase size={30} /> : (isForgotPassword ? <Mail size={30} /> : isRegister ? <UserPlus size={30} /> : <LogIn size={30} />)}
           </div>
-          <h1>{type === 'SUPER_ADMIN' ? 'ADMIN CORE' : type === 'ADMIN' ? 'Admin Portal' : (isRegister ? 'Crear Cuenta' : 'Bienvenido')}</h1>
+          <h1>{type === 'SUPER_ADMIN' ? 'ADMIN CORE' : type === 'ADMIN' ? 'Admin Portal' : (isForgotPassword ? 'Recuperar Contraseña' : isRegister ? 'Crear Cuenta' : 'Bienvenido')}</h1>
           <p className="subtitle" style={isDark ? { color: '#a3a3a3' } : {}}>
-            {type === 'SUPER_ADMIN' ? 'Ingreso maestro al sistema' : type === 'ADMIN' ? 'Gestión del negocio virtual' : (isRegister ? 'Regístrate para empezar a reservar' : 'Inicia sesión para gestionar tus citas')}
+            {type === 'SUPER_ADMIN' ? 'Ingreso maestro al sistema' : type === 'ADMIN' ? 'Gestión del negocio virtual' : (isForgotPassword ? 'Te enviaremos un email para restablecerla' : isRegister ? 'Regístrate para empezar a reservar' : 'Inicia sesión para gestionar tus citas')}
           </p>
         </div>
 
@@ -128,16 +143,29 @@ export const LoginPage: React.FC<LoginPageProps> = ({ type = 'CUSTOMER' }) => {
             />
           </div>
 
-          <div className="form-group">
-            <label><Lock size={14} style={{ marginRight: '4px' }} /> Contraseña</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              required
-            />
-          </div>
+          {!isForgotPassword && (
+            <div className="form-group">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <label><Lock size={14} style={{ marginRight: '4px' }} /> Contraseña</label>
+                {!isRegister && type === 'CUSTOMER' && (
+                  <button 
+                    type="button" 
+                    onClick={() => { setIsForgotPassword(true); setError(''); }}
+                    style={{ background: 'none', border: 'none', color: 'var(--primary-color)', fontSize: '0.75rem', cursor: 'pointer', padding: 0 }}
+                  >
+                    ¿Olvidaste tu contraseña?
+                  </button>
+                )}
+              </div>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+              />
+            </div>
+          )}
 
           {isRegister && (
             <div className="form-group">
@@ -152,9 +180,43 @@ export const LoginPage: React.FC<LoginPageProps> = ({ type = 'CUSTOMER' }) => {
             </div>
           )}
 
-          <button type="submit" className="btn-primary" style={{ width: '100%', padding: '1rem', marginTop: '0.5rem', background: isDark ? '#eab308' : undefined, borderColor: isDark ? '#eab308' : undefined, color: isDark ? '#111' : undefined }}>
-            {isRegister ? 'Registrarse ahora' : 'Entrar'}
-          </button>
+          {isForgotPassword && resetSent ? (
+            <div style={{ textAlign: 'center', padding: '1rem', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', borderRadius: '8px', fontSize: '0.9rem', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+              <CheckCircle size={24} style={{ marginBottom: '0.5rem' }} />
+              <p>Email enviado. Revisa tu bandeja de entrada para restablecer tu contraseña.</p>
+              <button 
+                type="button" 
+                onClick={() => { setIsForgotPassword(false); setResetSent(false); }}
+                style={{ marginTop: '1rem', background: 'var(--primary-color)', color: 'white', border: 'none', padding: '0.5rem 1rem', borderRadius: '6px', cursor: 'pointer' }}
+              >
+                Volver al Login
+              </button>
+            </div>
+          ) : (
+            <button 
+              type="submit" 
+              className="btn-primary" 
+              disabled={loading}
+              style={{ width: '100%', padding: '1rem', marginTop: '0.5rem', background: isDark ? '#eab308' : undefined, borderColor: isDark ? '#eab308' : undefined, color: isDark ? '#111' : undefined }}
+            >
+              {loading ? (
+                <Loader2 className="animate-spin" size={18} style={{ margin: '0 auto' }} />
+              ) : (
+                isForgotPassword ? 'Enviar enlace de recuperación' : (isRegister ? 'Registrarse ahora' : 'Entrar')
+              )}
+            </button>
+          )}
+
+          {isForgotPassword && !resetSent && (
+            <button 
+              type="button" 
+              className="btn-link" 
+              onClick={() => { setIsForgotPassword(false); setError(''); }}
+              style={{ marginTop: '0.5rem', color: isDark ? '#a3a3a3' : 'var(--text-secondary)', fontSize: '0.85rem', background: 'none', border: 'none', cursor: 'pointer' }}
+            >
+              ← Volver al inicio de sesión
+            </button>
+          )}
         </form>
 
         {type === 'CUSTOMER' && (

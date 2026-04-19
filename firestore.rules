@@ -18,8 +18,12 @@ service cloud.firestore {
 
     // --- COLECCIÓN DE USUARIOS ---
     match /users/{userId} {
-      // Permitir leer una ficha individual: Propietario o Administradores
-      allow get: if isSignedIn() && (request.auth.uid == userId || getRole() in ['ADMIN', 'SUPER_ADMIN']);
+      // Permitir leer una ficha individual: Propietario, Administradores o Invitación propia
+      allow get: if isSignedIn() && (
+        request.auth.uid == userId || 
+        getRole() in ['ADMIN', 'SUPER_ADMIN'] ||
+        (userId.startsWith('pre-') && resource.data.email == request.auth.token.email)
+      );
       
       // Permitir listar la colección completa: Solo Administradores
       // Al no depender de 'userId', Firestore puede validar esta regla una sola vez para toda la consulta
@@ -34,8 +38,11 @@ service cloud.firestore {
          (request.auth.uid != userId && getRole() in ['ADMIN', 'SUPER_ADMIN'])
       );
  
-      // Borrado: Solo Administradores
-      allow delete: if isSignedIn() && getRole() in ['ADMIN', 'SUPER_ADMIN'];
+      // Borrado: Solo Administradores o Invitación propia coincidiendo email
+      allow delete: if isSignedIn() && (
+        getRole() in ['ADMIN', 'SUPER_ADMIN'] ||
+        (userId.startsWith('pre-') && resource.data.email == request.auth.token.email)
+      );
     }
 
     // --- COLECCIONES DEL SISTEMA (SAAS / CORE) ---

@@ -7,6 +7,7 @@ type AuthContextType = {
   login: (email: string, password: string) => Promise<boolean>;
   register: (userData: Omit<User, 'id' | 'role'>, password: string) => Promise<boolean>;
   logout: () => void;
+  resetPassword: (email: string) => Promise<boolean>;
   isAdmin: boolean;
   isSuperAdmin: boolean;
   isInitialized: boolean;
@@ -128,7 +129,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const auth = getAuth();
         const cred = await signInWithEmailAndPassword(auth, email, password);
         const fbUser = await repo.getUserById(cred.user.uid);
+        
         if (fbUser) {
+          // Bloqueo si el usuario está desactivado por un SuperAdmin
+          if (fbUser.isActive === false) {
+            await auth.signOut();
+            return false;
+          }
+
+          // Registrar acceso si es admin
+          if (fbUser.role === 'ADMIN') {
+             await repo.saveUser({ ...fbUser, lastAdminAccess: Date.now() });
+          }
+
           setUser(fbUser);
           localStorage.setItem('currentUser', JSON.stringify(fbUser));
           return true;
@@ -144,6 +157,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const foundUser = users.find(u => u.email.toLowerCase() === email.toLowerCase());
     
     if (foundUser) {
+      if (foundUser.isActive === false) return false;
+
       const passwords = JSON.parse(localStorage.getItem(PASSWORDS_KEY) || '{}');
       if (passwords[email.toLowerCase()] === password) {
         setUser(foundUser);
@@ -157,11 +172,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const register = useCallback(async (userData: Omit<User, 'id' | 'role'>, password: string): Promise<boolean> => {
     if (mode === 'firebase') {
       try {
+        const cleanEmail = userData.email.trim().toLowerCase();
         const { getAuth, createUserWithEmailAndPassword } = await import('firebase/auth');
         const auth = getAuth();
-        const cred = await createUserWithEmailAndPassword(auth, userData.email, password);
-        const newUser: User = { ...userData, id: cred.user.uid, role: 'CUSTOMER' };
+        
+        // Comprobar si el email está pre-autorizado para ser ADMIN
+        const preAuthId = 'pre-' + cleanEmail.replace(/[^a-z0-9]/g, '_');
+        const preAuthUser = await repo.getUserById(preAuthId);
+        
+        const cred = await createUserWithEmailAndPassword(auth, cleanEmail, password);
+        
+        const isInvitedAdmin = !!preAuthUser;
+        const newUser: User = { 
+          ...userData, 
+          email: cleanEmail,
+          id: cred.user.uid, 
+          role: isInvitedAdmin ? 'ADMIN' : 'CUSTOMER',
+          isActive: true
+        };
+
         await repo.saveUser(newUser);
+
+        // Si era una invitación, borramos el registro temporal
+        if (isInvitedAdmin) {
+          await repo.deleteUser(preAuthId);
+        }
+
         setUser(newUser);
         localStorage.setItem('currentUser', JSON.stringify(newUser));
         return true;
@@ -194,6 +230,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return true;
   }, [repo, mode]);
 
+  const resetPassword = useCallback(async (email: string): Promise<boolean> => {
+    if (mode === 'firebase') {
+      try {
+        const { getAuth, sendPasswordResetEmail } = await import('firebase/auth');
+        const auth = getAuth();
+        await sendPasswordResetEmail(auth, email.trim().toLowerCase());
+        return true;
+      } catch (err) {
+        console.error('Error enviando reset email:', err);
+        return false;
+      }
+    }
+    // Para modo local, simplemente simulamos éxito
+    console.log('Simulando envío de reset email a:', email);
+    return true;
+  }, [mode]);
+
   const logout = useCallback(() => {
     setUser(null);
     localStorage.removeItem('currentUser');
@@ -205,6 +258,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       login, 
       register, 
       logout, 
+      resetPassword,
       isAdmin: user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN',
       isSuperAdmin: user?.role === 'SUPER_ADMIN',
       isInitialized

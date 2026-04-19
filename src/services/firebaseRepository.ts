@@ -29,6 +29,10 @@ export class FirebaseRepository implements DataRepository {
     await setDoc(doc(this.db, 'users', user.id), user);
   }
 
+  async deleteUser(id: string): Promise<void> {
+    await deleteDoc(doc(this.db, 'users', id));
+  }
+
   async getServices(): Promise<BookingService[]> {
     const snapshot = await getDocs(collection(this.db, 'services'));
     return snapshot.docs.map(doc => doc.data() as BookingService);

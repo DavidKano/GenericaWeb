@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useData } from '../context/DataContext';
-import { Briefcase, ShieldCheck, ShieldAlert, Code, Save, Loader2, UploadCloud, CheckCircle, Palette, Type, QrCode } from 'lucide-react';
-import type { CompanyData, DesignConfig } from '../services/models';
+import { Briefcase, ShieldCheck, ShieldAlert, Code, Save, Loader2, UploadCloud, CheckCircle, Palette, Type, QrCode, Users, UserPlus, Trash2, UserRoundCheck, UserRoundX } from 'lucide-react';
+import type { CompanyData, DesignConfig, User } from '../services/models';
 import QRCode from 'qrcode';
 import { getDefaultPrivacyPolicy, getDefaultTermsOfUse } from '../services/policyDefaults';
 
@@ -858,6 +858,292 @@ export const AdminCoreCss: React.FC = () => {
       {toast && (
         <div className="animate-fade-in" style={{ position: 'fixed', bottom: '2rem', right: '2rem', background: '#10b981', color: 'white', padding: '1rem 2rem', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', display: 'flex', alignItems: 'center', gap: '0.5rem', zIndex: 9999, fontWeight: 'bold' }}>
           <CheckCircle size={20} /> {toast}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export const AdminCoreAccesos: React.FC = () => {
+  const { repo } = useData();
+  const [admins, setAdmins] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [toast, setToast] = useState('');
+  const [toastError, setToastError] = useState('');
+
+  const [form, setForm] = useState({ name: '', email: '' });
+
+  const showToastOk = (msg: string) => { 
+    setToast(msg); 
+    setTimeout(() => setToast(''), 4000); 
+  };
+  
+  const showError = (msg: string) => { 
+    setToastError(msg); 
+    setTimeout(() => setToastError(''), 4000); 
+  };
+
+  const loadAdmins = async () => {
+    setLoading(true);
+    try {
+      const users = await repo.getUsers();
+      // Filtramos por ADMIN y por pre-registros (que también marcamos con rol ADMIN)
+      setAdmins(users.filter(u => u.role === 'ADMIN'));
+    } catch (err) {
+      console.error('Error cargando administradores:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadAdmins();
+  }, [repo]);
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.name.trim() || !form.email.trim()) {
+      showError('Todos los campos son obligatorios.');
+      return;
+    }
+
+    // Validar que no exista ya
+    if (admins.find(a => a.email.toLowerCase() === form.email.trim().toLowerCase())) {
+      showError('Ya existe un administrador con ese email.');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const email = form.email.trim().toLowerCase();
+      // ID especial para identificar pre-autorizaciones
+      const preAuthId = 'pre-' + email.replace(/[^a-z0-9]/g, '_');
+      
+      const preAdmin: User = {
+        id: preAuthId,
+        name: form.name.trim(),
+        email: email,
+        phone: '---', // Placeholder para pre-registro
+        role: 'ADMIN',
+        isActive: true,
+      };
+      
+      await repo.saveUser(preAdmin);
+      setForm({ name: '', email: '' });
+      await loadAdmins();
+      showToastOk(`Acceso para "${preAdmin.name}" pre-autorizado correctamente.`);
+    } catch (err: any) {
+      showError('Error al crear el acceso: ' + (err?.message || 'Error de conexión'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (adminUser: User) => {
+    if (!window.confirm(`¿Seguro que deseas eliminar definitivamente el acceso de "${adminUser.name}"?`)) return;
+    
+    setDeletingId(adminUser.id);
+    try {
+      await repo.deleteUser(adminUser.id);
+      await loadAdmins();
+      showToastOk(`El acceso de ${adminUser.name} ha sido eliminado.`);
+    } catch (err: any) {
+      showError('Error al eliminar: ' + (err?.message || ''));
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleToggleActive = async (adminUser: User) => {
+    const willActivate = adminUser.isActive === false;
+    setTogglingId(adminUser.id);
+    try {
+      const updated: User = { ...adminUser, isActive: willActivate };
+      await repo.saveUser(updated);
+      // Update local state instead of full reload for better UX
+      setAdmins(prev => prev.map(a => a.id === adminUser.id ? updated : a));
+      showToastOk(`Administrador ${willActivate ? 'activado' : 'desactivado'} con éxito.`);
+    } catch (err: any) {
+      showError('Error al cambiar estado: ' + (err?.message || ''));
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
+  const formatDate = (ts?: number) => {
+    if (!ts) return <span style={{ color: '#6b7280', fontStyle: 'italic' }}>Nunca</span>;
+    return new Date(ts).toLocaleString('es-ES', { 
+      day: '2-digit', 
+      month: '2-digit', 
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  return (
+    <div className="animate-fade-in" style={{ padding: '2rem', background: '#1f2937', borderRadius: '12px', border: '1px solid #374151', color: '#fff' }}>
+      <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', color: '#eab308' }}>
+        <Users size={24} /> Gestión de Accesos Admin
+      </h2>
+      <p style={{ color: '#9ca3af', marginBottom: '2.5rem', fontSize: '0.9rem' }}>
+        Pre-autoriza emails para que puedan registrarse como administradores. También puedes revocar accesos existentes en tiempo real.
+      </p>
+
+      {/* Formulario de invitación */}
+      <div style={{ background: '#111827', borderRadius: '10px', border: '1px solid #374151', padding: '1.75rem', marginBottom: '2.5rem' }}>
+        <h3 style={{ color: '#d1d5db', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1rem' }}>
+          <UserPlus size={18} color="#eab308" /> Invitar nuevo Administrador
+        </h3>
+        <form onSubmit={handleCreate}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '1rem', alignItems: 'flex-end' }}>
+            <div>
+              <label style={{ display: 'block', color: '#d1d5db', fontSize: '0.85rem', marginBottom: '0.4rem' }}>Nombre Completo</label>
+              <input 
+                type="text" 
+                placeholder="Ej: María García"
+                value={form.name}
+                onChange={e => setForm({...form, name: e.target.value})}
+                style={{ width: '100%', background: '#1f2937', color: '#fff', border: '1px solid #4b5563', padding: '0.6rem', borderRadius: '6px' }}
+                required
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', color: '#d1d5db', fontSize: '0.85rem', marginBottom: '0.4rem' }}>Email de Invitación</label>
+              <input 
+                type="email" 
+                placeholder="admin@ejemplo.com"
+                value={form.email}
+                onChange={e => setForm({...form, email: e.target.value})}
+                style={{ width: '100%', background: '#1f2937', color: '#fff', border: '1px solid #4b5563', padding: '0.6rem', borderRadius: '6px' }}
+                required
+              />
+            </div>
+            <button 
+              type="submit" 
+              disabled={saving}
+              style={{ 
+                background: saving ? '#374151' : '#eab308', 
+                color: '#111', 
+                padding: '0.6rem 1.5rem', 
+                borderRadius: '6px', 
+                fontWeight: 'bold', 
+                border: 'none', 
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                minHeight: '38px'
+              }}
+            >
+              {saving ? <Loader2 className="animate-spin" size={16} /> : <UserPlus size={16} />}
+              {saving ? 'Procesando...' : 'Pre-autorizar Email'}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* Lista de administradores */}
+      <div style={{ background: '#111827', borderRadius: '10px', border: '1px solid #374151', overflow: 'hidden' }}>
+        {loading ? (
+          <div style={{ padding: '3rem', textAlign: 'center' }}>
+            <Loader2 className="animate-spin" size={28} color="#eab308" />
+            <p style={{ marginTop: '1rem', color: '#9ca3af' }}>Cargando equipo de administración...</p>
+          </div>
+        ) : (
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead style={{ background: '#2d3748' }}>
+              <tr>
+                <th style={{ padding: '1rem', textAlign: 'left', color: '#d1d5db', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Administrador</th>
+                <th style={{ padding: '1rem', textAlign: 'left', color: '#d1d5db', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Email</th>
+                <th style={{ padding: '1rem', textAlign: 'left', color: '#d1d5db', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Último Acceso</th>
+                <th style={{ padding: '1rem', textAlign: 'center', color: '#d1d5db', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {admins.length === 0 ? (
+                <tr>
+                  <td colSpan={4} style={{ padding: '2rem', textAlign: 'center', color: '#6b7280' }}>No hay administradores registrados aún.</td>
+                </tr>
+              ) : admins.map(admin => {
+                const isPre = admin.id.startsWith('pre-');
+                const isDisabled = admin.isActive === false;
+                
+                return (
+                  <tr key={admin.id} style={{ borderTop: '1px solid #374151', background: isDisabled ? 'rgba(239, 68, 68, 0.02)' : 'transparent' }}>
+                    <td style={{ padding: '1rem' }}>
+                      <div style={{ fontWeight: 500, color: isDisabled ? '#9ca3af' : '#fff' }}>{admin.name}</div>
+                      <div style={{ fontSize: '0.7rem', marginTop: '0.2rem' }}>
+                        {isPre ? (
+                          <span style={{ color: '#eab308', background: 'rgba(234, 179, 8, 0.1)', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>Invitación Pendiente</span>
+                        ) : (
+                          isDisabled ? 
+                          <span style={{ color: '#ef4444', background: 'rgba(239, 68, 68, 0.1)', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>Cuenta Suspendida</span> : 
+                          <span style={{ color: '#10b981', background: 'rgba(16, 185, 129, 0.1)', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>Activo</span>
+                        )}
+                      </div>
+                    </td>
+                    <td style={{ padding: '1rem', color: '#9ca3af' }}>{admin.email}</td>
+                    <td style={{ padding: '1rem', color: '#9ca3af', fontSize: '0.85rem' }}>
+                      {isPre ? 'Esperando registro' : formatDate(admin.lastAdminAccess)}
+                    </td>
+                    <td style={{ padding: '1rem' }}>
+                      <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
+                        {!isPre && (
+                          <button 
+                            onClick={() => handleToggleActive(admin)}
+                            disabled={togglingId === admin.id}
+                            title={isDisabled ? "Activar acceso" : "Suspender acceso"}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: isDisabled ? '#10b981' : '#f59e0b', padding: '0.2rem', transition: 'transform 0.1s' }}
+                            onMouseOver={e => e.currentTarget.style.transform = 'scale(1.2)'}
+                            onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
+                          >
+                            {togglingId === admin.id ? <Loader2 className="animate-spin" size={18} /> : (isDisabled ? <UserRoundCheck size={18} /> : <UserRoundX size={18} />)}
+                          </button>
+                        )}
+                        <button 
+                          onClick={() => handleDelete(admin)}
+                          disabled={deletingId === admin.id}
+                          title="Eliminar acceso permanentemente"
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', padding: '0.2rem', transition: 'transform 0.1s' }}
+                          onMouseOver={e => e.currentTarget.style.transform = 'scale(1.2)'}
+                          onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
+                        >
+                          {deletingId === admin.id ? <Loader2 className="animate-spin" size={18} /> : <Trash2 size={18} />}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {/* Informática de ayuda */}
+      <div style={{ marginTop: '2rem', padding: '1.25rem', background: 'rgba(59, 130, 246, 0.05)', borderRadius: '10px', border: '1px solid rgba(59, 130, 246, 0.2)', display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+        <ShieldCheck size={20} color="#3b82f6" style={{ marginTop: '0.2rem' }} />
+        <div>
+          <h4 style={{ color: '#93c5fd', margin: '0 0 0.4rem 0', fontSize: '0.9rem' }}>Protocolo de Seguridad CORE</h4>
+          <p style={{ color: '#94a3b8', fontSize: '0.8rem', margin: 0, lineHeight: '1.5' }}>
+            Al pre-autorizar un email, el sistema reservará el rol administrativo para ese usuario. Cuando esa persona se registre manualmente en la plataforma usando dicho email, el sistema elevará sus privilegios a <strong>ADMIN</strong> automáticamente.
+          </p>
+        </div>
+      </div>
+
+      {/* Toast Notifications */}
+      {toast && (
+        <div className="animate-fade-in" style={{ position: 'fixed', bottom: '2rem', right: '2rem', background: '#10b981', color: 'white', padding: '1rem 2rem', borderRadius: '8px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', gap: '0.5rem', zIndex: 9999, fontWeight: 'bold' }}>
+          <CheckCircle size={20} /> {toast}
+        </div>
+      )}
+      {toastError && (
+        <div className="animate-fade-in" style={{ position: 'fixed', bottom: '2rem', right: '2rem', background: '#ef4444', color: 'white', padding: '1rem 2rem', borderRadius: '8px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', gap: '0.5rem', zIndex: 9999, fontWeight: 'bold' }}>
+          <ShieldAlert size={20} /> {toastError}
         </div>
       )}
     </div>

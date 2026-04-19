@@ -7,6 +7,8 @@ export interface User {
   address?: string;
   dob?: string;
   adminNotes?: string;
+  lastAdminAccess?: number; // timestamp ms - último acceso al panel admin
+  isActive?: boolean;       // false = desactivado temporalmente (solo aplica a ADMIN)
 }
 export interface CompanyData {
   nombreEmpresa: string;
