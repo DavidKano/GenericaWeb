@@ -5,6 +5,7 @@ import { useData } from '../../context/DataContext';
 import { Calendar, Users, User as UserIcon, LogOut } from 'lucide-react';
 import type { CompanyData, DesignConfig } from '../../services/models';
 import { LegalModal } from '../ui/LegalModal';
+import { PromoOfferModal } from '../ui/PromoOfferModal';
 import { getDefaultPrivacyPolicy, getDefaultTermsOfUse } from '../../services/policyDefaults';
 
 export const CustomerLayout: React.FC = () => {
@@ -28,6 +29,7 @@ export const CustomerLayout: React.FC = () => {
 
   return (
     <div className="app-layout">
+      <PromoOfferModal />
       {design?.customCssCustomer && <style dangerouslySetInnerHTML={{ __html: design.customCssCustomer }} />}
       {/* Top Bar */}
       <header className="app-topbar">

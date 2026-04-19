@@ -151,7 +151,13 @@ export const AdminUsersPage: React.FC = () => {
                   <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><Phone size={14} /> {selectedUser.phone}</span>
                 </div>
               </div>
-              <button className="btn-secondary">Enviar Mensaje</button>
+              <a 
+                href={`mailto:${selectedUser.email}`} 
+                className="btn-secondary" 
+                style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                Enviar Mensaje
+              </a>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '1.5rem' }}>

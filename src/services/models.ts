@@ -87,3 +87,12 @@ export interface BlockedDay {
   isFullDay?: boolean; // false = bloqueo parcial por horas
   blockedRanges?: TimeRange[]; // Franjas ["HH:mm", "HH:mm"] bloqueadas si isFullDay es false
 }
+
+export interface PromoOffer {
+  id: string;
+  imageUrl: string;
+  startDate: string; // ISO "YYYY-MM-DD"
+  endDate: string; // ISO "YYYY-MM-DD"
+  isActive: boolean;
+  displayMode?: 'popup' | 'inline'; // popup (modal) o inline (debajo de servicios)
+}

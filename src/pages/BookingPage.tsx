@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
-import type { BusinessConfig, BookingService, Appointment, DaySchedule, BlockedDay } from '../services/models';
+import type { BusinessConfig, BookingService, Appointment, DaySchedule, BlockedDay, PromoOffer } from '../services/models';
 import { Calendar } from '../components/Calendar';
 import { generateTimeSlots } from '../utils/timeSlots';
 import { format, addDays, startOfDay, endOfDay } from 'date-fns';
@@ -17,6 +17,7 @@ export const BookingPage: React.FC = () => {
   const [blockedDays, setBlockedDays] = useState<BlockedDay[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [businessConfig, setBusinessConfig] = useState<BusinessConfig | null>(null);
+  const [inlineOffers, setInlineOffers] = useState<PromoOffer[]>([]);
   
   const [step, setStep] = useState(1);
   const [selectedService, setSelectedService] = useState<BookingService | null>(null);
@@ -26,16 +27,25 @@ export const BookingPage: React.FC = () => {
 
   useEffect(() => {
     const loadStatic = async () => {
-      const [svcs, schs, bDays, cfg] = await Promise.all([
+      const [svcs, schs, bDays, cfg, offers] = await Promise.all([
         repo.getServices(),
         repo.getSchedules(),
         repo.getBlockedDays(),
-        repo.getConfig()
+        repo.getConfig(),
+        repo.getPromoOffers()
       ]);
       setServices(svcs);
       setSchedules(schs.length > 0 ? schs : INITIAL_SCHEDULES);
       setBlockedDays(bDays);
       setBusinessConfig(cfg);
+      
+      const todayStr = format(new Date(), 'yyyy-MM-dd');
+      setInlineOffers(offers.filter(o => 
+        o.isActive !== false && 
+        o.displayMode === 'inline' &&
+        todayStr >= o.startDate && 
+        todayStr <= o.endDate
+      ));
     };
     loadStatic();
 
@@ -220,6 +230,16 @@ export const BookingPage: React.FC = () => {
               </div>
             ))}
           </div>
+
+          {inlineOffers.length > 0 && (
+            <div style={{ marginTop: '2.5rem', display: 'grid', gap: '1.5rem' }}>
+              {inlineOffers.map(offer => (
+                <div key={offer.id} style={{ width: '100%', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
+                  <img src={offer.imageUrl} alt="Promo Especial" style={{ width: '100%', height: 'auto', display: 'block', objectFit: 'cover' }} />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

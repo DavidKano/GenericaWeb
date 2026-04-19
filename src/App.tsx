@@ -19,6 +19,7 @@ import { SuperAdminLayout } from './components/layouts/SuperAdminLayout';
 import { AdminCoreDatos, AdminCoreDiseno, AdminCorePoliticas, AdminCoreCss, AdminCoreAccesos } from './pages/AdminCorePages';
 import { AdminPromotePage } from './pages/AdminPromotePage';
 import { AdminSchedulePage } from './pages/AdminSchedulePage';
+import { AdminOffersPage } from './pages/AdminOffersPage';
 
 import './App.css';
 
@@ -145,6 +146,7 @@ function App() {
             <Route path="users" element={<AdminUsersPage />} />
             <Route path="promote" element={<AdminPromotePage />} />
             <Route path="schedule" element={<AdminSchedulePage />} />
+            <Route path="offers" element={<AdminOffersPage />} />
           </Route>
 
           {/* ---------------- SUPER ADMIN PORTAL ---------------- */}

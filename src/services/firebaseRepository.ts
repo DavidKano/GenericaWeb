@@ -123,4 +123,18 @@ export class FirebaseRepository implements DataRepository {
     await uploadString(storageRef, base64, 'data_url');
     return await getDownloadURL(storageRef);
   }
+
+  // --- Promo Offers ---
+  async getPromoOffers(): Promise<PromoOffer[]> {
+    const snapshot = await getDocs(collection(this.db, 'promoOffers'));
+    return snapshot.docs.map(doc => doc.data() as PromoOffer);
+  }
+
+  async savePromoOffer(offer: PromoOffer): Promise<void> {
+    await setDoc(doc(this.db, 'promoOffers', offer.id), offer);
+  }
+
+  async deletePromoOffer(id: string): Promise<void> {
+    await deleteDoc(doc(this.db, 'promoOffers', id));
+  }
 }
