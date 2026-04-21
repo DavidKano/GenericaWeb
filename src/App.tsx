@@ -124,7 +124,7 @@ function GlobalThemeInjector({ children }: { children: React.ReactNode }) {
       const isPortal = !window.location.pathname.startsWith('/admin') && !window.location.pathname.startsWith('/superadmin');
       if (isPortal && cfg?.customCssCustomer) {
         // Eliminar el estilo previo de inyección temprana si existe para evitar duplicados
-        const earlyStyle = document.getElementById('early-custom-css');
+        const earlyStyle = document.getElementById('ultra-early-style');
         if (earlyStyle) earlyStyle.remove();
 
         const styleId = 'dynamic-custom-css';

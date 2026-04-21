@@ -2,6 +2,47 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      // INYECCIÓN ULTRA-TEMPRANA (Fijar diseño antes de que el navegador pinte nada)
+      (function() {
+        try {
+          const cache = localStorage.getItem('design_config_cache');
+          if (cache) {
+            const cfg = JSON.parse(cache);
+            const root = document.documentElement;
+            const isPortal = !window.location.pathname.startsWith('/admin') && !window.location.pathname.startsWith('/superadmin');
+
+            const s = document.createElement('style');
+            s.id = 'ultra-early-style';
+            const primary = cfg.primaryColor || '#3b82f6';
+            const secondary = cfg.secondaryColor || '#2563eb';
+            const bg = cfg.backgroundColor || '#f3f4f6';
+            const font = cfg.fontFamily || "'Inter', sans-serif";
+            const text = cfg.primaryTextColor || '#ffffff';
+
+            s.innerHTML = `
+              :root {
+                --primary-color: ${primary} !important;
+                --secondary-color: ${secondary} !important;
+                --bg-color: ${bg} !important;
+                --font-family: ${font} !important;
+                --primary-text-color: ${text} !important;
+              }
+              body { font-family: var(--font-family) !important; background-color: var(--bg-color) !important; }
+              .btn-primary, .app-topbar__user, button[type="submit"] { background-color: var(--primary-color) !important; color: var(--primary-text-color) !important; }
+              .login-page { background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%) !important; }
+              ${isPortal ? (cfg.customCssCustomer || '') : ''}
+            `;
+            document.head.appendChild(s);
+
+            root.style.setProperty('--primary-color', primary, 'important');
+            root.style.setProperty('--secondary-color', secondary, 'important');
+            root.style.setProperty('--bg-color', bg, 'important');
+            root.style.setProperty('--font-family', font, 'important');
+          }
+        } catch (e) {}
+      })();
+    </script>
     <link rel="icon" id="dynamic-favicon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Plataforma de gestión de reservas white-label" />
@@ -12,41 +53,6 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="manifest" id="dynamic-manifest" href="/manifest.json" />
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Gochi+Hand&family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet" />
-    
-    <script>
-      // INYECCIÓN TEMPRANA DE IDENTIDAD (Elimina el lag de 30s)
-      (function() {
-        try {
-          const cache = localStorage.getItem('design_config_cache');
-          if (cache) {
-            const cfg = JSON.parse(cache);
-            const root = document.documentElement;
-            const isPortal = !window.location.pathname.startsWith('/admin') && !window.location.pathname.startsWith('/superadmin');
-
-            if (cfg.primaryColor) root.style.setProperty('--primary-color', cfg.primaryColor, 'important');
-            if (cfg.secondaryColor) root.style.setProperty('--secondary-color', cfg.secondaryColor, 'important');
-            if (cfg.primaryTextColor) root.style.setProperty('--primary-text-color', cfg.primaryTextColor, 'important');
-            if (cfg.backgroundColor) root.style.setProperty('--bg-color', cfg.backgroundColor, 'important');
-            if (cfg.fontFamily) root.style.setProperty('--font-family', cfg.fontFamily, 'important');
-
-            if (isPortal && cfg.customCssCustomer) {
-              const s = document.createElement('style');
-              s.id = 'early-custom-css';
-              s.innerHTML = cfg.customCssCustomer;
-              document.head.appendChild(s);
-            }
-            
-            // Favicon y Theme Color rápidos
-            if (cfg.primaryColor) document.querySelector('meta[name="theme-color"]').setAttribute('content', cfg.primaryColor);
-            if (cfg.faviconUrl) {
-              const fav = document.getElementById('dynamic-favicon');
-              if (fav) fav.href = cfg.faviconUrl;
-            }
-          }
-        } catch (e) {}
-      })();
-    </script>
-
     <title>Gestor de Reservas</title>
   </head>
   <body>
