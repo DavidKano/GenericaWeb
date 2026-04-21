@@ -292,6 +292,8 @@ export const AdminCoreDiseno: React.FC = () => {
 
           setConfig(newConfig);
           await repo.saveDesignConfig(newConfig);
+          // Sincronizar caché local
+          localStorage.setItem('design_config_cache', JSON.stringify(newConfig));
           setToast('Assets gráficos subidos a la nube y persistidos');
         } catch (err: any) {
           console.error('Error al subir/guardar configuración de diseño:', err);
@@ -347,6 +349,8 @@ export const AdminCoreDiseno: React.FC = () => {
       const newConfig = { ...config, qrCardUrl };
       setConfig(newConfig);
       await repo.saveDesignConfig(newConfig);
+      // Sincronizar caché local
+      localStorage.setItem('design_config_cache', JSON.stringify(newConfig));
       setToast('Tarjeta QR regenerada y subida a la nube');
     } catch (err) {
       console.error('Error al generar QR manual:', err);
@@ -431,6 +435,8 @@ export const AdminCoreDiseno: React.FC = () => {
     setSavingColors(true);
     try {
       await repo.saveDesignConfig(config);
+      // Sincronizar caché local inmediatamente
+      localStorage.setItem('design_config_cache', JSON.stringify(config));
       setToast('Identidad visual desplegada en el ecosistema');
     } catch (err) {
       console.error('Error al guardar colores:', err);
@@ -807,6 +813,8 @@ export const AdminCoreCss: React.FC = () => {
       customCssAdmin: adminCss 
     };
     await repo.saveDesignConfig(updated);
+    // Sincronizar caché local inmediatamente
+    localStorage.setItem('design_config_cache', JSON.stringify(updated));
     setConfig(updated);
     setSaving(false);
     setToast('Inyecciones CSS memorizadas');

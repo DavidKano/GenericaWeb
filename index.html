@@ -12,6 +12,41 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="manifest" id="dynamic-manifest" href="/manifest.json" />
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Gochi+Hand&family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet" />
+    
+    <script>
+      // INYECCIÓN TEMPRANA DE IDENTIDAD (Elimina el lag de 30s)
+      (function() {
+        try {
+          const cache = localStorage.getItem('design_config_cache');
+          if (cache) {
+            const cfg = JSON.parse(cache);
+            const root = document.documentElement;
+            const isPortal = !window.location.pathname.startsWith('/admin') && !window.location.pathname.startsWith('/superadmin');
+
+            if (cfg.primaryColor) root.style.setProperty('--primary-color', cfg.primaryColor, 'important');
+            if (cfg.secondaryColor) root.style.setProperty('--secondary-color', cfg.secondaryColor, 'important');
+            if (cfg.primaryTextColor) root.style.setProperty('--primary-text-color', cfg.primaryTextColor, 'important');
+            if (cfg.backgroundColor) root.style.setProperty('--bg-color', cfg.backgroundColor, 'important');
+            if (cfg.fontFamily) root.style.setProperty('--font-family', cfg.fontFamily, 'important');
+
+            if (isPortal && cfg.customCssCustomer) {
+              const s = document.createElement('style');
+              s.id = 'early-custom-css';
+              s.innerHTML = cfg.customCssCustomer;
+              document.head.appendChild(s);
+            }
+            
+            // Favicon y Theme Color rápidos
+            if (cfg.primaryColor) document.querySelector('meta[name="theme-color"]').setAttribute('content', cfg.primaryColor);
+            if (cfg.faviconUrl) {
+              const fav = document.getElementById('dynamic-favicon');
+              if (fav) fav.href = cfg.faviconUrl;
+            }
+          }
+        } catch (e) {}
+      })();
+    </script>
+
     <title>Gestor de Reservas</title>
   </head>
   <body>

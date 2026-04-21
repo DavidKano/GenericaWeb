@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import type { BusinessConfig, BookingService, Appointment, DaySchedule, BlockedDay, PromoOffer } from '../services/models';
 import { Calendar } from '../components/Calendar';
 import { generateTimeSlots } from '../utils/timeSlots';
-import { format, addDays, startOfDay, endOfDay } from 'date-fns';
+import { format, startOfDay, addDays, endOfDay, parse } from 'date-fns';
 import { INITIAL_SCHEDULES } from '../services/scheduleDefaults';
 import { es } from 'date-fns/locale';
 

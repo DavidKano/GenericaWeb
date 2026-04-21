@@ -49,6 +49,11 @@ function GlobalThemeInjector({ children }: { children: React.ReactNode }) {
     const isWelcome = window.location.pathname.startsWith('/welcome');
 
     Promise.all([repo.getCompanyData(), repo.getDesignConfig()]).then(([company, cfg]) => {
+      // Sincronización con caché local para eliminar FOUC en próximas cargas
+      if (cfg) {
+        localStorage.setItem('design_config_cache', JSON.stringify(cfg));
+      }
+
       // 0. Update Page Title and Favicon
       const companyName = company?.nombreEmpresa || "Reservas App";
       
@@ -99,7 +104,8 @@ function GlobalThemeInjector({ children }: { children: React.ReactNode }) {
       const themeColorMeta = document.getElementById('meta-theme-color') as HTMLMetaElement;
       if (themeColorMeta && cfg?.primaryColor) themeColorMeta.content = cfg.primaryColor;
 
-      // 2. CSS variables injection
+      // 2. CSS variables injection (Priority is already handled by index.html for fast load,
+      // here we ensure the absolute latest from DB is applied)
       if (cfg?.primaryColor) {
         document.documentElement.style.setProperty('--primary-color', cfg.primaryColor);
         document.documentElement.style.setProperty('--secondary-color', cfg.secondaryColor || '#2563eb');
@@ -112,6 +118,23 @@ function GlobalThemeInjector({ children }: { children: React.ReactNode }) {
       }
       if (cfg?.backgroundColor) {
         document.documentElement.style.setProperty('--bg-color', cfg.backgroundColor);
+      }
+
+      // 3. Custom CSS injection (only if not admin)
+      const isPortal = !window.location.pathname.startsWith('/admin') && !window.location.pathname.startsWith('/superadmin');
+      if (isPortal && cfg?.customCssCustomer) {
+        // Eliminar el estilo previo de inyección temprana si existe para evitar duplicados
+        const earlyStyle = document.getElementById('early-custom-css');
+        if (earlyStyle) earlyStyle.remove();
+
+        const styleId = 'dynamic-custom-css';
+        let styleTag = document.getElementById(styleId);
+        if (!styleTag) {
+          styleTag = document.createElement('style');
+          styleTag.id = styleId;
+          document.head.appendChild(styleTag);
+        }
+        styleTag.innerHTML = cfg.customCssCustomer;
       }
     }).catch(err => {
       console.error('CRITICAL: Fallo en la inyección de temas core:', err);
