@@ -3,7 +3,7 @@ import { useData } from '../context/DataContext';
 import type { DaySchedule, BlockedDay, TimeRange } from '../services/models';
 import { Clock, CalendarOff, Plus, Trash2, Save, Loader2 } from 'lucide-react';
 import { INITIAL_SCHEDULES } from '../services/scheduleDefaults';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, addDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 const DAYS_OF_WEEK = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
@@ -98,40 +98,54 @@ export const AdminSchedulePage: React.FC = () => {
 
     setSavingBlock(true);
 
-    const datesToBlock: string[] = [];
-    if (isFullDay && blockEndDate && blockEndDate >= blockDate) {
-      let current = new Date(blockDate);
-      const end = new Date(blockEndDate);
-      while (current <= end) {
-        datesToBlock.push(format(current, 'yyyy-MM-dd'));
-        current.setDate(current.getDate() + 1);
+    try {
+      const datesToBlock: string[] = [];
+      if (isFullDay && blockEndDate && blockEndDate >= blockDate) {
+        let current = parseISO(blockDate);
+        const end = parseISO(blockEndDate);
+        while (current <= end) {
+          datesToBlock.push(format(current, 'yyyy-MM-dd'));
+          current = addDays(current, 1);
+        }
+      } else {
+        datesToBlock.push(blockDate);
       }
-    } else {
-      datesToBlock.push(blockDate);
+      
+      const savePromises = datesToBlock.map(async (dateKey) => {
+        const existingIndex = blockedDays.findIndex(b => b.date === dateKey);
+        
+        // Creamos el objeto dinámicamente para no enviar undefined
+        const newBlock: any = {
+          id: existingIndex >= 0 ? blockedDays[existingIndex].id : `blocked-${dateKey}-${Date.now().toString().slice(-4)}`,
+          date: dateKey,
+          reason: blockReason || '',
+          isFullDay: !!isFullDay
+        };
+
+        if (!isFullDay && blockRanges.length > 0) {
+          newBlock.blockedRanges = blockRanges;
+        }
+
+        return repo.saveBlockedDay(newBlock as BlockedDay);
+      });
+
+      await Promise.all(savePromises);
+      
+      const bDays = await repo.getBlockedDays();
+      setBlockedDays(bDays);
+      
+      // Reiniciar form
+      setBlockDate('');
+      setBlockEndDate('');
+      setBlockReason('');
+      setIsFullDay(true);
+      setBlockRanges([]);
+    } catch (err: any) {
+      console.error("Error saving blocked days:", err);
+      alert(`Error al guardar: ${err.message || 'Error desconocido'}. Por favor, revisa tu conexión e inténtalo de nuevo.`);
+    } finally {
+      setSavingBlock(false);
     }
-    
-    for (const dateKey of datesToBlock) {
-      const existingIndex = blockedDays.findIndex(b => b.date === dateKey);
-      const newBlock: BlockedDay = {
-        id: existingIndex >= 0 ? blockedDays[existingIndex].id : `blocked-${Date.now()}-${Math.floor(Math.random()*1000)}`,
-        date: dateKey,
-        reason: blockReason,
-        isFullDay,
-        blockedRanges: isFullDay ? undefined : blockRanges
-      };
-      await repo.saveBlockedDay(newBlock);
-    }
-    
-    const bDays = await repo.getBlockedDays();
-    setBlockedDays(bDays);
-    
-    // Reiniciar form
-    setBlockDate('');
-    setBlockEndDate('');
-    setBlockReason('');
-    setIsFullDay(true);
-    setBlockRanges([]);
-    setSavingBlock(false);
   };
 
   const handleDeleteBlockedDay = async (id: string) => {

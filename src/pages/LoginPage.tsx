@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { User, Phone, Mail, Lock, UserPlus, LogIn, ShieldAlert, Briefcase, CheckCircle, Loader2 } from 'lucide-react';
 import { useData } from '../context/DataContext';
-import type { CompanyData } from '../services/models';
+import type { CompanyData, DesignConfig } from '../services/models';
 import { LegalModal } from '../components/ui/LegalModal';
 import { getDefaultPrivacyPolicy, getDefaultTermsOfUse } from '../services/policyDefaults';
 
@@ -21,7 +21,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({ type = 'CUSTOMER' }) => {
   const [error, setError] = useState('');
   const { login, register, resetPassword } = useAuth();
   const { mode, repo } = useData();
-  const [company, setCompany] = useState<CompanyData | null>(null);
+  const [company, setCompany] = useState<CompanyData | null>(() => {
+    const cache = localStorage.getItem('company_data_cache');
+    return cache ? JSON.parse(cache) : null;
+  });
+  const [design, setDesign] = useState<DesignConfig | null>(() => {
+    const cache = localStorage.getItem('design_config_cache');
+    return cache ? JSON.parse(cache) : null;
+  });
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
@@ -29,7 +36,25 @@ export const LoginPage: React.FC<LoginPageProps> = ({ type = 'CUSTOMER' }) => {
   const [loading, setLoading] = useState(false);
 
   React.useEffect(() => {
-    repo.getCompanyData().then(setCompany);
+    const loadData = async () => {
+      try {
+        const [c, d] = await Promise.all([
+          repo.getCompanyData(),
+          repo.getDesignConfig()
+        ]);
+        if (c) {
+          setCompany(c);
+          localStorage.setItem('company_data_cache', JSON.stringify(c));
+        }
+        if (d) {
+          setDesign(d);
+          localStorage.setItem('design_config_cache', JSON.stringify(d));
+        }
+      } catch (err) {
+        console.error("Error loading LoginPage theme data:", err);
+      }
+    };
+    loadData();
   }, [repo]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -71,7 +96,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({ type = 'CUSTOMER' }) => {
     <div className="login-page" style={isDark ? { background: '#111' } : {}}>
       <div className="login-card animate-fade-in" style={isDark ? { background: '#262626', color: '#fff', border: '1px solid #333' } : {}}>
         <div className="login-header" style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <div className="logo-icon" style={{ 
+          <div className="logo-icon" style={type === 'CUSTOMER' && design?.sourceLogoUrl ? {
+            margin: '0 auto 1.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '100%',
+            maxWidth: '180px',
+            height: '100px'
+          } : { 
             width: '60px', 
             height: '60px', 
             background: isDark ? '#eab308' : (type === 'ADMIN' ? '#10b981' : 'var(--primary-color)'), 
@@ -81,9 +114,21 @@ export const LoginPage: React.FC<LoginPageProps> = ({ type = 'CUSTOMER' }) => {
             alignItems: 'center',
             justifyContent: 'center',
             color: isDark ? '#111' : 'white',
-            boxShadow: isDark ? '0 8px 16px rgba(234, 179, 8, 0.2)' : '0 8px 16px rgba(0, 0, 0, 0.1)'
+            boxShadow: isDark ? '0 8px 16px rgba(234, 179, 8, 0.2)' : '0 8px 16px rgba(0, 0, 0, 0.1)',
+            overflow: 'hidden'
           }}>
-            {type === 'SUPER_ADMIN' ? <ShieldAlert size={30} /> : type === 'ADMIN' ? <Briefcase size={30} /> : (isForgotPassword ? <Mail size={30} /> : isRegister ? <UserPlus size={30} /> : <LogIn size={30} />)}
+            {type === 'CUSTOMER' && design?.sourceLogoUrl ? (
+              <img 
+                src={design.sourceLogoUrl} 
+                alt="Logo" 
+                style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
+              />
+            ) : (
+              type === 'SUPER_ADMIN' ? <ShieldAlert size={30} /> : type === 'ADMIN' ? <Briefcase size={30} /> : (isForgotPassword ? <Mail size={30} /> : isRegister ? <UserPlus size={30} /> : <LogIn size={30} />)
+            )}
           </div>
           <h1>{type === 'SUPER_ADMIN' ? 'ADMIN CORE' : type === 'ADMIN' ? 'Admin Portal' : (isForgotPassword ? 'Recuperar Contraseña' : isRegister ? 'Crear Cuenta' : 'Bienvenido')}</h1>
           <p className="subtitle" style={isDark ? { color: '#a3a3a3' } : {}}>

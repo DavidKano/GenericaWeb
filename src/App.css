@@ -581,18 +581,30 @@ input[type="time"] {
   color: #ef4444;
   background: rgba(239, 68, 68, 0.05);
   cursor: not-allowed;
-  border: 1px dashed rgba(239, 68, 68, 0.3);
+  border: 1px dashed rgba(239, 68, 68, 0.2);
 }
 
 .calendar-cell.full::after {
   content: "Completo";
   position: absolute;
-  bottom: 4px;
-  font-size: 0.55rem;
+  bottom: 2px;
+  font-size: 0.5rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.02em;
-  opacity: 0.8;
+  letter-spacing: -0.02em;
+  opacity: 0.9;
+  white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+  .calendar-cell.full::after {
+    content: "";
+    width: 4px;
+    height: 4px;
+    background: #ef4444;
+    border-radius: 50%;
+    bottom: 4px;
+  }
 }
 
 .calendar-blocked-dot {

@@ -42,6 +42,10 @@
             root.style.setProperty('--secondary-color', secondary, 'important');
             root.style.setProperty('--bg-color', bg, 'important');
             root.style.setProperty('--font-family', font, 'important');
+
+            // Actualizar color de la barra de sistema (Android) de forma inmediata
+            const metaTheme = document.getElementById('meta-theme-color');
+            if (metaTheme) metaTheme.content = primary;
           }
         } catch (e) {}
       })();
@@ -51,7 +55,7 @@
     <meta name="description" content="Plataforma de gestión de reservas white-label" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <meta name="theme-color" content="#3b82f6" id="meta-theme-color" />
+    <meta name="theme-color" content="transparent" id="meta-theme-color" />
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="manifest" id="dynamic-manifest" href="/manifest.json" />
