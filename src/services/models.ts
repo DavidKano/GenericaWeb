@@ -95,4 +95,8 @@ export interface PromoOffer {
   endDate: string; // ISO "YYYY-MM-DD"
   isActive: boolean;
   displayMode?: 'popup' | 'inline'; // popup (modal) o inline (debajo de servicios)
+  type?: 'image' | 'text';
+  textHeader?: string;
+  textBody?: string;
+  designSeed?: number;
 }

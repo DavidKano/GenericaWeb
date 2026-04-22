@@ -72,6 +72,17 @@ function GlobalThemeInjector({ children }: { children: React.ReactNode }) {
         faviconTag.type = 'image/png'; // El favicon generado es PNG
       }
 
+      let appleIconTag = document.getElementById('apple-touch-icon') as HTMLLinkElement;
+      if (!appleIconTag) {
+        appleIconTag = document.createElement('link');
+        appleIconTag.rel = 'apple-touch-icon';
+        appleIconTag.id = 'apple-touch-icon';
+        document.head.appendChild(appleIconTag);
+      }
+      if (cfg?.pwaIcon || cfg?.faviconUrl) {
+        appleIconTag.href = cfg.pwaIcon || cfg.faviconUrl!;
+      }
+
       if (isSuperAdmin) {
         // Resetear a los valores CORE (Inter, Gris, etc) en el portal de control maestro
         document.documentElement.style.setProperty('--primary-color', '#3b82f6');

@@ -9,6 +9,7 @@ import { generateTimeSlots } from '../utils/timeSlots';
 import { format, startOfDay, addDays, endOfDay, parse } from 'date-fns';
 import { INITIAL_SCHEDULES } from '../services/scheduleDefaults';
 import { es } from 'date-fns/locale';
+import { PromoOfferTextDesign } from '../components/ui/PromoOfferTextDesign';
 
 export const BookingPage: React.FC = () => {
   const { repo } = useData();
@@ -324,7 +325,11 @@ export const BookingPage: React.FC = () => {
             <div style={{ marginTop: '2.5rem', display: 'grid', gap: '1.5rem' }}>
               {inlineOffers.map(offer => (
                 <div key={offer.id} style={{ width: '100%', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
-                  <img src={offer.imageUrl} alt="Promo Especial" style={{ width: '100%', height: 'auto', display: 'block', objectFit: 'cover' }} />
+                  {offer.type === 'text' ? (
+                    <PromoOfferTextDesign offer={offer} style={{ borderRadius: '0' }} />
+                  ) : (
+                    <img src={offer.imageUrl} alt="Promo Especial" style={{ width: '100%', height: 'auto', display: 'block', objectFit: 'cover' }} />
+                  )}
                 </div>
               ))}
             </div>

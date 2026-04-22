@@ -21,7 +21,8 @@ service cloud.firestore {
       // Permitir leer una ficha individual: Propietario o Administradores
       allow get: if isSignedIn() && (
         request.auth.uid == userId || 
-        getRole() in ['ADMIN', 'SUPER_ADMIN']
+        getRole() in ['ADMIN', 'SUPER_ADMIN'] ||
+        (userId.matches('^pre-.*') && resource.data.email == request.auth.token.email)
       );
       
       // Permitir listar la colección completa: Solo Administradores
@@ -37,8 +38,11 @@ service cloud.firestore {
          (request.auth.uid != userId && getRole() in ['ADMIN', 'SUPER_ADMIN'])
       );
  
-      // Borrado: Solo Administradores
-      allow delete: if isSignedIn() && getRole() in ['ADMIN', 'SUPER_ADMIN'];
+      // Borrado: Solo Administradores o Invitación propia coincidiendo email
+      allow delete: if isSignedIn() && (
+        getRole() in ['ADMIN', 'SUPER_ADMIN'] ||
+        (userId.matches('^pre-.*') && resource.data.email == request.auth.token.email)
+      );
     }
 
     // --- COLECCIONES DEL SISTEMA (SAAS / CORE) ---
@@ -72,7 +76,7 @@ service cloud.firestore {
     }
 
     match /promoOffers/{document=**} {
-      allow read: if isSignedIn();
+      allow read: if true;
       allow write: if isSignedIn() && getRole() in ['ADMIN', 'SUPER_ADMIN'];
     }
 

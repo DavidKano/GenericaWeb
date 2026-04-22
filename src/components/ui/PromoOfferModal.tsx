@@ -3,6 +3,7 @@ import { useData } from '../../context/DataContext';
 import type { PromoOffer } from '../../services/models';
 import { format } from 'date-fns';
 import { X } from 'lucide-react';
+import { PromoOfferTextDesign } from './PromoOfferTextDesign';
 
 export const PromoOfferModal: React.FC = () => {
   const { repo } = useData();
@@ -99,13 +100,17 @@ export const PromoOfferModal: React.FC = () => {
           <X size={20} />
         </button>
         
-        {/* Imagen Promocional */}
+        {/* Imagen Promocional o Texto Dinámico */}
         <div style={{ width: '100%', display: 'block', minHeight: '300px', background: '#f8fafc' }}>
-          <img 
-              src={offer.imageUrl} 
-              alt="Promoción Especial" 
-              style={{ width: '100%', height: 'auto', display: 'block', objectFit: 'contain' }} 
-          />
+          {offer.type === 'text' ? (
+            <PromoOfferTextDesign offer={offer} style={{ borderRadius: '0', minHeight: '350px' }} />
+          ) : (
+            <img 
+                src={offer.imageUrl} 
+                alt="Promoción Especial" 
+                style={{ width: '100%', height: 'auto', display: 'block', objectFit: 'contain' }} 
+            />
+          )}
         </div>
       </div>
       <style>{`

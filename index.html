@@ -46,6 +46,15 @@
             // Actualizar color de la barra de sistema (Android) de forma inmediata
             const metaTheme = document.getElementById('meta-theme-color');
             if (metaTheme) metaTheme.content = primary;
+
+            // Inyectar apple-touch-icon ultra-temprano para iOS
+            const appleIconUrl = cfg.pwaIcon || cfg.faviconUrl;
+            if (appleIconUrl) {
+              const appleIcon = document.createElement('link');
+              appleIcon.rel = 'apple-touch-icon';
+              appleIcon.href = appleIconUrl;
+              document.head.appendChild(appleIcon);
+            }
           }
         } catch (e) {}
       })();

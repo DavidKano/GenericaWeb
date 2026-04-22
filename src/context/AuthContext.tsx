@@ -178,15 +178,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         const cred = await createUserWithEmailAndPassword(auth, cleanEmail, password);
         
+        // Comprobar si el email está pre-autorizado para ser ADMIN (solo puede hacerse una vez autenticado)
+        const preAuthId = 'pre-' + cleanEmail.replace(/[^a-z0-9]/g, '_');
+        let isInvitedAdmin = false;
+        try {
+          const preAuthUser = await repo.getUserById(preAuthId);
+          isInvitedAdmin = !!preAuthUser;
+        } catch (e) {
+          // Si da error de permisos, es normal (el rol es CUSTOMER)
+        }
+        
         const newUser: User = { 
           ...userData, 
           email: cleanEmail,
           id: cred.user.uid, 
-          role: 'CUSTOMER',
+          role: isInvitedAdmin ? 'ADMIN' : 'CUSTOMER',
           isActive: true
         };
 
         await repo.saveUser(newUser);
+
+        // Si era una invitación, borramos el registro temporal
+        if (isInvitedAdmin) {
+          try {
+            await repo.deleteUser(preAuthId);
+          } catch(e) {
+            console.error('No se pudo limpiar la invitación', e);
+          }
+        }
 
         setUser(newUser);
         localStorage.setItem('currentUser', JSON.stringify(newUser));

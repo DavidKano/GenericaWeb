@@ -11,6 +11,9 @@ export const AdminOffersPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   
   // Nuevo formulario de oferta
+  const [offerType, setOfferType] = useState<'image' | 'text'>('image');
+  const [textHeader, setTextHeader] = useState('');
+  const [textBody, setTextBody] = useState('');
   const [startDate, setStartDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [endDate, setEndDate] = useState('');
   const [base64Img, setBase64Img] = useState<string>('');
@@ -65,8 +68,18 @@ export const AdminOffersPage: React.FC = () => {
 
   const handleSaveOffer = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!base64Img || !startDate || !endDate) {
-      alert('Debes rellenar todos los campos y subir una imagen.');
+    
+    if (offerType === 'image' && !base64Img) {
+      alert('Debes subir una imagen.');
+      return;
+    }
+    if (offerType === 'text' && !textHeader) {
+      alert('Debes escribir al menos una cabecera para la oferta de texto.');
+      return;
+    }
+
+    if (!startDate || !endDate) {
+      alert('Debes rellenar las fechas.');
       return;
     }
 
@@ -78,11 +91,18 @@ export const AdminOffersPage: React.FC = () => {
     setSaving(true);
     try {
       const id = `promo-${Date.now()}`;
-      const imageUrl = await repo.uploadImage(`promo_offers/${id}`, base64Img);
+      let imageUrl = '';
+      if (offerType === 'image') {
+        imageUrl = await repo.uploadImage(`promo_offers/${id}`, base64Img);
+      }
       
       const newOffer: PromoOffer = {
         id,
+        type: offerType,
         imageUrl,
+        textHeader: offerType === 'text' ? textHeader : undefined,
+        textBody: offerType === 'text' ? textBody : undefined,
+        designSeed: offerType === 'text' ? Math.floor(Math.random() * 1000) : undefined,
         startDate,
         endDate,
         isActive: true,
@@ -94,6 +114,8 @@ export const AdminOffersPage: React.FC = () => {
       
       // Reset form
       setBase64Img('');
+      setTextHeader('');
+      setTextBody('');
       setStartDate(format(new Date(), 'yyyy-MM-dd'));
       setEndDate('');
       setDisplayMode('popup');
@@ -135,11 +157,26 @@ export const AdminOffersPage: React.FC = () => {
               <Plus size={18} /> Nueva Oferta
             </h3>
             
-            <div className="form-group">
-              <label>Imagen Promocional (Cartel / Banner)</label>
-              <div 
-                style={{ 
-                  border: '2px dashed var(--border-color)', 
+            <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+              <label>Tipo de Oferta</label>
+              <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 'normal' }}>
+                  <input type="radio" value="image" checked={offerType === 'image'} onChange={() => setOfferType('image')} />
+                  Subir Imagen
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 'normal' }}>
+                  <input type="radio" value="text" checked={offerType === 'text'} onChange={() => setOfferType('text')} />
+                  Diseño de Texto Automático
+                </label>
+              </div>
+            </div>
+
+            {offerType === 'image' ? (
+              <div className="form-group">
+                <label>Imagen Promocional (Cartel / Banner)</label>
+                <div 
+                  style={{ 
+                    border: '2px dashed var(--border-color)', 
                   padding: '1rem', 
                   borderRadius: '8px', 
                   textAlign: 'center',
@@ -167,6 +204,29 @@ export const AdminOffersPage: React.FC = () => {
                 />
               </div>
             </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1rem' }}>
+                <div className="form-group">
+                  <label>Cabecera / Título Principal</label>
+                  <input 
+                    type="text" 
+                    value={textHeader} 
+                    onChange={e => setTextHeader(e.target.value)} 
+                    placeholder="Ej: 50% de Descuento" 
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Cuerpo / Descripción (opcional)</label>
+                  <textarea 
+                    value={textBody} 
+                    onChange={e => setTextBody(e.target.value)} 
+                    placeholder="En tu primera visita al completarse tu reserva..." 
+                    rows={3} 
+                    style={{ fontFamily: 'inherit', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', width: '100%', resize: 'vertical' }}
+                  />
+                </div>
+              </div>
+            )}
 
             <div style={{ display: 'flex', gap: '1rem' }}>
               <div className="form-group" style={{ flex: 1 }}>
@@ -209,7 +269,7 @@ export const AdminOffersPage: React.FC = () => {
               <p style={{ margin: 0 }}>La oferta se mostrará a los clientes 1 vez por sesión durante estas fechas.</p>
             </div>
 
-            <button type="submit" disabled={saving || !base64Img} className="btn-primary" style={{ width: '100%', display: 'flex', justifyContent: 'center', gap: '0.5rem' }}>
+            <button type="submit" disabled={saving || (offerType === 'image' && !base64Img) || (offerType === 'text' && !textHeader)} className="btn-primary" style={{ width: '100%', display: 'flex', justifyContent: 'center', gap: '0.5rem' }}>
                {saving ? <Loader2 className="animate-spin" size={18}/> : <Save size={18}/>} Publicar Oferta
             </button>
           </form>
@@ -228,8 +288,14 @@ export const AdminOffersPage: React.FC = () => {
               <div style={{ display: 'grid', gap: '1rem' }}>
                 {offers.map(offer => (
                   <div key={offer.id} style={{ display: 'flex', gap: '1rem', background: '#fff', border: '1px solid var(--border-color)', borderRadius: '8px', overflow: 'hidden' }}>
-                    <div style={{ width: '100px', minHeight: '100px', background: '#f8fafc', flexShrink: 0, display: 'flex' }}>
-                       <img src={offer.imageUrl} alt="Promo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <div style={{ width: '100px', minHeight: '100px', background: '#f8fafc', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                       {offer.type === 'text' ? (
+                         <div style={{ width: '100%', height: '100%', background: 'var(--primary-color)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '0.5rem', fontSize: '0.7rem', fontWeight: 'bold' }}>
+                           D. TEXTO
+                         </div>
+                       ) : (
+                         <img src={offer.imageUrl} alt="Promo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                       )}
                     </div>
                     <div style={{ padding: '1rem', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                       <p style={{ margin: '0 0 0.25rem', fontSize: '0.8rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
