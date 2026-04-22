@@ -1,8 +1,10 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
-import type { BusinessConfig, BookingService, Appointment, DaySchedule, BlockedDay, PromoOffer } from '../services/models';
+import type { BusinessConfig, BookingService, Appointment, DaySchedule, BlockedDay, PromoOffer, CompanyData } from '../services/models';
 import { Calendar } from '../components/Calendar';
+import { Calendar as CalendarIcon, Share2, CheckCircle2, ArrowLeft } from 'lucide-react';
+import { generateGoogleCalendarUrl, shareOrDownloadIcs } from '../utils/calendar';
 import { generateTimeSlots } from '../utils/timeSlots';
 import { format, startOfDay, addDays, endOfDay, parse } from 'date-fns';
 import { INITIAL_SCHEDULES } from '../services/scheduleDefaults';
@@ -17,6 +19,7 @@ export const BookingPage: React.FC = () => {
   const [blockedDays, setBlockedDays] = useState<BlockedDay[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [businessConfig, setBusinessConfig] = useState<BusinessConfig | null>(null);
+  const [company, setCompany] = useState<CompanyData | null>(null);
   const [inlineOffers, setInlineOffers] = useState<PromoOffer[]>([]);
   
   const [step, setStep] = useState(1);
@@ -28,17 +31,19 @@ export const BookingPage: React.FC = () => {
   useEffect(() => {
     const loadStatic = async () => {
       // Individual catches to prevent one failed collection (e.g. permissions) from breaking the whole page
-      const [svcs, schs, bDays, cfg, offers] = await Promise.all([
+      const [svcs, schs, bDays, cfg, offers, comp] = await Promise.all([
         repo.getServices().catch(e => { console.error('Error services:', e); return []; }),
         repo.getSchedules().catch(e => { console.error('Error schedules:', e); return []; }),
         repo.getBlockedDays().catch(e => { console.error('Error blocked:', e); return []; }),
         repo.getConfig().catch(e => { console.error('Error config:', e); return null; }),
-        repo.getPromoOffers().catch(e => { console.error('Error offers:', e); return []; })
+        repo.getPromoOffers().catch(e => { console.error('Error offers:', e); return []; }),
+        repo.getCompanyData().catch(e => { console.error('Error company:', e); return null; })
       ]);
       setServices(svcs);
       setSchedules(schs.length > 0 ? schs : INITIAL_SCHEDULES);
       setBlockedDays(bDays);
       setBusinessConfig(cfg);
+      setCompany(comp);
       
       const todayStr = format(new Date(), 'yyyy-MM-dd');
       setInlineOffers((offers || []).filter(o => 
@@ -190,15 +195,96 @@ export const BookingPage: React.FC = () => {
   };
 
   if (booked) {
+    const [h, m] = selectedTime.split(':').map(Number);
+    const startDateTime = new Date(selectedDate || new Date());
+    startDateTime.setHours(h, m, 0, 0);
+
+    const event = {
+      title: `${selectedService?.name} - ${company?.nombreEmpresa || 'Cita'}`,
+      description: `Cita para ${selectedService?.name} confirmada en ${company?.nombreEmpresa}.`,
+      startDate: startDateTime,
+      durationMin: selectedService?.durationMin || 30,
+      location: company ? `${company.direccion}, ${company.localidad}` : ''
+    };
+
     return (
-      <div className="booking-page" style={{ textAlign: 'center', paddingTop: '3rem' }}>
-        <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>✅</div>
-        <h2>¡Reserva Confirmada!</h2>
-        <p style={{ color: 'var(--text-secondary)', margin: '1rem 0 2rem' }}>
-          <strong>{selectedService?.name}</strong> el <strong>{selectedDate ? format(selectedDate, 'dd/MM/yyyy') : ''}</strong> a las <strong>{selectedTime}</strong>.
-          <br />Te enviamos una confirmación por email.
+      <div className="booking-page" style={{ textAlign: 'center', paddingTop: '2rem' }}>
+        <div style={{ transform: 'scale(1.2)', display: 'inline-block', marginBottom: '1.5rem' }}>
+          <CheckCircle2 size={64} color="#10b981" />
+        </div>
+        
+        <h2 style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>¡Reserva Confirmada!</h2>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '1.1rem', marginBottom: '2.5rem', maxWidth: '400px', margin: '0.5rem auto 2.5rem' }}>
+          Hemos reservado tu cita para <strong>{selectedService?.name}</strong> el día <strong>{selectedDate ? format(selectedDate, 'd MMMM', { locale: es }) : ''}</strong> a las <strong>{selectedTime.replace(/^0/, '')}</strong>.
         </p>
-        <button className="btn-primary" onClick={reset}>Hacer otra reserva</button>
+
+        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '20px', padding: '1.5rem', marginBottom: '2.5rem' }}>
+          <h4 style={{ fontSize: '0.9rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '1.2rem', fontWeight: 700 }}>
+            <CalendarIcon size={16} style={{ verticalAlign: 'middle', marginRight: '6px' }} /> Añadir a mi calendario
+          </h4>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <a 
+              href={generateGoogleCalendarUrl(event)}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ 
+                background: '#fff', 
+                border: '1px solid #e2e8f0', 
+                padding: '0.8rem', 
+                borderRadius: '12px', 
+                display: 'flex', 
+                flexDirection: 'column', 
+                alignItems: 'center', 
+                gap: '0.5rem',
+                textDecoration: 'none',
+                color: '#1f2937',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
+                transition: 'transform 0.2s, box-shadow 0.2s'
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.06)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.02)'; }}
+            >
+              <img src="https://www.gstatic.com/calendar/images/dynamiclogo_2020q4/calendar_31_2x.png" alt="Google" style={{ width: '24px', height: '24px' }} />
+              Google
+            </a>
+
+            <button 
+              onClick={() => shareOrDownloadIcs(event)}
+              style={{ 
+                background: '#fff', 
+                border: '1px solid #e2e8f0', 
+                padding: '0.8rem', 
+                borderRadius: '12px', 
+                display: 'flex', 
+                flexDirection: 'column', 
+                alignItems: 'center', 
+                gap: '0.5rem',
+                cursor: 'pointer',
+                color: '#1f2937',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
+                transition: 'transform 0.2s, box-shadow 0.2s'
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.06)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.02)'; }}
+            >
+              <Share2 size={24} color="#3b82f6" />
+              Otros (.ics)
+            </button>
+          </div>
+        </div>
+
+        <button 
+          className="btn-primary" 
+          onClick={reset}
+          style={{ width: 'auto', padding: '1rem 2rem', borderRadius: '50px', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 auto' }}
+        >
+          <ArrowLeft size={18} /> Volver al inicio
+        </button>
       </div>
     );
   }
