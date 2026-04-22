@@ -27,12 +27,13 @@ export const BookingPage: React.FC = () => {
 
   useEffect(() => {
     const loadStatic = async () => {
+      // Individual catches to prevent one failed collection (e.g. permissions) from breaking the whole page
       const [svcs, schs, bDays, cfg, offers] = await Promise.all([
-        repo.getServices(),
-        repo.getSchedules(),
-        repo.getBlockedDays(),
-        repo.getConfig(),
-        repo.getPromoOffers()
+        repo.getServices().catch(e => { console.error('Error services:', e); return []; }),
+        repo.getSchedules().catch(e => { console.error('Error schedules:', e); return []; }),
+        repo.getBlockedDays().catch(e => { console.error('Error blocked:', e); return []; }),
+        repo.getConfig().catch(e => { console.error('Error config:', e); return null; }),
+        repo.getPromoOffers().catch(e => { console.error('Error offers:', e); return []; })
       ]);
       setServices(svcs);
       setSchedules(schs.length > 0 ? schs : INITIAL_SCHEDULES);
@@ -40,7 +41,7 @@ export const BookingPage: React.FC = () => {
       setBusinessConfig(cfg);
       
       const todayStr = format(new Date(), 'yyyy-MM-dd');
-      setInlineOffers(offers.filter(o => 
+      setInlineOffers((offers || []).filter(o => 
         o.isActive !== false && 
         o.displayMode === 'inline' &&
         todayStr >= o.startDate && 

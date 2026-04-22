@@ -1,4 +1,4 @@
-const CACHE_NAME = 'generica-web-v1';
+const CACHE_NAME = 'generica-web-v2';
 const urlsToCache = [
   '/',
   '/index.html',
