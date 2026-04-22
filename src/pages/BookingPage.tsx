@@ -231,15 +231,15 @@ export const BookingPage: React.FC = () => {
               style={{ 
                 background: '#fff', 
                 border: '1px solid #e2e8f0', 
-                padding: '0.8rem', 
+                padding: '1rem 0.5rem', 
                 borderRadius: '12px', 
                 display: 'flex', 
                 flexDirection: 'column', 
                 alignItems: 'center', 
-                gap: '0.5rem',
+                gap: '0.25rem',
                 textDecoration: 'none',
                 color: '#1f2937',
-                fontSize: '0.85rem',
+                fontSize: '0.9rem',
                 fontWeight: 600,
                 boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
                 transition: 'transform 0.2s, box-shadow 0.2s'
@@ -247,8 +247,9 @@ export const BookingPage: React.FC = () => {
               onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.06)'; }}
               onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.02)'; }}
             >
-              <img src="https://www.gstatic.com/calendar/images/dynamiclogo_2020q4/calendar_31_2x.png" alt="Google" style={{ width: '24px', height: '24px' }} />
+              <img src="https://www.gstatic.com/calendar/images/dynamiclogo_2020q4/calendar_31_2x.png" alt="Google" style={{ width: '24px', height: '24px', marginBottom: '4px' }} />
               Google
+              <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 500 }}>(Android)</span>
             </a>
 
             <button 
@@ -256,15 +257,15 @@ export const BookingPage: React.FC = () => {
               style={{ 
                 background: '#fff', 
                 border: '1px solid #e2e8f0', 
-                padding: '0.8rem', 
+                padding: '1rem 0.5rem', 
                 borderRadius: '12px', 
                 display: 'flex', 
                 flexDirection: 'column', 
                 alignItems: 'center', 
-                gap: '0.5rem',
+                gap: '0.25rem',
                 cursor: 'pointer',
                 color: '#1f2937',
-                fontSize: '0.85rem',
+                fontSize: '0.9rem',
                 fontWeight: 600,
                 boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
                 transition: 'transform 0.2s, box-shadow 0.2s'
@@ -272,8 +273,9 @@ export const BookingPage: React.FC = () => {
               onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.06)'; }}
               onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.02)'; }}
             >
-              <Share2 size={24} color="#3b82f6" />
+              <Share2 size={24} color="#3b82f6" style={{ marginBottom: '4px' }} />
               Otros (.ics)
+              <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 500 }}>(Apple / iOS)</span>
             </button>
           </div>
         </div>
