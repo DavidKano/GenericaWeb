@@ -176,27 +176,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { getAuth, createUserWithEmailAndPassword } = await import('firebase/auth');
         const auth = getAuth();
         
-        // Comprobar si el email está pre-autorizado para ser ADMIN
-        const preAuthId = 'pre-' + cleanEmail.replace(/[^a-z0-9]/g, '_');
-        const preAuthUser = await repo.getUserById(preAuthId);
-        
         const cred = await createUserWithEmailAndPassword(auth, cleanEmail, password);
         
-        const isInvitedAdmin = !!preAuthUser;
         const newUser: User = { 
           ...userData, 
           email: cleanEmail,
           id: cred.user.uid, 
-          role: isInvitedAdmin ? 'ADMIN' : 'CUSTOMER',
+          role: 'CUSTOMER',
           isActive: true
         };
 
         await repo.saveUser(newUser);
-
-        // Si era una invitación, borramos el registro temporal
-        if (isInvitedAdmin) {
-          await repo.deleteUser(preAuthId);
-        }
 
         setUser(newUser);
         localStorage.setItem('currentUser', JSON.stringify(newUser));

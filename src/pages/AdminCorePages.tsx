@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useData } from '../context/DataContext';
-import { Briefcase, ShieldCheck, ShieldAlert, Code, Save, Loader2, UploadCloud, CheckCircle, Palette, Type, QrCode, Users, UserPlus, Trash2, UserRoundCheck, UserRoundX } from 'lucide-react';
+import { Briefcase, ShieldCheck, ShieldAlert, Code, Save, Loader2, UploadCloud, CheckCircle, Palette, Type, QrCode, Users, Search, Trash2, UserRoundCheck, UserRoundX } from 'lucide-react';
 import type { CompanyData, DesignConfig, User } from '../services/models';
 import QRCode from 'qrcode';
 import { getDefaultPrivacyPolicy, getDefaultTermsOfUse } from '../services/policyDefaults';
@@ -882,7 +882,9 @@ export const AdminCoreAccesos: React.FC = () => {
   const [toast, setToast] = useState('');
   const [toastError, setToastError] = useState('');
 
-  const [form, setForm] = useState({ name: '', email: '' });
+  const [searchEmail, setSearchEmail] = useState('');
+  const [foundUser, setFoundUser] = useState<User | null>(null);
+  const [searching, setSearching] = useState(false);
 
   const showToastOk = (msg: string) => { 
     setToast(msg); 
@@ -911,40 +913,43 @@ export const AdminCoreAccesos: React.FC = () => {
     loadAdmins();
   }, [repo]);
 
-  const handleCreate = async (e: React.FormEvent) => {
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name.trim() || !form.email.trim()) {
-      showError('Todos los campos son obligatorios.');
-      return;
+    if (!searchEmail.trim()) return;
+    
+    setSearching(true);
+    setFoundUser(null);
+    try {
+      const users = await repo.getUsers();
+      const user = users.find(u => u.email.toLowerCase() === searchEmail.trim().toLowerCase());
+      if (user) {
+        if (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') {
+          showError('Este usuario ya tiene privilegios administrativos.');
+        } else {
+          setFoundUser(user);
+        }
+      } else {
+        showError('No se encontró ningún usuario registrado con ese email.');
+      }
+    } catch (err) {
+      showError('Error al buscar usuario.');
+    } finally {
+      setSearching(false);
     }
+  };
 
-    // Validar que no exista ya
-    if (admins.find(a => a.email.toLowerCase() === form.email.trim().toLowerCase())) {
-      showError('Ya existe un administrador con ese email.');
-      return;
-    }
-
+  const handlePromote = async () => {
+    if (!foundUser) return;
     setSaving(true);
     try {
-      const email = form.email.trim().toLowerCase();
-      // ID especial para identificar pre-autorizaciones
-      const preAuthId = 'pre-' + email.replace(/[^a-z0-9]/g, '_');
-      
-      const preAdmin: User = {
-        id: preAuthId,
-        name: form.name.trim(),
-        email: email,
-        phone: '---', // Placeholder para pre-registro
-        role: 'ADMIN',
-        isActive: true,
-      };
-      
-      await repo.saveUser(preAdmin);
-      setForm({ name: '', email: '' });
+      const updated: User = { ...foundUser, role: 'ADMIN' };
+      await repo.saveUser(updated);
+      setFoundUser(null);
+      setSearchEmail('');
       await loadAdmins();
-      showToastOk(`Acceso para "${preAdmin.name}" pre-autorizado correctamente.`);
+      showToastOk(`"${updated.name}" ahora es Administrador.`);
     } catch (err: any) {
-      showError('Error al crear el acceso: ' + (err?.message || 'Error de conexión'));
+      showError('Error al promover: ' + (err?.message || ''));
     } finally {
       setSaving(false);
     }
@@ -998,43 +1003,32 @@ export const AdminCoreAccesos: React.FC = () => {
         <Users size={24} /> Gestión de Accesos Admin
       </h2>
       <p style={{ color: '#9ca3af', marginBottom: '2.5rem', fontSize: '0.9rem' }}>
-        Pre-autoriza emails para que puedan registrarse como administradores. También puedes revocar accesos existentes en tiempo real.
+        Busca usuarios registrados por su correo electrónico para otorgarles privilegios de administración. También puedes gestionar los accesos existentes.
       </p>
 
       {/* Formulario de invitación */}
       <div style={{ background: '#111827', borderRadius: '10px', border: '1px solid #374151', padding: '1.75rem', marginBottom: '2.5rem' }}>
         <h3 style={{ color: '#d1d5db', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1rem' }}>
-          <UserPlus size={18} color="#eab308" /> Invitar nuevo Administrador
+          <Search size={18} color="#eab308" /> Activar nuevo Administrador
         </h3>
-        <form onSubmit={handleCreate}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '1rem', alignItems: 'flex-end' }}>
+        <form onSubmit={handleSearch}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '1rem', alignItems: 'flex-end' }}>
             <div>
-              <label style={{ display: 'block', color: '#d1d5db', fontSize: '0.85rem', marginBottom: '0.4rem' }}>Nombre Completo</label>
-              <input 
-                type="text" 
-                placeholder="Ej: María García"
-                value={form.name}
-                onChange={e => setForm({...form, name: e.target.value})}
-                style={{ width: '100%', background: '#1f2937', color: '#fff', border: '1px solid #4b5563', padding: '0.6rem', borderRadius: '6px' }}
-                required
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', color: '#d1d5db', fontSize: '0.85rem', marginBottom: '0.4rem' }}>Email de Invitación</label>
+              <label style={{ display: 'block', color: '#d1d5db', fontSize: '0.85rem', marginBottom: '0.4rem' }}>Email del usuario ya registrado</label>
               <input 
                 type="email" 
-                placeholder="admin@ejemplo.com"
-                value={form.email}
-                onChange={e => setForm({...form, email: e.target.value})}
+                placeholder="usuario@ejemplo.com"
+                value={searchEmail}
+                onChange={e => setSearchEmail(e.target.value)}
                 style={{ width: '100%', background: '#1f2937', color: '#fff', border: '1px solid #4b5563', padding: '0.6rem', borderRadius: '6px' }}
                 required
               />
             </div>
             <button 
               type="submit" 
-              disabled={saving}
+              disabled={searching}
               style={{ 
-                background: saving ? '#374151' : '#eab308', 
+                background: searching ? '#374151' : '#eab308', 
                 color: '#111', 
                 padding: '0.6rem 1.5rem', 
                 borderRadius: '6px', 
@@ -1047,11 +1041,28 @@ export const AdminCoreAccesos: React.FC = () => {
                 minHeight: '38px'
               }}
             >
-              {saving ? <Loader2 className="animate-spin" size={16} /> : <UserPlus size={16} />}
-              {saving ? 'Procesando...' : 'Pre-autorizar Email'}
+              {searching ? <Loader2 className="animate-spin" size={16} /> : <Search size={16} />}
+              {searching ? 'Buscando...' : 'Buscar Usuario'}
             </button>
           </div>
         </form>
+
+        {foundUser && (
+          <div className="animate-fade-in" style={{ marginTop: '1.5rem', padding: '1rem', background: 'rgba(234, 179, 8, 0.05)', borderRadius: '8px', border: '1px solid rgba(234, 179, 8, 0.2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <div style={{ fontWeight: 'bold', color: '#fff' }}>{foundUser.name}</div>
+              <div style={{ fontSize: '0.8rem', color: '#9ca3af' }}>{foundUser.email} • {foundUser.phone}</div>
+            </div>
+            <button 
+              onClick={handlePromote}
+              disabled={saving}
+              style={{ background: '#10b981', color: 'white', border: 'none', padding: '0.5rem 1rem', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+            >
+              {saving ? <Loader2 className="animate-spin" size={16} /> : <UserRoundCheck size={18} />}
+              Convertir en Admin
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Lista de administradores */}
@@ -1072,12 +1083,7 @@ export const AdminCoreAccesos: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {admins.length === 0 ? (
-                <tr>
-                  <td colSpan={4} style={{ padding: '2rem', textAlign: 'center', color: '#6b7280' }}>No hay administradores registrados aún.</td>
-                </tr>
-              ) : admins.map(admin => {
-                const isPre = admin.id.startsWith('pre-');
+              {admins.map(admin => {
                 const isDisabled = admin.isActive === false;
                 
                 return (
@@ -1085,22 +1091,18 @@ export const AdminCoreAccesos: React.FC = () => {
                     <td style={{ padding: '1rem' }}>
                       <div style={{ fontWeight: 500, color: isDisabled ? '#9ca3af' : '#fff' }}>{admin.name}</div>
                       <div style={{ fontSize: '0.7rem', marginTop: '0.2rem' }}>
-                        {isPre ? (
-                          <span style={{ color: '#eab308', background: 'rgba(234, 179, 8, 0.1)', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>Invitación Pendiente</span>
-                        ) : (
-                          isDisabled ? 
+                        {isDisabled ? 
                           <span style={{ color: '#ef4444', background: 'rgba(239, 68, 68, 0.1)', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>Cuenta Suspendida</span> : 
                           <span style={{ color: '#10b981', background: 'rgba(16, 185, 129, 0.1)', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>Activo</span>
-                        )}
+                        }
                       </div>
                     </td>
                     <td style={{ padding: '1rem', color: '#9ca3af' }}>{admin.email}</td>
                     <td style={{ padding: '1rem', color: '#9ca3af', fontSize: '0.85rem' }}>
-                      {isPre ? 'Esperando registro' : formatDate(admin.lastAdminAccess)}
+                      {formatDate(admin.lastAdminAccess)}
                     </td>
                     <td style={{ padding: '1rem' }}>
                       <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
-                        {!isPre && (
                           <button 
                             onClick={() => handleToggleActive(admin)}
                             disabled={togglingId === admin.id}
@@ -1111,7 +1113,6 @@ export const AdminCoreAccesos: React.FC = () => {
                           >
                             {togglingId === admin.id ? <Loader2 className="animate-spin" size={18} /> : (isDisabled ? <UserRoundCheck size={18} /> : <UserRoundX size={18} />)}
                           </button>
-                        )}
                         <button 
                           onClick={() => handleDelete(admin)}
                           disabled={deletingId === admin.id}
@@ -1138,7 +1139,7 @@ export const AdminCoreAccesos: React.FC = () => {
         <div>
           <h4 style={{ color: '#93c5fd', margin: '0 0 0.4rem 0', fontSize: '0.9rem' }}>Protocolo de Seguridad CORE</h4>
           <p style={{ color: '#94a3b8', fontSize: '0.8rem', margin: 0, lineHeight: '1.5' }}>
-            Al pre-autorizar un email, el sistema reservará el rol administrativo para ese usuario. Cuando esa persona se registre manualmente en la plataforma usando dicho email, el sistema elevará sus privilegios a <strong>ADMIN</strong> automáticamente.
+            Para añadir un nuevo administrador, el usuario debe estar primero registrado en la plataforma como cliente. Búscalo por su email para elevar sus privilegios. Puedes revocar el acceso en cualquier momento desde el listado.
           </p>
         </div>
       </div>

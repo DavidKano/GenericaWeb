@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import { useData } from './context/DataContext';
 import { LoginPage } from './pages/LoginPage';
@@ -41,12 +41,15 @@ function PortalGuard({ children, allowedRoles, portalType }: { children: React.R
   return <>{children}</>;
 }
 
+
+
 function GlobalThemeInjector({ children }: { children: React.ReactNode }) {
   const { repo } = useData();
+  const location = useLocation();
 
   useEffect(() => {
-    const isSuperAdmin = window.location.pathname.startsWith('/superadmin');
-    const isWelcome = window.location.pathname.startsWith('/welcome');
+    const isSuperAdmin = location.pathname.startsWith('/superadmin');
+    const isWelcome = location.pathname.startsWith('/welcome');
 
     Promise.all([repo.getCompanyData(), repo.getDesignConfig()]).then(([company, cfg]) => {
       // Sincronización con caché local para eliminar FOUC en próximas cargas
@@ -72,8 +75,15 @@ function GlobalThemeInjector({ children }: { children: React.ReactNode }) {
       if (isSuperAdmin) {
         // Resetear a los valores CORE (Inter, Gris, etc) en el portal de control maestro
         document.documentElement.style.setProperty('--primary-color', '#3b82f6');
+        document.documentElement.style.setProperty('--secondary-color', '#2563eb');
+        document.documentElement.style.setProperty('--primary-text-color', '#111827');
         document.documentElement.style.setProperty('--font-family', "'Inter', sans-serif");
         document.documentElement.style.setProperty('--bg-color', '#f3f4f6');
+        
+        // Limpiar CSS inyectado si existe
+        const styleTag = document.getElementById('dynamic-custom-css');
+        if (styleTag) styleTag.remove();
+        
         return;
       }
 
@@ -143,15 +153,15 @@ function GlobalThemeInjector({ children }: { children: React.ReactNode }) {
       document.documentElement.style.setProperty('--font-family', "'Inter', sans-serif");
       document.documentElement.style.setProperty('--bg-color', '#f3f4f6');
     });
-  }, [repo, window.location.pathname]);
+  }, [repo, location.pathname]);
 
   return <>{children}</>;
 }
 
 function App() {
   return (
-    <GlobalThemeInjector>
-      <BrowserRouter>
+    <BrowserRouter>
+      <GlobalThemeInjector>
         <Routes>
           {/* Core Initialization Route */}
           <Route path="/initconfig" element={<SystemIgnition />} />
@@ -201,8 +211,8 @@ function App() {
           <Route path="/login" element={<Navigate to="/" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-      </BrowserRouter>
-    </GlobalThemeInjector>
+      </GlobalThemeInjector>
+    </BrowserRouter>
   );
 }
 

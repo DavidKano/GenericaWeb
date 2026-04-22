@@ -10,7 +10,10 @@
           if (cache) {
             const cfg = JSON.parse(cache);
             const root = document.documentElement;
-            const isPortal = !window.location.pathname.startsWith('/admin') && !window.location.pathname.startsWith('/superadmin');
+            const isSuperAdmin = window.location.pathname.startsWith('/superadmin');
+            const isPortal = !window.location.pathname.startsWith('/admin') && !isSuperAdmin;
+
+            if (isSuperAdmin) return;
 
             const s = document.createElement('style');
             s.id = 'ultra-early-style';
