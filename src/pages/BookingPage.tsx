@@ -216,7 +216,7 @@ export const BookingPage: React.FC = () => {
         <div className="animate-fade-in">
           <h3 style={{ marginBottom: '1rem' }}>Elige un servicio</h3>
           <div className="services-grid">
-            {services.filter(s => s.isActive).map(svc => (
+            {services.filter(s => s.isActive !== false).map(svc => (
               <div
                 key={svc.id}
                 className={`service-card ${selectedService?.id === svc.id ? 'active' : ''}`}

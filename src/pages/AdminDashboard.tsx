@@ -53,6 +53,7 @@ export const AdminDashboard: React.FC = () => {
   const [newMinutes, setNewMinutes] = useState(0);
   const [newPrice, setNewPrice] = useState(0);
   const [newColor, setNewColor] = useState('#3174ad');
+  const [newIsActive, setNewIsActive] = useState(true);
   const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
   
   // Controles de Vista de Calendario
@@ -117,7 +118,7 @@ export const AdminDashboard: React.FC = () => {
       durationMin: totalDuration,
       price: newPrice || undefined,
       color: newColor,
-      isActive: true,
+      isActive: newIsActive,
     };
     await repo.saveService(svc);
     setShowModal(false);
@@ -132,6 +133,7 @@ export const AdminDashboard: React.FC = () => {
     setNewMinutes(0);
     setNewPrice(0);
     setNewColor('#3174ad');
+    setNewIsActive(true);
     setEditingServiceId(null);
   };
 
@@ -151,6 +153,7 @@ export const AdminDashboard: React.FC = () => {
     
     setNewPrice(svc.price || 0);
     setNewColor(svc.color || '#3174ad');
+    setNewIsActive(svc.isActive !== false);
     setShowModal(true);
   };
   
@@ -467,6 +470,9 @@ export const AdminDashboard: React.FC = () => {
                 <div className="service-meta" style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span style={{ width: '16px', height: '16px', backgroundColor: svc.color || '#3174ad', borderRadius: '50%', display: 'inline-block' }}></span>
                   <span style={{ fontSize: '0.8rem' }}>Color en calendario</span>
+                  {svc.isActive === false && (
+                    <span style={{ marginLeft: 'auto', background: '#ef4444', color: 'white', fontSize: '0.7rem', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold' }}>DESACTIVADO</span>
+                  )}
                 </div>
               </div>
             ))}
@@ -590,6 +596,19 @@ export const AdminDashboard: React.FC = () => {
                 <input type="color" value={newColor} onChange={e => setNewColor(e.target.value)} style={{ width: '50px', height: '40px', padding: '0', cursor: 'pointer', border: 'none', background: 'transparent' }} />
                 <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)'}}>Identificador visual en la agenda</span>
               </div>
+            </div>
+            <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '1.5rem', padding: '1rem', background: 'rgba(255,255,255,0.05)', borderRadius: '8px' }}>
+              <input 
+                type="checkbox" 
+                id="svc-active" 
+                checked={newIsActive} 
+                onChange={e => setNewIsActive(e.target.checked)} 
+                style={{ width: 'auto', margin: 0 }}
+              />
+              <label htmlFor="svc-active" style={{ margin: 0, cursor: 'pointer' }}>
+                <strong>Servicio Activo</strong>
+                <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Si se desactiva, los clientes no podrán verlo ni reservarlo.</p>
+              </label>
             </div>
             <div className="modal-actions" style={{ marginTop: '2rem' }}>
               <button className="btn-secondary" onClick={() => setShowModal(false)}>Cancelar</button>
