@@ -5,6 +5,7 @@ import { useData } from '../context/DataContext';
 import type { CompanyData, DesignConfig } from '../services/models';
 import { LegalModal } from '../components/ui/LegalModal';
 import { getDefaultPrivacyPolicy, getDefaultTermsOfUse } from '../services/policyDefaults';
+import { ConnessiaFooter } from '../components/ui/ConnessiaFooter';
 
 interface LoginPageProps {
   type?: 'CUSTOMER' | 'ADMIN' | 'SUPER_ADMIN';
@@ -22,12 +23,20 @@ export const LoginPage: React.FC<LoginPageProps> = ({ type = 'CUSTOMER' }) => {
   const { login, register, resetPassword } = useAuth();
   const { mode, repo } = useData();
   const [company, setCompany] = useState<CompanyData | null>(() => {
-    const cache = localStorage.getItem('company_data_cache');
-    return cache ? JSON.parse(cache) : null;
+    try {
+      const cache = localStorage.getItem('company_data_cache');
+      return cache ? JSON.parse(cache) : null;
+    } catch (e) {
+      return null;
+    }
   });
   const [design, setDesign] = useState<DesignConfig | null>(() => {
-    const cache = localStorage.getItem('design_config_cache');
-    return cache ? JSON.parse(cache) : null;
+    try {
+      const cache = localStorage.getItem('design_config_cache');
+      return cache ? JSON.parse(cache) : null;
+    } catch (e) {
+      return null;
+    }
   });
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
@@ -292,12 +301,16 @@ export const LoginPage: React.FC<LoginPageProps> = ({ type = 'CUSTOMER' }) => {
           </div>
         )}
         {company && (
-          <div style={{ textAlign: 'center', marginTop: '2rem', fontSize: '0.8rem', color: isDark ? '#6b7280' : 'var(--text-secondary)' }}>
+          <div style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '0.8rem', color: isDark ? '#6b7280' : 'var(--text-secondary)' }}>
             <span style={{ display: 'block', marginBottom: '0.5rem' }}>&copy; {new Date().getFullYear()} {company.nombreEmpresa}</span>
-            <button type="button" onClick={() => setShowTerms(true)} style={{ background: 'none', border: 'none', color: 'inherit', textDecoration: 'underline', cursor: 'pointer', padding: 0, margin: '0 0.5rem' }}>Condiciones de Uso</button>
-            |
-            <button type="button" onClick={() => setShowPrivacy(true)} style={{ background: 'none', border: 'none', color: 'inherit', textDecoration: 'underline', cursor: 'pointer', padding: 0, margin: '0 0.5rem' }}>Política de Privacidad</button>
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', opacity: 0.8, marginBottom: '0.5rem' }}>
+              <button type="button" onClick={() => setShowTerms(true)} style={{ background: 'none', border: 'none', color: 'inherit', textDecoration: 'underline', cursor: 'pointer', padding: 0 }}>Condiciones de Uso</button>
+              <span>|</span>
+              <button type="button" onClick={() => setShowPrivacy(true)} style={{ background: 'none', border: 'none', color: 'inherit', textDecoration: 'underline', cursor: 'pointer', padding: 0 }}>Política de Privacidad</button>
+            </div>
             
+            <ConnessiaFooter isDark={isDark} compact />
+
             <LegalModal isOpen={showTerms} onClose={() => setShowTerms(false)} title="Condiciones de Uso" content={company.termsOfUse || getDefaultTermsOfUse(company)} />
             <LegalModal isOpen={showPrivacy} onClose={() => setShowPrivacy(false)} title="Política de Privacidad" content={company.privacyPolicy || getDefaultPrivacyPolicy(company)} />
           </div>

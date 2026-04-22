@@ -2,6 +2,7 @@ import React from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { ShieldAlert, User as UserIcon, LogOut, Briefcase, Paintbrush, ShieldCheck, Code, Users } from 'lucide-react';
+import { ConnessiaFooter } from '../ui/ConnessiaFooter';
 
 export const SuperAdminLayout: React.FC = () => {
   const { user, logout } = useAuth();
@@ -54,10 +55,11 @@ export const SuperAdminLayout: React.FC = () => {
           </NavLink>
         </nav>
         
-        <main className="app-content" style={{ flex: 1, padding: '2rem', overflowY: 'auto' }}>
-          <div style={{ maxWidth: '100%', margin: '0 auto' }}>
+        <main className="app-content" style={{ flex: 1, padding: '2rem', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ maxWidth: '100%', margin: '0 auto', flex: 1, width: '100%' }}>
             <Outlet />
           </div>
+          <ConnessiaFooter isDark />
         </main>
       </div>
     </div>

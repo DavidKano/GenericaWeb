@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import { DownloadIcon, ArrowRight, Smartphone, Star, Loader2, Apple } from 'lucide-react';
+import { ConnessiaFooter } from '../components/ui/ConnessiaFooter';
 
 export const WelcomePage: React.FC = () => {
   const { repo } = useData();
@@ -190,6 +191,7 @@ export const WelcomePage: React.FC = () => {
           Continuar desde el navegador <ArrowRight size={18} />
         </button>
 
+        <ConnessiaFooter />
       </div>
     </div>
   );
