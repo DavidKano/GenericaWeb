@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { LayoutDashboard, Users, User as UserIcon, LogOut, QrCode, Clock, Megaphone } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import type { DesignConfig, CompanyData } from '../../services/models';
+import { ConnessiaFooter } from '../ui/ConnessiaFooter';
 
 export const AdminLayout: React.FC = () => {
   const { user, logout } = useAuth();
@@ -72,10 +73,11 @@ export const AdminLayout: React.FC = () => {
           </NavLink>
         </nav>
         
-        <main className="app-content" style={{ flex: 1, padding: '1.5rem', overflowY: 'auto' }}>
-          <div style={{ maxWidth: '100%', margin: '0 auto' }}>
+        <main className="app-content" style={{ flex: 1, padding: '1.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ maxWidth: '100%', margin: '0 auto', flex: 1, width: '100%' }}>
             <Outlet />
           </div>
+          <ConnessiaFooter />
         </main>
       </div>
     </div>

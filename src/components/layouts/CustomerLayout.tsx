@@ -7,6 +7,7 @@ import type { CompanyData, DesignConfig } from '../../services/models';
 import { LegalModal } from '../ui/LegalModal';
 import { PromoOfferModal } from '../ui/PromoOfferModal';
 import { getDefaultPrivacyPolicy, getDefaultTermsOfUse } from '../../services/policyDefaults';
+import { ConnessiaFooter } from '../ui/ConnessiaFooter';
 
 export const CustomerLayout: React.FC = () => {
   const { user, logout } = useAuth();
@@ -78,6 +79,7 @@ export const CustomerLayout: React.FC = () => {
               <LegalModal isOpen={showPrivacy} onClose={() => setShowPrivacy(false)} title="Política de Privacidad" content={company.privacyPolicy || getDefaultPrivacyPolicy(company)} />
             </div>
           )}
+          <ConnessiaFooter />
         </main>
       </div>
     </div>
