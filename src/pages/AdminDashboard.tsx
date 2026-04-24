@@ -69,6 +69,15 @@ export const AdminDashboard: React.FC = () => {
   const [eventServiceId, setEventServiceId] = useState('');
   const [eventStatus, setEventStatus] = useState<any>('PENDING');
 
+  // New manual appointment states
+  const [showNewApptModal, setShowNewApptModal] = useState(false);
+  const [mName, setMName] = useState('');
+  const [mPhone, setMPhone] = useState('');
+  const [mServiceId, setMServiceId] = useState('');
+  const [mDate, setMDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [mTime, setMTime] = useState('10:00');
+  const [mNotes, setMNotes] = useState('');
+
   useEffect(() => {
     if (isInitialized) {
       loadData();
@@ -354,6 +363,59 @@ export const AdminDashboard: React.FC = () => {
     loadData();
   };
 
+  const handleSaveManualAppt = async () => {
+    if (!mName || !mPhone || !mServiceId || !mDate || !mTime) {
+      alert('Por favor, completa nombre, teléfono, servicio, fecha y hora.');
+      return;
+    }
+
+    try {
+      // 1. Verify or create user
+      let userId;
+      const existingUser = users.find(u => u.phone === mPhone);
+      
+      if (existingUser) {
+        userId = existingUser.id;
+      } else {
+        userId = 'usr-' + Date.now();
+        const newUser: User = {
+          id: userId,
+          name: mName,
+          phone: mPhone,
+          email: '', // Manual doesn't strictly need email
+          role: 'CUSTOMER'
+        };
+        await repo.saveUser(newUser);
+      }
+
+      // 2. Create appointment
+      const startDateTime = new Date(`${mDate}T${mTime}`).getTime();
+      const newAppt: Appointment = {
+        id: 'appt-' + Date.now(),
+        customerId: userId,
+        serviceId: mServiceId,
+        dateTimeStart: startDateTime,
+        status: 'CONFIRMED', // Manual is auto-confirmed
+        adminNotes: mNotes
+      };
+
+      await repo.saveAppointment(newAppt);
+      setShowNewApptModal(false);
+      
+      // Reset
+      setMName('');
+      setMPhone('');
+      setMServiceId('');
+      setMNotes('');
+      setMTime('10:00');
+      
+      loadData();
+    } catch (error) {
+      console.error(error);
+      alert('Error al guardar la cita');
+    }
+  };
+
   const todayAppts = appointments.filter(a => {
     const d = new Date(a.dateTimeStart);
     const today = new Date();
@@ -363,7 +425,25 @@ export const AdminDashboard: React.FC = () => {
   return (
     <div className="animate-fade-in">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        <h2>📊 Gestión de Negocio</h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+          <h2 style={{ margin: 0 }}>📊 Gestión de Negocio</h2>
+          <button 
+            className="btn-primary hover-glow" 
+            onClick={() => setShowNewApptModal(true)}
+            style={{ 
+              padding: '0.5rem 1.25rem', 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '0.6rem',
+              borderRadius: '12px',
+              fontSize: '0.9rem',
+              fontWeight: '600',
+              boxShadow: '0 4px 12px rgba(var(--primary-rgb), 0.2)'
+            }}
+          >
+            <Plus size={18} /> Nueva Cita
+          </button>
+        </div>
         <div className="data-toggle" style={{ background: 'var(--surface-color)', padding: '4px' }}>
           <button className={activeTab === 'stats' ? 'active' : ''} onClick={() => setActiveTab('stats')}><BarChart3 size={16} /> Resumen</button>
           <button className={activeTab === 'services' ? 'active' : ''} onClick={() => setActiveTab('services')}><Plus size={16} /> Servicios</button>
@@ -701,6 +781,94 @@ export const AdminDashboard: React.FC = () => {
             <div className="modal-actions" style={{ marginTop: '2rem' }}>
               <button className="btn-secondary" onClick={() => setShowEventModal(false)}>Cancelar</button>
               <button className="btn-primary" onClick={handleSaveEventEdits}>Guardar Cambios</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Nueva Cita Manual */}
+      {showNewApptModal && (
+        <div className="modal-overlay" onClick={() => setShowNewApptModal(false)}>
+          <div className="modal-content animate-pop-in" onClick={e => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                <h2 style={{ margin: 0 }}>➕ Nueva Cita Manual</h2>
+                <button className="btn-icon" onClick={() => setShowNewApptModal(false)}><XCircle /></button>
+            </div>
+            
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
+              Agrega una cita recibida por teléfono, WhatsApp o presencialmente.
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div className="form-group">
+                <label>Nombre del Cliente</label>
+                <input 
+                  value={mName} 
+                  onChange={e => setMName(e.target.value)} 
+                  placeholder="Ej: Juan Pérez"
+                  style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', background: 'var(--surface-color)', border: '1px solid var(--glass-border)', color: 'var(--text-primary)' }}
+                />
+              </div>
+              <div className="form-group">
+                <label>Teléfono</label>
+                <input 
+                  value={mPhone} 
+                  onChange={e => setMPhone(e.target.value)} 
+                  placeholder="Ej: 600123456"
+                  style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', background: 'var(--surface-color)', border: '1px solid var(--glass-border)', color: 'var(--text-primary)' }}
+                />
+              </div>
+            </div>
+
+            <div className="form-group" style={{ marginTop: '1rem' }}>
+              <label>Servicio Solicidado</label>
+              <select 
+                value={mServiceId} 
+                onChange={e => setMServiceId(e.target.value)}
+                style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', background: 'var(--surface-color)', border: '1px solid var(--glass-border)', color: 'var(--text-primary)' }}
+              >
+                <option value="">Selecciona un servicio...</option>
+                {services.filter(s => s.isActive !== false).map(s => (
+                  <option key={s.id} value={s.id}>{s.name} ({s.durationMin} min)</option>
+                ))}
+              </select>
+            </div>
+
+            <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+              <div className="form-group" style={{ flex: 1 }}>
+                <label>Fecha</label>
+                <input 
+                  type="date" 
+                  value={mDate} 
+                  onChange={e => setMDate(e.target.value)} 
+                  style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'var(--surface-color)', color: 'var(--text-primary)', fontFamily: 'inherit' }} 
+                />
+              </div>
+              <div className="form-group" style={{ flex: 1 }}>
+                <label>Hora</label>
+                <input 
+                  type="time" 
+                  value={mTime} 
+                  onChange={e => setMTime(e.target.value)} 
+                  style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'var(--surface-color)', color: 'var(--text-primary)', fontFamily: 'inherit' }} 
+                />
+              </div>
+            </div>
+
+            <div className="form-group" style={{ marginTop: '1rem' }}>
+              <label>Notas Privadas</label>
+              <textarea 
+                value={mNotes} 
+                onChange={e => setMNotes(e.target.value)} 
+                rows={2}
+                placeholder="Ej: Viene por recomendación de Paco..."
+                style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', background: 'var(--surface-color)', border: '1px solid var(--glass-border)', color: 'var(--text-primary)', fontFamily: 'inherit' }}
+              />
+            </div>
+            
+            <div className="modal-actions" style={{ marginTop: '2rem' }}>
+              <button className="btn-secondary" onClick={() => setShowNewApptModal(false)}>Cancelar</button>
+              <button className="btn-primary" onClick={handleSaveManualAppt}>Agendar Cita</button>
             </div>
           </div>
         </div>

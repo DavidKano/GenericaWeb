@@ -29,8 +29,11 @@ service cloud.firestore {
       // Al no depender de 'userId', Firestore puede validar esta regla una sola vez para toda la consulta
       allow list: if isSignedIn() && getRole() in ['ADMIN', 'SUPER_ADMIN'];
       
-      // Creación: Solo para uno mismo
-      allow create: if isSignedIn() && request.auth.uid == userId;
+      // Creación: Solo para uno mismo o Administradores
+      allow create: if isSignedIn() && (
+        request.auth.uid == userId || 
+        getRole() in ['ADMIN', 'SUPER_ADMIN']
+      );
       
       // Actualización: Propietario (sin cambiar rol) o Administradores
       allow update: if isSignedIn() && (
@@ -85,8 +88,11 @@ service cloud.firestore {
       // Lectura: Cualquier usuario logueado (para ver su agenda o la disponibilidad general)
       allow read: if isSignedIn();
       
-      // Creación: Solo para uno mismo
-      allow create: if isSignedIn() && request.resource.data.customerId == request.auth.uid;
+      // Creación: Solo para uno mismo o Administradores
+      allow create: if isSignedIn() && (
+        request.resource.data.customerId == request.auth.uid ||
+        getRole() in ['ADMIN', 'SUPER_ADMIN']
+      );
       
       // Actualización/Borrado: Propietario o Administradores
       allow update, delete: if isSignedIn() && (

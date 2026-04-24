@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { ShieldAlert, User as UserIcon, LogOut, Briefcase, Paintbrush, ShieldCheck, Code, Users } from 'lucide-react';
+import { ShieldAlert, User as UserIcon, LogOut, Briefcase, Paintbrush, ShieldCheck, Code, Users, ExternalLink } from 'lucide-react';
 
 export const SuperAdminLayout: React.FC = () => {
   const { user, logout } = useAuth();
@@ -22,6 +22,28 @@ export const SuperAdminLayout: React.FC = () => {
         <div className="app-topbar__actions">
           {user && (
             <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+              <button 
+                onClick={() => window.open('/admin', '_blank')}
+                style={{ 
+                  marginRight: '0.5rem', 
+                  background: 'rgba(234, 179, 8, 0.1)', 
+                  border: '1px solid #eab308', 
+                  color: '#eab308',
+                  padding: '0.35rem 0.75rem',
+                  borderRadius: '6px',
+                  fontSize: '0.85rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  cursor: 'pointer',
+                  fontWeight: '500',
+                  transition: 'all 0.2s'
+                }}
+                onMouseOver={(e) => e.currentTarget.style.background = 'rgba(234, 179, 8, 0.2)'}
+                onMouseOut={(e) => e.currentTarget.style.background = 'rgba(234, 179, 8, 0.1)'}
+              >
+                <ExternalLink size={14} /> Abrir Panel Admin
+              </button>
               <div className="app-topbar__user" style={{ textDecoration: 'none', cursor: 'default', color: '#9ca3af' }}>
                 <UserIcon size={16} />
                 {user.name} (Administrador CORE)
