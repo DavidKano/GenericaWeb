@@ -10,7 +10,12 @@ import {
   Trash2, 
   Save, 
   XCircle,
-  User as UserIcon
+  User as UserIcon,
+  ChevronLeft,
+  ChevronRight,
+  Calendar as CalendarIcon,
+  Columns,
+  Minus
 } from 'lucide-react';
 
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
@@ -36,6 +41,13 @@ type AdminTab = 'stats' | 'services' | 'schedule' | 'config';
 export const AdminDashboard: React.FC = () => {
   const { repo } = useData();
   const { isInitialized } = useAuth();
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   const [activeTab, setActiveTab] = useState<AdminTab>('stats');
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -57,7 +69,7 @@ export const AdminDashboard: React.FC = () => {
   const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
   
   // Controles de Vista de Calendario
-  const [currentView, setCurrentView] = useState<any>('week');
+  const [currentView, setCurrentView] = useState<any>(window.innerWidth <= 768 ? 'day' : 'week');
   const [currentDate, setCurrentDate] = useState(new Date());
 
   // Variables del Modal de Citas en el Calendario
@@ -416,6 +428,46 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
+  const CustomToolbar = (toolbar: any) => {
+    const goToBack = () => toolbar.onNavigate('PREV');
+    const goToNext = () => toolbar.onNavigate('NEXT');
+    const goToToday = () => toolbar.onNavigate('TODAY');
+
+    const viewNamesGroup = [
+      { view: 'month', label: isMobile ? <CalendarIcon size={18} /> : 'Mensual' },
+      { view: 'week', label: isMobile ? <Columns size={18} /> : 'Semanal' },
+      { view: 'day', label: isMobile ? <Minus size={18} style={{ transform: 'rotate(90deg)' }} /> : 'Diario' }
+    ];
+
+    return (
+      <div className="rbc-toolbar" style={{ marginBottom: '1.5rem', flexDirection: isMobile ? 'column' : 'row', gap: '1rem' }}>
+        <span className="rbc-btn-group">
+          <button type="button" onClick={goToBack}><ChevronLeft size={18} /></button>
+          <button type="button" onClick={goToToday} style={{ fontWeight: 'bold', fontSize: '0.8rem' }}>Hoy</button>
+          <button type="button" onClick={goToNext}><ChevronRight size={18} /></button>
+        </span>
+
+        <span className="rbc-toolbar-label" style={{ fontWeight: 'bold', fontSize: isMobile ? '0.9rem' : '1.1rem' }}>
+          {toolbar.label}
+        </span>
+
+        <span className="rbc-btn-group">
+          {viewNamesGroup.map(item => (
+            <button
+              key={item.view}
+              type="button"
+              className={toolbar.view === item.view ? 'rbc-active' : ''}
+              onClick={() => toolbar.onView(item.view)}
+              title={typeof item.label === 'string' ? item.label : ''}
+            >
+              {item.label}
+            </button>
+          ))}
+        </span>
+      </div>
+    );
+  };
+
   const todayAppts = appointments.filter(a => {
     const d = new Date(a.dateTimeStart);
     const today = new Date();
@@ -424,32 +476,33 @@ export const AdminDashboard: React.FC = () => {
 
   return (
     <div className="animate-fade-in">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-          <h2 style={{ margin: 0 }}>📊 Gestión de Negocio</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', gap: '1rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+          <h2 style={{ margin: 0, fontSize: isMobile ? '1.25rem' : '1.5rem' }}>📊 Gestión</h2>
           <button 
             className="btn-primary hover-glow" 
             onClick={() => setShowNewApptModal(true)}
             style={{ 
-              padding: '0.5rem 1.25rem', 
+              padding: '0.5rem 1rem', 
               display: 'flex', 
               alignItems: 'center', 
-              gap: '0.6rem',
-              borderRadius: '12px',
-              fontSize: '0.9rem',
-              fontWeight: '600',
-              boxShadow: '0 4px 12px rgba(var(--primary-rgb), 0.2)'
+              gap: '0.4rem',
+              borderRadius: '10px',
+              fontSize: '0.85rem',
+              fontWeight: '600'
             }}
           >
-            <Plus size={18} /> Nueva Cita
+            <Plus size={16} /> Nueva Cita
           </button>
         </div>
-        <div className="data-toggle" style={{ background: 'var(--surface-color)', padding: '4px' }}>
-          <button className={activeTab === 'stats' ? 'active' : ''} onClick={() => setActiveTab('stats')}><BarChart3 size={16} /> Resumen</button>
-          <button className={activeTab === 'services' ? 'active' : ''} onClick={() => setActiveTab('services')}><Plus size={16} /> Servicios</button>
-          <button className={activeTab === 'schedule' ? 'active' : ''} onClick={() => setActiveTab('schedule')}><Clock size={16} /> Horarios</button>
-          <button className={activeTab === 'config' ? 'active' : ''} onClick={() => setActiveTab('config')}><Settings size={16} /> Ajustes</button>
-        </div>
+        {!isMobile && (
+          <div className="data-toggle" style={{ background: 'var(--surface-color)', padding: '4px' }}>
+            <button className={activeTab === 'stats' ? 'active' : ''} onClick={() => setActiveTab('stats')}><BarChart3 size={16} /> Resumen</button>
+            <button className={activeTab === 'services' ? 'active' : ''} onClick={() => setActiveTab('services')}><Plus size={16} /> Servicios</button>
+            <button className={activeTab === 'schedule' ? 'active' : ''} onClick={() => setActiveTab('schedule')}><Clock size={16} /> Horarios</button>
+            <button className={activeTab === 'config' ? 'active' : ''} onClick={() => setActiveTab('config')}><Settings size={16} /> Ajustes</button>
+          </div>
+        )}
       </div>
 
       {isLoading && (
@@ -473,23 +526,23 @@ export const AdminDashboard: React.FC = () => {
 
       {!isLoading && !errorMessage && activeTab === 'stats' && (
         <>
-          <div className="dashboard-stats">
+          <div className="dashboard-stats" style={{ gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(200px, 1fr))' }}>
             <div className="stat-card">
-              <div className="stat-value">{todayAppts.length}</div>
+              <div className="stat-value" style={{ fontSize: isMobile ? '1.5rem' : '2rem' }}>{todayAppts.length}</div>
               <div className="stat-label">Citas Hoy</div>
             </div>
             <div className="stat-card">
-              <div className="stat-value">{appointments.filter(a => a.status === 'PENDING').length}</div>
-              <div className="stat-label">Pendientes de Confirmar</div>
+              <div className="stat-value" style={{ fontSize: isMobile ? '1.5rem' : '2rem' }}>{appointments.filter(a => a.status === 'PENDING').length}</div>
+              <div className="stat-label">Pendientes</div>
             </div>
             <div className="stat-card">
-              <div className="stat-value">{services.length}</div>
-              <div className="stat-label">Servicios Activos</div>
+              <div className="stat-value" style={{ fontSize: isMobile ? '1.5rem' : '2rem' }}>{services.length}</div>
+              <div className="stat-label">Servicios</div>
             </div>
           </div>
 
-          <div className="card glass-panel" style={{ height: '700px', display: 'flex', flexDirection: 'column' }}>
-            <h3 style={{ marginBottom: '1rem' }}>Calendario de Reservas</h3>
+          <div className="card glass-panel" style={{ height: isMobile ? '750px' : '800px', display: 'flex', flexDirection: 'column', padding: isMobile ? '1rem 0.5rem' : '1.5rem' }}>
+            <h3 style={{ marginBottom: '1rem', paddingLeft: isMobile ? '0.5rem' : 0 }}>Calendario de Reservas</h3>
             <div style={{ flex: 1, minHeight: 0 }}>
               <Calendar
                 localizer={localizer}
@@ -524,6 +577,9 @@ export const AdminDashboard: React.FC = () => {
                 max={calendarBounds.max}
                 slotPropGetter={slotPropGetter}
                 dayPropGetter={dayPropGetter}
+                components={{
+                  toolbar: CustomToolbar
+                }}
               />
             </div>
           </div>

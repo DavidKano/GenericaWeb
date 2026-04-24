@@ -14,6 +14,13 @@ export const AdminSchedulePage: React.FC = () => {
   const [blockedDays, setBlockedDays] = useState<BlockedDay[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingSchedules, setSavingSchedules] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Formulario nuevo Bloqueo
   const [blockDate, setBlockDate] = useState('');
@@ -169,8 +176,7 @@ export const AdminSchedulePage: React.FC = () => {
   return (
     <div className="animate-fade-in" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       
-      {/* 1. HORARIO HABITUAL */}
-      <section className="card glass-panel" style={{ padding: '2rem' }}>
+      <section className="card glass-panel" style={{ padding: isMobile ? '1.5rem 1rem' : '2rem' }}>
         <h2 style={{ fontSize: '1.4rem', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-primary)' }}>
           <Clock size={22} color="var(--primary-color)" /> Horario Estándar Semanal
         </h2>
@@ -182,21 +188,21 @@ export const AdminSchedulePage: React.FC = () => {
           {sortedSchedules.map((sch) => {
             const originalIndex = schedules.findIndex(s => s.dayOfWeek === sch.dayOfWeek);
             return (
-              <div key={sch.dayOfWeek} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '1rem', padding: '1rem', background: sch.isOpen ? 'var(--bg-color)' : 'rgba(0,0,0,0.02)', border: '1px solid var(--border-color)', borderRadius: '8px', opacity: sch.isOpen ? 1 : 0.6 }}>
+              <div key={sch.dayOfWeek} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '1rem', padding: isMobile ? '1rem 0.5rem' : '1rem', background: sch.isOpen ? 'var(--bg-color)' : 'rgba(0,0,0,0.02)', border: '1px solid var(--border-color)', borderRadius: '8px', opacity: sch.isOpen ? 1 : 0.6 }}>
                 
-                <div style={{ width: '120px', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <input type="checkbox" checked={sch.isOpen} onChange={() => toggleDayStatus(originalIndex)} style={{ cursor: 'pointer', transform: 'scale(1.2)' }} />
-                  <strong style={{ color: 'var(--text-primary)' }}>{DAYS_OF_WEEK[sch.dayOfWeek]}</strong>
+                <div style={{ width: isMobile ? '90px' : '120px', flexShrink: 0, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <input type="checkbox" checked={sch.isOpen} onChange={() => toggleDayStatus(originalIndex)} style={{ cursor: 'pointer', transform: 'scale(1.1)' }} />
+                  <strong style={{ color: 'var(--text-primary)', fontSize: isMobile ? '0.85rem' : '1rem' }}>{DAYS_OF_WEEK[sch.dayOfWeek].slice(0, isMobile ? 3 : undefined)}</strong>
                 </div>
 
                 {sch.isOpen ? (
                   <div style={{ flex: 1, display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center' }}>
                     {sch.ranges.map((range, rIdx) => (
-                      <div key={rIdx} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#fff', padding: '0.4rem 0.8rem', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
-                        <input type="time" value={range.start} onChange={e => handleUpdateScheduleRange(originalIndex, rIdx, 'start', e.target.value)} style={{ border:'none', outline:'none', background:'transparent' }} />
-                        <span>-</span>
-                        <input type="time" value={range.end} onChange={e => handleUpdateScheduleRange(originalIndex, rIdx, 'end', e.target.value)} style={{ border:'none', outline:'none', background:'transparent' }} />
-                        <button onClick={() => handleRemoveScheduleRange(originalIndex, rIdx)} style={{ background:'transparent', border:'none', cursor:'pointer', color:'#ef4444', marginLeft:'0.5rem', padding:0 }}><Trash2 size={16}/></button>
+                      <div key={rIdx} style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.25rem' : '0.5rem', background: '#fff', padding: isMobile ? '0.3rem 0.4rem' : '0.4rem 0.8rem', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
+                        <input type="time" value={range.start} onChange={e => handleUpdateScheduleRange(originalIndex, rIdx, 'start', e.target.value)} style={{ border:'none', outline:'none', background:'transparent', width: isMobile ? '80px' : '90px', fontSize: isMobile ? '0.85rem' : '1rem' }} />
+                        <span style={{ opacity: 0.5 }}>-</span>
+                        <input type="time" value={range.end} onChange={e => handleUpdateScheduleRange(originalIndex, rIdx, 'end', e.target.value)} style={{ border:'none', outline:'none', background:'transparent', width: isMobile ? '80px' : '90px', fontSize: isMobile ? '0.85rem' : '1rem' }} />
+                        <button onClick={() => handleRemoveScheduleRange(originalIndex, rIdx)} style={{ background:'transparent', border:'none', cursor:'pointer', color:'#ef4444', marginLeft: isMobile ? '0.2rem' : '0.5rem', padding:0 }}><Trash2 size={14}/></button>
                       </div>
                     ))}
                     <button onClick={() => handleAddScheduleRange(originalIndex)} className="btn-text" style={{ fontSize: '0.85rem', color: 'var(--primary-color)', display:'flex', alignItems:'center', gap:'0.25rem' }}>
@@ -221,8 +227,7 @@ export const AdminSchedulePage: React.FC = () => {
         </div>
       </section>
 
-      {/* 2. EXCEPCIONES Y BLOQUEOS */}
-      <section className="card glass-panel" style={{ padding: '2rem' }}>
+      <section className="card glass-panel" style={{ padding: isMobile ? '1.5rem 1rem' : '2rem' }}>
         <h2 style={{ fontSize: '1.4rem', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-primary)' }}>
           <CalendarOff size={22} color="#ef4444" /> Vacaciones y Excepciones
         </h2>
@@ -230,7 +235,7 @@ export const AdminSchedulePage: React.FC = () => {
           Bloquea días completos por vacaciones, o anula ciertas horas de un día específico (ej. "Esta tarde cerrado por curso").
         </p>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) minmax(300px, 1fr)', gap: '2rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
           
           {/* Formulario de añadir */}
           <form onSubmit={handleSaveBlockedDay} style={{ background: 'var(--bg-color)', padding: '1.5rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>

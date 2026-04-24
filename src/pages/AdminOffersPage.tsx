@@ -9,6 +9,13 @@ export const AdminOffersPage: React.FC = () => {
   const { repo } = useData();
   const [offers, setOffers] = useState<PromoOffer[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   
   // Nuevo formulario de oferta
   const [offerType, setOfferType] = useState<'image' | 'text'>('image');
@@ -138,9 +145,9 @@ export const AdminOffersPage: React.FC = () => {
   if (loading) return <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}><Loader2 className="animate-spin" size={32} /></div>;
 
   return (
-    <div className="animate-fade-in" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+    <div className="animate-fade-in" style={{ padding: isMobile ? '0' : '1rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       
-      <section className="card glass-panel" style={{ padding: '2rem' }}>
+      <section className="card glass-panel" style={{ padding: isMobile ? '1.5rem 1rem' : '2rem' }}>
         <h2 style={{ fontSize: '1.4rem', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-primary)' }}>
           <ImageIcon size={22} color="var(--primary-color)" /> Gestor de Ofertas y Promociones
         </h2>
@@ -149,7 +156,7 @@ export const AdminOffersPage: React.FC = () => {
           Al pasar la "Fecha de Fin", las ofertas desaparecerán por completo y se borrarán automáticamente del sistema.
         </p>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '2rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(350px, 1fr))', gap: '2rem' }}>
           
           {/* Formulario Nueva Oferta */}
           <form onSubmit={handleSaveOffer} style={{ background: 'var(--bg-color)', padding: '1.5rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
