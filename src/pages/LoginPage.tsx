@@ -84,9 +84,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({ type = 'CUSTOMER' }) => {
           setError('Las contraseñas no coinciden');
           return;
         }
-        const ok = await register({ name, email, phone }, password);
-        if (!ok) {
-          setError('Error al registrar. El email podría ya estar en uso.');
+        try {
+          const ok = await register({ name, email, phone }, password);
+          if (!ok) {
+            setError('Error al registrar usuario.');
+          }
+        } catch (err: any) {
+          setError(err.message);
         }
       } else {
         const ok = await login(email, password);

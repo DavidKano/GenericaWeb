@@ -107,9 +107,11 @@ export const AdminOffersPage: React.FC = () => {
         id,
         type: offerType,
         imageUrl,
-        textHeader: offerType === 'text' ? textHeader : undefined,
-        textBody: offerType === 'text' ? textBody : undefined,
-        designSeed: offerType === 'text' ? Math.floor(Math.random() * 1000) : undefined,
+        ...(offerType === 'text' ? {
+          textHeader,
+          textBody,
+          designSeed: Math.floor(Math.random() * 1000)
+        } : {}),
         startDate,
         endDate,
         isActive: true,
@@ -128,9 +130,9 @@ export const AdminOffersPage: React.FC = () => {
       setDisplayMode('popup');
       if (fileInputRef.current) fileInputRef.current.value = '';
       
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert('Ocurrió un error guardando la oferta.');
+      alert(`Ocurrió un error guardando la oferta: ${err.message || 'Error desconocido'}`);
     } finally {
       setSaving(false);
     }

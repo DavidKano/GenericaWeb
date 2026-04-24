@@ -2,21 +2,14 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
     
-    // Función centralizada para obtener el rol del usuario desde Firestore
-    function getRole() {
-      return firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role;
-    }
-
     match /branding/{allPaths=**} {
-      // Cualquier usuario puede leer los logos para ver la web
       allow read: if true;
-      // Solo el Super Admin puede subir o cambiar logotipos
-      allow write: if request.auth != null && getRole() == 'SUPER_ADMIN';
+      allow write: if request.auth != null;
     }
 
     match /promo_offers/{allPaths=**} {
       allow read: if true;
-      allow write: if request.auth != null && getRole() in ['ADMIN', 'SUPER_ADMIN'];
+      allow write: if request.auth != null;
     }
   }
 }

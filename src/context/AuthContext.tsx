@@ -210,16 +210,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(newUser);
         localStorage.setItem('currentUser', JSON.stringify(newUser));
         return true;
-      } catch (err) {
+      } catch (err: any) {
         console.error(err);
-        return false;
+        if (err.code === 'auth/weak-password') {
+          throw new Error('La contraseña debe tener al menos 6 caracteres.');
+        } else if (err.code === 'auth/email-already-in-use') {
+          throw new Error('El email ya está registrado.');
+        } else if (err.code === 'auth/invalid-email') {
+          throw new Error('El formato del email no es válido.');
+        }
+        throw new Error('Error al registrar usuario.');
       }
     }
 
     const users = await repo.getUsers();
     if (users.find(u => u.email.toLowerCase() === userData.email.toLowerCase())) {
-      console.error('El usuario ya existe');
-      return false;
+      throw new Error('El email ya está registrado.');
     }
 
     const newUser: User = {

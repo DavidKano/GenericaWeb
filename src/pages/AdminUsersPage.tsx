@@ -54,10 +54,15 @@ export const AdminUsersPage: React.FC = () => {
 
   const handleSaveNotes = async () => {
     if (selectedUser) {
-      const updatedUser = { ...selectedUser, adminNotes };
-      await repo.saveUser(updatedUser);
-      loadData();
-      alert('Notas actualizadas');
+      try {
+        const updatedUser = { ...selectedUser, adminNotes };
+        await repo.saveUser(updatedUser);
+        loadData();
+        alert('Notas guardadas correctamente');
+      } catch (err: any) {
+        console.error('Error al guardar notas:', err);
+        alert(`Error al guardar: ${err.message}`);
+      }
     }
   };
 
