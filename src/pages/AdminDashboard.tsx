@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import type { User, Appointment, BookingService, DaySchedule, BusinessConfig } from '../services/models';
 import { INITIAL_SCHEDULES } from '../services/scheduleDefaults';
+import { INITIAL_BUSINESS_CONFIG } from '../services/configDefaults';
 import { 
   BarChart3, 
   Settings, 
@@ -93,6 +94,11 @@ export const AdminDashboard: React.FC = () => {
   useEffect(() => {
     if (isInitialized) {
       loadData();
+      
+      const unsubscribe = repo.subscribeToAppointments((appts) => {
+        setAppointments(appts);
+      });
+      return () => unsubscribe();
     }
   }, [repo, isInitialized]);
 
@@ -120,7 +126,7 @@ export const AdminDashboard: React.FC = () => {
       setServices(svcs);
       setUsers(usrs);
       setSchedules(schs.length > 0 ? schs : INITIAL_SCHEDULES);
-      setConfig(cfg);
+      setConfig(cfg || INITIAL_BUSINESS_CONFIG);
     } catch (err: any) {
       console.error('Error cargando panel de administrador:', err);
       // El mensaje ahora dirá algo como "Servicios: Missing or insufficient permissions"
@@ -239,7 +245,9 @@ export const AdminDashboard: React.FC = () => {
 
   // Preparar eventos para react-big-calendar
   const events = useMemo(() => {
-    return appointments.map(app => {
+    return appointments
+      .filter(a => a.status !== 'CANCELLED')
+      .map(app => {
       const service = services.find(s => s.id === app.serviceId);
       const customer = users.find(u => u.id === app.customerId);
       const duration = service?.durationMin || 30;
@@ -471,7 +479,7 @@ export const AdminDashboard: React.FC = () => {
   const todayAppts = appointments.filter(a => {
     const d = new Date(a.dateTimeStart);
     const today = new Date();
-    return d.toDateString() === today.toDateString();
+    return d.toDateString() === today.toDateString() && a.status !== 'CANCELLED';
   });
 
   return (
@@ -670,8 +678,11 @@ export const AdminDashboard: React.FC = () => {
             </div>
             <input 
               type="checkbox" 
-              checked={config?.allowClientCancellation || false} 
-              onChange={(e) => setConfig(prev => prev ? { ...prev, allowClientCancellation: e.target.checked } : null)}
+              checked={config?.allowClientCancellation !== false} 
+              onChange={(e) => setConfig(prev => {
+                const base = prev || INITIAL_BUSINESS_CONFIG;
+                return { ...base, allowClientCancellation: e.target.checked };
+              })}
               style={{ width: 'auto' }}
             />
           </div>

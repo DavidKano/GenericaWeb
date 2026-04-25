@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
 import type { Appointment, BookingService, BusinessConfig, User } from '../services/models';
+import { INITIAL_BUSINESS_CONFIG } from '../services/configDefaults';
 import { 
   Calendar, 
   User as UserIcon, 
@@ -43,7 +44,7 @@ export const ProfilePage: React.FC = () => {
     // Filtrar citas solo de este usuario
     setAppointments(appts.filter(a => a.customerId === user.id));
     setServices(svcs);
-    setConfig(cfg);
+    setConfig(cfg || INITIAL_BUSINESS_CONFIG);
   };
 
   const sortedAppointments = useMemo(() => {
@@ -208,7 +209,7 @@ export const ProfilePage: React.FC = () => {
                         </div>
                       </div>
                       <div>
-                        {config?.allowClientCancellation && (
+                        {(config?.allowClientCancellation !== false) && (
                           <button 
                             className="btn-icon" 
                             onClick={() => handleCancelAppointment(appt.id)}

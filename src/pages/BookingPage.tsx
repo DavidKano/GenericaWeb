@@ -8,6 +8,7 @@ import { generateGoogleCalendarUrl, shareOrDownloadIcs } from '../utils/calendar
 import { generateTimeSlots } from '../utils/timeSlots';
 import { format, startOfDay, addDays, endOfDay, parse } from 'date-fns';
 import { INITIAL_SCHEDULES } from '../services/scheduleDefaults';
+import { INITIAL_BUSINESS_CONFIG } from '../services/configDefaults';
 import { es } from 'date-fns/locale';
 import { PromoOfferTextDesign } from '../components/ui/PromoOfferTextDesign';
 
@@ -43,7 +44,7 @@ export const BookingPage: React.FC = () => {
       setServices(svcs);
       setSchedules(schs.length > 0 ? schs : INITIAL_SCHEDULES);
       setBlockedDays(bDays);
-      setBusinessConfig(cfg);
+      setBusinessConfig(cfg || INITIAL_BUSINESS_CONFIG);
       setCompany(comp);
       
       const todayStr = format(new Date(), 'yyyy-MM-dd');
