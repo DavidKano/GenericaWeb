@@ -153,6 +153,16 @@ export const AdminDashboard: React.FC = () => {
     loadData();
   };
 
+  const deleteService = async () => {
+    if (!editingServiceId) return;
+    if (window.confirm('¿Estás seguro de que deseas eliminar este servicio? Esta acción no se puede deshacer.')) {
+      await repo.deleteService(editingServiceId);
+      setShowModal(false);
+      resetServiceForm();
+      loadData();
+    }
+  };
+
   const resetServiceForm = () => {
     setNewName('');
     setNewDays(0);
@@ -757,9 +767,18 @@ export const AdminDashboard: React.FC = () => {
                 <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Si se desactiva, los clientes no podrán verlo ni reservarlo.</p>
               </label>
             </div>
-            <div className="modal-actions" style={{ marginTop: '2rem' }}>
-              <button className="btn-secondary" onClick={() => setShowModal(false)}>Cancelar</button>
-              <button className="btn-primary" onClick={addOrUpdateService}>Guardar</button>
+            <div className="modal-actions" style={{ marginTop: '2rem', display: 'flex', justifyContent: 'space-between' }}>
+              <div>
+                {editingServiceId && (
+                  <button className="btn-secondary" onClick={deleteService} style={{ color: '#ef4444', borderColor: '#ef4444', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <Trash2 size={16} /> Eliminar
+                  </button>
+                )}
+              </div>
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <button className="btn-secondary" onClick={() => setShowModal(false)}>Cancelar</button>
+                <button className="btn-primary" onClick={addOrUpdateService}>Guardar</button>
+              </div>
             </div>
           </div>
         </div>

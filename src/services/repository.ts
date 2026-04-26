@@ -10,6 +10,7 @@ export interface DataRepository {
   // Services
   getServices(): Promise<BookingService[]>;
   saveService(service: BookingService): Promise<void>;
+  deleteService(id: string): Promise<void>;
 
   // Appointments
   getAppointments(): Promise<Appointment[]>;

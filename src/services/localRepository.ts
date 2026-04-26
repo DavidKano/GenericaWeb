@@ -47,6 +47,11 @@ export class LocalRepository implements DataRepository {
     setLocal('services', services);
   }
 
+  async deleteService(id: string): Promise<void> {
+    const services = getLocal<BookingService>('services');
+    setLocal('services', services.filter(s => s.id !== id));
+  }
+
   async getAppointments(): Promise<Appointment[]> {
     return getLocal<Appointment>('appointments');
   }
