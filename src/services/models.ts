@@ -24,6 +24,8 @@ export interface CompanyData {
   privacyPolicy?: string;
   termsOfUse?: string;
   supportEmail?: string;
+  contactEmail?: string;
+  telefono?: string;
   renewalType?: 'Mensual' | 'Anual';
 }
 

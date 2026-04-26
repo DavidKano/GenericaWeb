@@ -8,7 +8,7 @@ import { getDefaultPrivacyPolicy, getDefaultTermsOfUse } from '../services/polic
 export const AdminCoreDatos: React.FC = () => {
   const { repo } = useData();
   const [companyData, setCompanyData] = useState<CompanyData>({
-    nombreEmpresa: '', personaContacto: '', cifNif: '', direccion: '', cp: '', localidad: '', provincia: '', fechaPuestaMarcha: '', precioActual: 0, fechaRenovacion: '', supportEmail: '', renewalType: 'Anual'
+    nombreEmpresa: '', personaContacto: '', cifNif: '', direccion: '', cp: '', localidad: '', provincia: '', fechaPuestaMarcha: '', precioActual: 0, fechaRenovacion: '', supportEmail: '', contactEmail: '', telefono: '', renewalType: 'Anual'
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -120,9 +120,20 @@ export const AdminCoreDatos: React.FC = () => {
           </div>
         </div>
 
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginTop: '1.5rem' }}>
+          <div className="form-group">
+            <label style={{ color: '#d1d5db' }}>Email de Soporte Técnico (Peticiones de ayuda)</label>
+            <input type="email" value={companyData.supportEmail || ''} onChange={e => handleCompanyChange('supportEmail', e.target.value)} placeholder="soporte@tuempresa.com" style={{ background: '#111827', color: '#fff', border: '1px solid #4b5563' }} />
+          </div>
+          <div className="form-group">
+            <label style={{ color: '#d1d5db' }}>Email de Contacto (Para clientes)</label>
+            <input type="email" value={companyData.contactEmail || ''} onChange={e => handleCompanyChange('contactEmail', e.target.value)} placeholder="contacto@tuempresa.com" style={{ background: '#111827', color: '#fff', border: '1px solid #4b5563' }} />
+          </div>
+        </div>
+
         <div className="form-group" style={{ marginTop: '1.5rem' }}>
-          <label style={{ color: '#d1d5db' }}>Email de Soporte Técnico (Peticiones de ayuda de los admins)</label>
-          <input type="email" value={companyData.supportEmail || ''} onChange={e => handleCompanyChange('supportEmail', e.target.value)} placeholder="soporte@tuempresa.com" style={{ background: '#111827', color: '#fff', border: '1px solid #4b5563' }} />
+          <label style={{ color: '#d1d5db' }}>Teléfono de Contacto (Para clientes)</label>
+          <input type="text" value={companyData.telefono || ''} onChange={e => handleCompanyChange('telefono', e.target.value)} placeholder="+34 600 000 000" style={{ background: '#111827', color: '#fff', border: '1px solid #4b5563' }} />
         </div>
 
         <hr style={{ borderColor: '#374151', margin: '2rem 0' }} />
@@ -176,6 +187,7 @@ export const AdminCoreDatos: React.FC = () => {
 export const AdminCoreDiseno: React.FC = () => {
   const { repo } = useData();
   const [config, setConfig] = useState<DesignConfig | null>(null);
+  const [company, setCompany] = useState<CompanyData | null>(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [savingColors, setSavingColors] = useState(false);
@@ -215,7 +227,11 @@ export const AdminCoreDiseno: React.FC = () => {
       setLoading(true);
       setError('');
       try {
-        const cfg = await repo.getDesignConfig();
+        const [cfg, comp] = await Promise.all([
+          repo.getDesignConfig(),
+          repo.getCompanyData()
+        ]);
+        
         if (cfg) {
           setConfig(cfg);
           if (cfg.primaryColor) {
@@ -227,6 +243,9 @@ export const AdminCoreDiseno: React.FC = () => {
           if (cfg.backgroundColor) {
              setBgRgbInput(hexToRgb(cfg.backgroundColor));
           }
+        }
+        if (comp) {
+          setCompany(comp);
         }
       } catch (err: any) {
         console.error('Error cargando diseño:', err);
@@ -319,10 +338,39 @@ export const AdminCoreDiseno: React.FC = () => {
     cardCtx.fillStyle = '#ffffff';
     cardCtx.fillRect(0, 0, 800, 400);
 
-    const logoScale = Math.min(300 / img.width, 300 / img.height);
-    const lx = 50 + (150 - (img.width * logoScale / 2));
-    const ly = 200 - (img.height * logoScale / 2);
+    // Selección de tipografía
+    const fontMain = config?.fontFamily || "'Inter', sans-serif";
+
+    // Logo: lo subimos y alineamos a la izquierda
+    const logoScale = Math.min(240 / img.width, 240 / img.height);
+    const lx = 50; // Alineado a la izquierda con margen de 50px
+    const ly = 130 - (img.height * logoScale / 2);
     cardCtx.drawImage(img, lx, ly, img.width * logoScale, img.height * logoScale);
+
+    // Textos debajo del logo, alineados a la izquierda
+    cardCtx.textAlign = 'left';
+    cardCtx.fillStyle = '#1e293b';
+
+    // 1. Nombre del Negocio (Negrita, tamaño mediano)
+    cardCtx.font = `bold 24px ${fontMain}`;
+    cardCtx.fillText(company?.nombreEmpresa || 'Tu Negocio', 50, 260);
+
+    // 2. Solo la dirección (Pequeño, normal)
+    cardCtx.font = `14px ${fontMain}`;
+    cardCtx.fillStyle = '#64748b';
+    cardCtx.fillText(company?.direccion || '', 50, 290);
+
+    // 3. Código Postal y Población (Mismo estilo que anterior)
+    const locationInfo = [company?.cp, company?.localidad].filter(Boolean).join(' - ');
+    cardCtx.fillText(locationInfo, 50, 315);
+
+    // 4. Teléfono y Email de cliente
+    const phone = company?.telefono || '';
+    const email = company?.contactEmail || '';
+    const contactInfo = [phone, email].filter(Boolean).join(' - ');
+    cardCtx.fillText(contactInfo, 50, 340);
+
+    // Dibujar el QR a la derecha
     cardCtx.drawImage(qrCanvas, 400, 0, 400, 400);
 
     return cardCanvas.toDataURL('image/png');
