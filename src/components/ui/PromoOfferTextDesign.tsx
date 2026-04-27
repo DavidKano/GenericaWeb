@@ -82,6 +82,18 @@ export const PromoOfferTextDesign: React.FC<Props> = ({ offer, className, style 
             {offer.textBody}
           </p>
         )}
+        
+        {offer.legalDisclaimer && (
+          <p style={{ 
+            fontSize: '0.65rem', 
+            opacity: 0.7, 
+            marginTop: '1.5rem', 
+            fontStyle: 'italic',
+            fontFamily: "'Inter', sans-serif"
+          }}>
+            {offer.legalDisclaimer}
+          </p>
+        )}
       </div>
       
       {/* Decorative elements */}

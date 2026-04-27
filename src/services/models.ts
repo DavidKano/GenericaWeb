@@ -101,4 +101,5 @@ export interface PromoOffer {
   textHeader?: string;
   textBody?: string;
   designSeed?: number;
+  legalDisclaimer?: string;
 }

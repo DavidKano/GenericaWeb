@@ -105,11 +105,20 @@ export const PromoOfferModal: React.FC = () => {
           {offer.type === 'text' ? (
             <PromoOfferTextDesign offer={offer} style={{ borderRadius: '0', minHeight: '350px' }} />
           ) : (
-            <img 
-                src={offer.imageUrl} 
-                alt="Promoción Especial" 
-                style={{ width: '100%', height: 'auto', display: 'block', objectFit: 'contain' }} 
-            />
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <img 
+                  src={offer.imageUrl} 
+                  alt="Promoción Especial" 
+                  style={{ width: '100%', height: 'auto', display: 'block', objectFit: 'contain' }} 
+              />
+              {offer.legalDisclaimer && (
+                <div style={{ padding: '0.75rem 1.5rem', background: '#f8fafc', borderTop: '1px solid rgba(0,0,0,0.05)', textAlign: 'center' }}>
+                   <p style={{ margin: 0, fontSize: '0.65rem', color: '#94a3b8', fontStyle: 'italic' }}>
+                     {offer.legalDisclaimer}
+                   </p>
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>

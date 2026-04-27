@@ -25,6 +25,7 @@ export const AdminOffersPage: React.FC = () => {
   const [endDate, setEndDate] = useState('');
   const [base64Img, setBase64Img] = useState<string>('');
   const [displayMode, setDisplayMode] = useState<'popup' | 'inline'>('popup');
+  const [legalDisclaimer, setLegalDisclaimer] = useState('Promoción no acumulable con otras. Consulta condiciones.');
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -115,7 +116,8 @@ export const AdminOffersPage: React.FC = () => {
         startDate,
         endDate,
         isActive: true,
-        displayMode
+        displayMode,
+        legalDisclaimer
       };
       
       await repo.savePromoOffer(newOffer);
@@ -128,6 +130,7 @@ export const AdminOffersPage: React.FC = () => {
       setStartDate(format(new Date(), 'yyyy-MM-dd'));
       setEndDate('');
       setDisplayMode('popup');
+      setLegalDisclaimer('Promoción no acumulable con otras. Consulta condiciones.');
       if (fileInputRef.current) fileInputRef.current.value = '';
       
     } catch (err: any) {
@@ -232,6 +235,16 @@ export const AdminOffersPage: React.FC = () => {
                     placeholder="En tu primera visita al completarse tu reserva..." 
                     rows={3} 
                     style={{ fontFamily: 'inherit', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', width: '100%', resize: 'vertical' }}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Condiciones / Exención de responsabilidad (Legal)</label>
+                  <input 
+                    type="text" 
+                    value={legalDisclaimer} 
+                    onChange={e => setLegalDisclaimer(e.target.value)} 
+                    placeholder="Ej: Promoción no acumulable..." 
+                    style={{ fontSize: '0.85rem' }}
                   />
                 </div>
               </div>

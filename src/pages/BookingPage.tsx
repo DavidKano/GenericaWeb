@@ -329,7 +329,16 @@ export const BookingPage: React.FC = () => {
                   {offer.type === 'text' ? (
                     <PromoOfferTextDesign offer={offer} style={{ borderRadius: '0' }} />
                   ) : (
-                    <img src={offer.imageUrl} alt="Promo Especial" style={{ width: '100%', height: 'auto', display: 'block', objectFit: 'cover' }} />
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <img src={offer.imageUrl} alt="Promo Especial" style={{ width: '100%', height: 'auto', display: 'block', objectFit: 'cover' }} />
+                      {offer.legalDisclaimer && (
+                        <div style={{ padding: '0.5rem 1rem', background: '#f8fafc', borderTop: '1px solid rgba(0,0,0,0.03)', textAlign: 'center' }}>
+                          <p style={{ margin: 0, fontSize: '0.6rem', color: '#94a3b8', fontStyle: 'italic' }}>
+                            {offer.legalDisclaimer}
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
               ))}
