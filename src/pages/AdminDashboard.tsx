@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
-import type { User, Appointment, BookingService, DaySchedule, BusinessConfig } from '../services/models';
+import type { User, Appointment, BookingService, DaySchedule, BusinessConfig, CompanyData } from '../services/models';
 import { INITIAL_SCHEDULES } from '../services/scheduleDefaults';
 import { INITIAL_BUSINESS_CONFIG } from '../services/configDefaults';
 import { 
@@ -16,7 +16,8 @@ import {
   ChevronRight,
   Calendar as CalendarIcon,
   Columns,
-  Minus
+  Minus,
+  MessageCircle
 } from 'lucide-react';
 
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
@@ -39,6 +40,21 @@ const localizer = dateFnsLocalizer({
 
 type AdminTab = 'stats' | 'services' | 'schedule' | 'config';
 
+// Variable global para mantener la referencia a la ventana de WhatsApp fuera del ciclo de vida de React
+let waWindow: Window | null = null;
+
+const getWhatsAppLink = (phone: string, name: string, date: string, time: string, businessName: string, serviceName: string, useWebVersion?: boolean) => {
+  const cleanPhone = phone.replace(/\D/g, '');
+  // Aseguramos prefijo 34 si tiene 9 dígitos (formato España)
+  const finalPhone = (cleanPhone.length === 9) ? `34${cleanPhone}` : cleanPhone;
+  const message = `Hola ${name}, te recuerdo tu cita en ${businessName} el ${date} a las ${time} para ${serviceName}. ¡Te esperamos!`;
+  
+  if (useWebVersion) {
+    return `https://web.whatsapp.com/send?phone=${finalPhone}&text=${encodeURIComponent(message)}`;
+  }
+  return `https://wa.me/${finalPhone}?text=${encodeURIComponent(message)}`;
+};
+
 export const AdminDashboard: React.FC = () => {
   const { repo } = useData();
   const { isInitialized } = useAuth();
@@ -58,6 +74,7 @@ export const AdminDashboard: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [schedules, setSchedules] = useState<DaySchedule[]>([]);
   const [config, setConfig] = useState<BusinessConfig | null>(null);
+  const [companyData, setCompanyData] = useState<CompanyData | null>(null);
   
   const [showModal, setShowModal] = useState(false);
   const [newName, setNewName] = useState('');
@@ -89,6 +106,24 @@ export const AdminDashboard: React.FC = () => {
   const [mServiceId, setMServiceId] = useState('');
   const [mDate, setMDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [mTime, setMTime] = useState('10:00');
+
+  const openWhatsApp = (url: string) => {
+    const name = 'whatsappWindow';
+    if (!waWindow || waWindow.closed) {
+      waWindow = window.open(url, name);
+    } else {
+      try {
+        // Intentamos actualizar la URL directamente (esto puede fallar por cross-origin)
+        waWindow.location.href = url;
+        waWindow.focus();
+      } catch (e) {
+        // Si falla por seguridad (cross-origin), usamos window.open con el mismo nombre
+        // que es la forma estándar de actualizar una ventana existente
+        waWindow = window.open(url, name);
+        if (waWindow) waWindow.focus();
+      }
+    }
+  };
   const [mNotes, setMNotes] = useState('');
 
   useEffect(() => {
@@ -113,13 +148,15 @@ export const AdminDashboard: React.FC = () => {
       const usersPromise = repo.getUsers().catch(e => { throw new Error(`Usuarios: ${e.message}`); });
       const schsPromise = repo.getSchedules().catch(e => { throw new Error(`Horarios: ${e.message}`); });
       const cfgPromise = repo.getConfig().catch(e => { throw new Error(`Configuración: ${e.message}`); });
+      const companyPromise = repo.getCompanyData().catch(e => { throw new Error(`Datos Empresa: ${e.message}`); });
  
-      const [appts, svcs, usrs, schs, cfg] = await Promise.all([
+      const [appts, svcs, usrs, schs, cfg, comp] = await Promise.all([
         apptsPromise,
         svcsPromise,
         usersPromise,
         schsPromise,
         cfgPromise,
+        companyPromise,
       ]);
  
       setAppointments(appts);
@@ -127,6 +164,7 @@ export const AdminDashboard: React.FC = () => {
       setUsers(usrs);
       setSchedules(schs.length > 0 ? schs : INITIAL_SCHEDULES);
       setConfig(cfg || INITIAL_BUSINESS_CONFIG);
+      setCompanyData(comp);
     } catch (err: any) {
       console.error('Error cargando panel de administrador:', err);
       // El mensaje ahora dirá algo como "Servicios: Missing or insufficient permissions"
@@ -270,6 +308,8 @@ export const AdminDashboard: React.FC = () => {
         start,
         end,
         resource: app,
+        customer, // Incluimos el objeto cliente para acceso rápido
+        service,  // Incluimos el objeto servicio para acceso rápido
         color: service?.color || '#3174ad'
       };
     });
@@ -485,6 +525,48 @@ export const AdminDashboard: React.FC = () => {
       </div>
     );
   };
+  const EventComponent = ({ event }: any) => {
+    const phone = event.customer?.phone;
+    
+    const handleWhatsAppClick = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (!phone) return;
+      const date = format(event.start, 'dd/MM/yyyy');
+      const time = format(event.start, 'HH:mm');
+      const businessName = companyData?.nombreEmpresa || config?.name || 'nuestro centro';
+      const serviceName = event.service?.name || 'tu cita';
+      // Forzamos la URL de WhatsApp Web en desktop para mejor comportamiento
+      const url = getWhatsAppLink(phone, event.customer.name, date, time, businessName, serviceName, !isMobile);
+      openWhatsApp(url);
+    };
+
+    return (
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', height: '100%', minWidth: 0 }}>
+        <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+          {event.title}
+        </div>
+        {phone && config?.whatsappEnabled !== false && (
+          <button 
+            onClick={handleWhatsAppClick}
+            title="Enviar WhatsApp"
+            style={{ 
+              background: 'rgba(255,255,255,0.2)', 
+              border: 'none', 
+              borderRadius: '4px', 
+              color: 'white', 
+              padding: '2px', 
+              display: 'flex', 
+              cursor: 'pointer',
+              marginLeft: '4px',
+              flexShrink: 0
+            }}
+          >
+            <MessageCircle size={12} />
+          </button>
+        )}
+      </div>
+    );
+  };
 
   const todayAppts = appointments.filter(a => {
     const d = new Date(a.dateTimeStart);
@@ -596,7 +678,8 @@ export const AdminDashboard: React.FC = () => {
                 slotPropGetter={slotPropGetter}
                 dayPropGetter={dayPropGetter}
                 components={{
-                  toolbar: CustomToolbar
+                  toolbar: CustomToolbar,
+                  event: EventComponent
                 }}
               />
             </div>
@@ -711,6 +794,22 @@ export const AdminDashboard: React.FC = () => {
             />
           </div>
 
+          <div className="form-group" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.5rem' }}>
+            <div>
+              <label style={{ margin: 0 }}>Notificaciones WhatsApp (Botones de aviso)</label>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Muestra u oculta los accesos directos para enviar recordatorios por WhatsApp.</p>
+            </div>
+            <input 
+              type="checkbox" 
+              checked={config?.whatsappEnabled !== false} 
+              onChange={(e) => setConfig(prev => {
+                const base = prev || INITIAL_BUSINESS_CONFIG;
+                return { ...base, whatsappEnabled: e.target.checked };
+              })}
+              style={{ width: 'auto' }}
+            />
+          </div>
+
           <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid var(--glass-border)' }}>
             <button className="btn-primary" onClick={saveGlobalConfig} style={{ width: '100%' }}>Guardar Ajustes</button>
           </div>
@@ -805,6 +904,37 @@ export const AdminDashboard: React.FC = () => {
                    {users.find(u => u.id === selectedEvent.resource.customerId)?.phone || 'Sin teléfono'}
                  </p>
                </div>
+                {users.find(u => u.id === selectedEvent.resource.customerId)?.phone && config?.whatsappEnabled !== false && (
+                  <button 
+                    onClick={() => {
+                      const customer = users.find(u => u.id === selectedEvent.resource.customerId);
+                      const service = services.find(s => s.id === selectedEvent.resource.serviceId);
+                      const date = format(new Date(selectedEvent.start), 'dd/MM/yyyy');
+                      const time = format(new Date(selectedEvent.start), 'HH:mm');
+                      const businessName = companyData?.nombreEmpresa || config?.name || 'nuestro centro';
+                      const serviceName = service?.name || 'tu cita';
+                      
+                      if (customer) {
+                        const url = getWhatsAppLink(customer.phone, customer.name, date, time, businessName, serviceName, !isMobile);
+                        openWhatsApp(url);
+                      }
+                    }}
+                    className="btn-secondary"
+                    style={{ 
+                      marginLeft: 'auto', 
+                      padding: '0.4rem 0.8rem', 
+                      fontSize: '0.8rem', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '0.4rem', 
+                      textDecoration: 'none',
+                      borderColor: '#25D366',
+                      color: '#25D366'
+                    }}
+                  >
+                    <MessageCircle size={16} /> WhatsApp
+                  </button>
+                )}
             </div>
             
             <div className="form-group">

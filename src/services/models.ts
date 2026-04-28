@@ -5,6 +5,10 @@ export interface User {
   phone: string;
   role: 'SUPER_ADMIN' | 'ADMIN' | 'CUSTOMER';
   address?: string;
+  dni?: string;
+  cp?: string;
+  city?: string;
+  province?: string;
   dob?: string;
   adminNotes?: string;
   lastAdminAccess?: number; // timestamp ms - último acceso al panel admin
@@ -69,6 +73,7 @@ export interface BusinessConfig {
   bookingEnabled: boolean;
   allowClientCancellation: boolean;
   concurrentSlots: number;
+  whatsappEnabled: boolean;
 }
 
 export interface TimeRange {

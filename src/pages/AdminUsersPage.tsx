@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import type { User, Appointment, BookingService } from '../services/models';
-import { Search, User as UserIcon, Calendar, FileText, ChevronRight, Phone, Mail, MapPin } from 'lucide-react';
+import { Search, User as UserIcon, Calendar, FileText, ChevronRight, Phone, Mail, MapPin, Edit, X, Info } from 'lucide-react';
 
 export const AdminUsersPage: React.FC = () => {
   const { repo } = useData();
@@ -11,6 +11,24 @@ export const AdminUsersPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [adminNotes, setAdminNotes] = useState('');
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 1024);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 1024);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+  
+  // Estados para edición
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editDni, setEditDni] = useState('');
+  const [editAddress, setEditAddress] = useState('');
+  const [editCp, setEditCp] = useState('');
+  const [editCity, setEditCity] = useState('');
+  const [editProvince, setEditProvince] = useState('');
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -66,8 +84,50 @@ export const AdminUsersPage: React.FC = () => {
     }
   };
 
+  const openEditModal = () => {
+    if (selectedUser) {
+      setEditName(selectedUser.name);
+      setEditPhone(selectedUser.phone);
+      setEditDni(selectedUser.dni || '');
+      setEditAddress(selectedUser.address || '');
+      setEditCp(selectedUser.cp || '');
+      setEditCity(selectedUser.city || '');
+      setEditProvince(selectedUser.province || '');
+      setShowEditModal(true);
+    }
+  };
+
+  const handleSaveUserEdits = async () => {
+    if (selectedUser) {
+      if (!editName.trim()) {
+        alert('El nombre no puede estar vacío');
+        return;
+      }
+      setSaving(true);
+      try {
+        const updatedUser = { 
+          ...selectedUser, 
+          name: editName, 
+          phone: editPhone,
+          dni: editDni,
+          address: editAddress,
+          cp: editCp,
+          city: editCity,
+          province: editProvince
+        };
+        await repo.saveUser(updatedUser);
+        await loadData();
+        setShowEditModal(false);
+      } catch (err: any) {
+        alert(`Error al guardar: ${err.message}`);
+      } finally {
+        setSaving(false);
+      }
+    }
+  };
+
   return (
-    <div className="admin-users-layout animate-fade-in" style={{ display: 'grid', gridTemplateColumns: '350px 1fr', gap: '1.5rem', height: 'calc(100vh - 120px)' }}>
+    <div className="admin-users-layout animate-fade-in" style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '350px 1fr', gap: '1.5rem', height: isMobile ? 'auto' : 'calc(100vh - 120px)', overflow: isMobile ? 'visible' : 'hidden' }}>
       {/* Sidebar de Usuarios */}
       <div className="card glass-panel" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '1rem' }}>
         <div className="search-box" style={{ 
@@ -122,7 +182,7 @@ export const AdminUsersPage: React.FC = () => {
                 color: selectedUserId === u.id ? 'white' : 'inherit'
               }}
             >
-              <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: selectedUserId === u.id ? 'rgba(255,255,255,0.2)' : 'var(--bg-color)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: selectedUserId === u.id ? 'rgba(255,255,255,0.2)' : 'var(--bg-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <UserIcon size={20} />
               </div>
               <div style={{ flex: 1 }}>
@@ -145,79 +205,136 @@ export const AdminUsersPage: React.FC = () => {
         {selectedUser ? (
           <div className="animate-fade-in" style={{ display: 'grid', gap: '1.5rem' }}>
             {/* Header / Info Básica */}
-            <div className="card glass-panel" style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
-              <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'var(--primary-color)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div className="card glass-panel" style={{ display: 'flex', gap: '2rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'var(--primary-color)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <UserIcon size={40} />
               </div>
-              <div style={{ flex: 1 }}>
-                <h2 style={{ marginBottom: '0.5rem' }}>{selectedUser.name}</h2>
-                <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><Mail size={14} /> {selectedUser.email}</span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><Phone size={14} /> {selectedUser.phone}</span>
+              <div style={{ flex: 1, minWidth: '200px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem' }}>
+                  <h2 style={{ margin: 0 }}>{selectedUser.name}</h2>
+                  <button 
+                    onClick={openEditModal}
+                    style={{ background: 'none', border: 'none', color: 'var(--primary-color)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '4px' }}
+                    title="Editar datos del cliente"
+                  >
+                    <Edit size={18} />
+                  </button>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><Mail size={14} /> {selectedUser.email}</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><Phone size={14} /> {selectedUser.phone}</span>
+                    {selectedUser.dni && <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><FileText size={14} /> {selectedUser.dni}</span>}
+                  </div>
+                  {(selectedUser.address || selectedUser.city) && (
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.25rem' }}>
+                      <MapPin size={14} />
+                      <span>
+                        {selectedUser.address}
+                        {(selectedUser.cp || selectedUser.city) && ` - ${selectedUser.cp || ''} ${selectedUser.city || ''}`}
+                        {selectedUser.province && `, ${selectedUser.province}`}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
               <a 
                 href={`mailto:${selectedUser.email}`} 
                 className="btn-secondary" 
-                style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', flexShrink: 0 }}
               >
-                Enviar Mensaje
+                <Mail size={16} /> Enviar Mensaje
               </a>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '1.5rem' }}>
-              {/* Columna Izquierda: Citas */}
-              <div className="card glass-panel">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem' }}>
-                  <Calendar size={20} color="var(--primary-color)" />
-                  <h3>Historial de Citas</h3>
-                </div>
-                
-                {userAppointments.length > 0 ? (
-                  <div style={{ display: 'grid', gap: '0.75rem' }}>
-                    {userAppointments.map(appt => (
-                      <div key={appt.id} className="appt-history-item" style={{ padding: '1rem', border: '1px solid var(--glass-border)', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            {/* Notas Administrativas - Ancho completo */}
+            <div className="card glass-panel" style={{ display: 'flex', flexDirection: 'column' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                <FileText size={20} color="var(--primary-color)" />
+                <h3 style={{ margin: 0 }}>Notas Administrativas</h3>
+              </div>
+              <textarea 
+                value={adminNotes}
+                onChange={(e) => setAdminNotes(e.target.value)}
+                placeholder="Añade notas privadas sobre este paciente..."
+                style={{ width: '100%', minHeight: '120px', marginBottom: '1rem', background: 'var(--bg-color)', fontSize: '0.9rem', padding: '0.8rem', borderRadius: '8px', border: '1px solid var(--glass-border)', fontFamily: 'inherit' }}
+              />
+              <button className="btn-primary" onClick={handleSaveNotes} style={{ width: 'fit-content', alignSelf: 'flex-end', padding: '0.6rem 1.5rem' }}>Guardar Notas</button>
+            </div>
+
+            {/* Historial de Citas: Ancho completo */}
+            <div className="card glass-panel">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem' }}>
+                <Calendar size={20} color="var(--primary-color)" />
+                <h3 style={{ margin: 0 }}>Historial Completo de Citas</h3>
+              </div>
+              
+              {userAppointments.length > 0 ? (
+                <div style={{ display: 'grid', gap: '1rem' }}>
+                  {userAppointments.map(appt => (
+                    <div 
+                      key={appt.id} 
+                      className="appt-history-item" 
+                      style={{ 
+                        padding: '1.25rem', 
+                        background: 'var(--bg-color)',
+                        border: '1px solid var(--glass-border)', 
+                        borderRadius: '12px', 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'center',
+                        transition: 'transform 0.2s',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+                        <div style={{ 
+                          width: '45px', 
+                          height: '45px', 
+                          borderRadius: '10px', 
+                          background: 'white', 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center',
+                          boxShadow: '0 2px 5px rgba(0,0,0,0.05)',
+                          color: 'var(--primary-color)'
+                        }}>
+                          <Calendar size={20} />
+                        </div>
                         <div>
-                          <div style={{ fontWeight: 600 }}>{services.find(s => s.id === appt.serviceId)?.name || 'Servicio'}</div>
-                          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                            {new Date(appt.dateTimeStart).toLocaleString('es-ES', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '0.25rem' }}>
+                            {services.find(s => s.id === appt.serviceId)?.name || 'Servicio'}
+                          </div>
+                          <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <span style={{ color: 'var(--primary-color)', fontWeight: 600 }}>
+                              {new Date(appt.dateTimeStart).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}
+                            </span>
+                            <span>•</span>
+                            <span>{new Date(appt.dateTimeStart).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} h</span>
                           </div>
                         </div>
-                        <span className={`status-badge status-${appt.status}`}>{appt.status}</span>
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>Este cliente no tiene citas registradas.</p>
-                )}
-              </div>
-
-              {/* Columna Derecha: Notas y Otros */}
-              <div style={{ display: 'grid', gap: '1.5rem', alignContent: 'start' }}>
-                <div className="card glass-panel">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-                    <FileText size={20} color="var(--primary-color)" />
-                    <h3>Notas Administrativas</h3>
-                  </div>
-                  <textarea 
-                    value={adminNotes}
-                    onChange={(e) => setAdminNotes(e.target.value)}
-                    placeholder="Añade notas privadas sobre este paciente..."
-                    style={{ width: '100%', height: '150px', marginBottom: '1rem', background: 'var(--bg-color)', fontSize: '0.9rem' }}
-                  />
-                  <button className="btn-primary" onClick={handleSaveNotes} style={{ width: '100%' }}>Guardar Notas</button>
-                </div>
-
-                <div className="card glass-panel">
-                  <h3 style={{ marginBottom: '1rem' }}>Datos del Perfil</h3>
-                  <div style={{ display: 'grid', gap: '0.75rem', fontSize: '0.9rem' }}>
-                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                      <MapPin size={16} color="var(--text-secondary)" />
-                      <span>{selectedUser.address || <span style={{ opacity: 0.5 }}>Sin dirección</span>}</span>
+                      
+                      <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
+                        <span className={`status-badge status-${appt.status}`} style={{ padding: '0.4rem 0.8rem', borderRadius: '100px', fontSize: '0.75rem', fontWeight: 700 }}>
+                          {appt.status === 'PENDING' ? 'PENDIENTE' : 
+                           appt.status === 'CONFIRMED' ? 'CONFIRMADA' : 
+                           appt.status === 'COMPLETED' ? 'COMPLETADA' : 'CANCELADA'}
+                        </span>
+                        {appt.adminNotes && (
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontStyle: 'italic', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={appt.adminNotes}>
+                            📌 {appt.adminNotes}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  ))}
                 </div>
-              </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '4rem 2rem', background: 'var(--bg-color)', borderRadius: '15px', border: '1px dashed var(--glass-border)' }}>
+                  <Calendar size={48} style={{ opacity: 0.1, marginBottom: '1rem' }} />
+                  <p style={{ color: 'var(--text-secondary)', margin: 0 }}>Este cliente aún no ha realizado ninguna reserva.</p>
+                </div>
+              )}
             </div>
           </div>
         ) : (
@@ -227,6 +344,112 @@ export const AdminUsersPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Modal Editar Usuario */}
+      {showEditModal && selectedUser && (
+        <div className="modal-overlay">
+          <div className="modal-content animate-pop-in" style={{ maxWidth: '600px', width: '90%' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                <h2 style={{ margin: 0 }}>📝 Editar Ficha de Cliente</h2>
+                <button className="btn-icon" onClick={() => setShowEditModal(false)}><X /></button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '1rem' }}>
+              <div className="form-group">
+                <label>Nombre Completo</label>
+                <input 
+                  value={editName} 
+                  onChange={e => setEditName(e.target.value)} 
+                  placeholder="Nombre y apellidos"
+                  style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', background: 'var(--surface-color)', border: '1px solid var(--glass-border)' }}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Teléfono</label>
+                <input 
+                  value={editPhone} 
+                  onChange={e => setEditPhone(e.target.value)} 
+                  placeholder="Número de teléfono"
+                  style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', background: 'var(--surface-color)', border: '1px solid var(--glass-border)' }}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>DNI / NIE</label>
+                <input 
+                  value={editDni} 
+                  onChange={e => setEditDni(e.target.value)} 
+                  placeholder="Documento de identidad"
+                  style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', background: 'var(--surface-color)', border: '1px solid var(--glass-border)' }}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Código Postal</label>
+                <input 
+                  value={editCp} 
+                  onChange={e => setEditCp(e.target.value)} 
+                  placeholder="CP"
+                  style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', background: 'var(--surface-color)', border: '1px solid var(--glass-border)' }}
+                />
+              </div>
+            </div>
+
+            <div className="form-group" style={{ marginTop: '1rem' }}>
+              <label>Dirección</label>
+              <input 
+                value={editAddress} 
+                onChange={e => setEditAddress(e.target.value)} 
+                placeholder="Calle, número, piso..."
+                style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', background: 'var(--surface-color)', border: '1px solid var(--glass-border)' }}
+              />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1rem' }}>
+              <div className="form-group">
+                <label>Población</label>
+                <input 
+                  value={editCity} 
+                  onChange={e => setEditCity(e.target.value)} 
+                  placeholder="Ciudad / Pueblo"
+                  style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', background: 'var(--surface-color)', border: '1px solid var(--glass-border)' }}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Provincia</label>
+                <input 
+                  value={editProvince} 
+                  onChange={e => setEditProvince(e.target.value)} 
+                  placeholder="Provincia"
+                  style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', background: 'var(--surface-color)', border: '1px solid var(--glass-border)' }}
+                />
+              </div>
+            </div>
+
+            <div className="form-group" style={{ marginTop: '1.5rem', opacity: 0.7 }}>
+              <label>Correo Electrónico (No editable)</label>
+              <input 
+                value={selectedUser.email} 
+                readOnly
+                style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', background: 'var(--bg-color)', border: '1px solid var(--glass-border)', cursor: 'not-allowed' }}
+              />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.75rem' }}>
+                <Info size={14} />
+                <span>El email no se puede cambiar ya que es el identificador de acceso del cliente.</span>
+              </div>
+            </div>
+
+            <div className="modal-actions" style={{ marginTop: '2rem' }}>
+              <button className="btn-secondary" onClick={() => setShowEditModal(false)}>Cancelar</button>
+              <button className="btn-primary" onClick={handleSaveUserEdits} disabled={saving}>
+                {saving ? 'Guardando...' : 'Guardar Cambios'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
