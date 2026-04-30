@@ -83,6 +83,11 @@ service cloud.firestore {
       allow write: if isSignedIn() && getRole() in ['ADMIN', 'SUPER_ADMIN'];
     }
 
+    match /emailLogs/{document=**} {
+      allow read: if isSignedIn() && getRole() == 'SUPER_ADMIN';
+      allow write: if isSignedIn() && getRole() == 'SUPER_ADMIN';
+    }
+
     // --- CITAS / AGENDA ---
     match /appointments/{appointmentId} {
       // Lectura: Cualquier usuario logueado (para ver su agenda o la disponibilidad general)

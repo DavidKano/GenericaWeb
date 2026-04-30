@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { ShieldAlert, User as UserIcon, LogOut, Briefcase, Paintbrush, ShieldCheck, Code, Users, ExternalLink } from 'lucide-react';
+import { ShieldAlert, User as UserIcon, LogOut, Briefcase, Paintbrush, ShieldCheck, Code, Users, ExternalLink, Mail } from 'lucide-react';
 import { ConnessiaFooter } from '../ui/ConnessiaFooter';
 
 export const SuperAdminLayout: React.FC = () => {
@@ -74,6 +74,9 @@ export const SuperAdminLayout: React.FC = () => {
           </NavLink>
           <NavLink to="/superadmin/css" className={({ isActive }) => isActive ? 'active' : ''} style={({isActive}) => ({ color: isActive ? '#eab308' : '#9ca3af', borderLeft: isActive ? '3px solid #eab308' : '3px solid transparent', background: isActive ? 'rgba(234, 179, 8, 0.1)' : 'transparent'})}>
              <Code size={18} /> CSS Personalizado
+          </NavLink>
+          <NavLink to="/superadmin/email" className={({ isActive }) => isActive ? 'active' : ''} style={({isActive}) => ({ color: isActive ? '#eab308' : '#9ca3af', borderLeft: isActive ? '3px solid #eab308' : '3px solid transparent', background: isActive ? 'rgba(234, 179, 8, 0.1)' : 'transparent'})}>
+             <Mail size={18} /> Email Bienvenida
           </NavLink>
         </nav>
         

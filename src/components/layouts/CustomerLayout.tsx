@@ -42,7 +42,7 @@ export const CustomerLayout: React.FC = () => {
             <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
               <NavLink to="/profile" className="app-topbar__user" style={{ textDecoration: 'none' }}>
                 <UserIcon size={16} />
-                {user.name}
+                Perfil
               </NavLink>
               <button className="btn-logout" onClick={handleLogout} title="Cerrar sesión">
                 <LogOut size={16} />

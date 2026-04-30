@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useData } from '../context/DataContext';
-import { Briefcase, ShieldCheck, ShieldAlert, Code, Save, Loader2, UploadCloud, CheckCircle, Palette, Type, QrCode, Users, Search, Trash2, UserRoundCheck, UserRoundX } from 'lucide-react';
-import type { CompanyData, DesignConfig, User } from '../services/models';
+import { useAuth } from '../context/AuthContext';
+import { Briefcase, ShieldCheck, ShieldAlert, Code, Save, Loader2, UploadCloud, CheckCircle, Palette, Type, QrCode, Users, Search, Trash2, UserRoundCheck, UserRoundX, Mail, Send, Eye, XCircle } from 'lucide-react';
+import type { CompanyData, DesignConfig, User, EmailLog } from '../services/models';
 import QRCode from 'qrcode';
 import { getDefaultPrivacyPolicy, getDefaultTermsOfUse } from '../services/policyDefaults';
 
@@ -1203,6 +1204,288 @@ export const AdminCoreAccesos: React.FC = () => {
           <ShieldAlert size={20} /> {toastError}
         </div>
       )}
+    </div>
+  );
+};
+
+export const AdminCoreWelcomeEmail: React.FC = () => {
+  const { repo } = useData();
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
+  
+  const [clientName, setClientName] = useState('');
+  const [clientEmail, setClientEmail] = useState('');
+  const [businessName, setBusinessName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState('');
+  const [bookingUrl, setBookingUrl] = useState(window.location.origin + '/booking');
+  const [adminUrl, setAdminUrl] = useState(window.location.origin + '/admin');
+  const [adminUser, setAdminUser] = useState('');
+  const [passwordLink, setPasswordLink] = useState(window.location.origin + '/login');
+  const [businessHours, setBusinessHours] = useState('');
+  const [configuredServices, setConfiguredServices] = useState('');
+  const [appointmentDuration, setAppointmentDuration] = useState('');
+  const [subject, setSubject] = useState('Bienvenido/a a Connessia: tu agenda online ya está activa');
+
+  const [showPreview, setShowPreview] = useState(false);
+  const [emailLogs, setEmailLogs] = useState<EmailLog[]>([]);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [company, services, logs, schedules] = await Promise.all([
+          repo.getCompanyData().catch(e => { console.error(e); return null; }),
+          repo.getServices().catch(e => { console.error(e); return []; }),
+          (repo.getEmailLogs ? repo.getEmailLogs() : Promise.resolve([])).catch(e => { console.error(e); return []; }),
+          repo.getSchedules().catch(e => { console.error(e); return []; })
+        ]);
+        
+        if (company) {
+          setClientName(company.personaContacto || '');
+          setClientEmail(company.contactEmail || company.supportEmail || '');
+          setBusinessName(company.nombreEmpresa || '');
+          setPhone(company.telefono || '');
+          setAddress(`${company.direccion || ''}, ${company.cp || ''} ${company.localidad || ''}`.trim().replace(/^,|,$/g, '').trim());
+          setAdminUser(company.contactEmail || '');
+        }
+
+        if (services && services.length > 0) {
+          setConfiguredServices(services.map(s => s.name).join(', '));
+          const durations = services.map(s => s.durationMin);
+          const minD = Math.min(...durations);
+          const maxD = Math.max(...durations);
+          setAppointmentDuration(minD === maxD ? `${minD} minutos` : `Entre ${minD} y ${maxD} minutos`);
+        }
+        
+        if (schedules && schedules.length > 0) {
+          const openSchedules = schedules.filter(s => s.isOpen && s.ranges.length > 0);
+          if (openSchedules.length > 0) {
+             const firstRanges = openSchedules[0].ranges.map(r => `${r.start}-${r.end}`).join(', ');
+             setBusinessHours(`L-V ${firstRanges}`);
+          }
+        }
+        
+        if (logs) {
+           setEmailLogs(logs.sort((a,b) => b.sentAt - a.sentAt));
+        }
+      } catch (err) {
+        console.error("Error loading email data", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, [repo]);
+
+  const generateEmailBody = () => {
+    return `Hola, ${clientName || '[Nombre Cliente]'}.
+
+Tu nueva agenda online con Connessia ya está activa.
+
+Desde hoy, tu negocio cuenta con una herramienta preparada para recibir reservas, organizar citas y facilitar que tus clientes puedan contactar contigo de una forma más cómoda y rápida.
+
+Hemos preparado tu espacio personalizado con los datos principales de tu negocio, tu horario, tus servicios y tu panel de administración.
+
+Puedes compartir este enlace con tus clientes para que puedan reservar cita:
+
+${bookingUrl}
+
+Y desde este otro enlace podrás acceder a tu zona privada de administración:
+
+${adminUrl}
+
+Datos de acceso:
+
+Usuario: ${adminUser}
+Enlace para crear/restablecer contraseña: ${passwordLink}
+
+Desde el panel podrás:
+
+- Consultar tus próximas citas.
+- Gestionar horarios disponibles.
+- Bloquear días concretos.
+- Revisar la información de tus clientes.
+- Mantener tu agenda actualizada desde cualquier dispositivo.
+
+También hemos configurado inicialmente:
+
+Negocio: ${businessName}
+Horario: ${businessHours || 'Configurado en el panel'}
+Servicios: ${configuredServices}
+Duración de cita: ${appointmentDuration}
+Dirección: ${address}
+
+Te recomendamos guardar este correo, ya que contiene los accesos principales a tu sistema.
+
+Connessia nace para que los negocios puedan trabajar de forma más ordenada, evitar pérdidas de tiempo y ofrecer a sus clientes una experiencia de reserva mucho más sencilla.
+
+Gracias por confiar en nosotros para digitalizar la gestión de tus citas.
+
+Un saludo,
+
+Tu equipo de Connessia`;
+  };
+
+  const handleSendEmail = async () => {
+    if (!clientEmail || !clientName) {
+      alert("Por favor, rellena al menos el Nombre del cliente y el Email del cliente.");
+      return;
+    }
+
+    try {
+      if (repo.saveEmailLog && user) {
+        const newLog: EmailLog = {
+          id: `log-${Date.now()}`,
+          sentAt: Date.now(),
+          recipientName: clientName,
+          recipientEmail: clientEmail,
+          subject: subject,
+          sentByUserId: user.id
+        };
+        await repo.saveEmailLog(newLog);
+        setEmailLogs([newLog, ...emailLogs]);
+      }
+      
+      const body = generateEmailBody();
+      const mailtoLink = `mailto:${clientEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      window.location.href = mailtoLink;
+      
+    } catch (err) {
+      console.error(err);
+      alert("Error al registrar el envío.");
+    }
+  };
+
+  if (loading) return <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}><Loader2 className="animate-spin" size={32} style={{ margin: '0 auto' }}/></div>;
+
+  return (
+    <div className="animate-fade-in" style={{ background: '#1f2937', padding: '2rem', borderRadius: '12px', border: '1px solid #374151' }}>
+      <h2 style={{ color: '#fff', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <Mail color="#eab308" /> Email de Bienvenida
+      </h2>
+      <p style={{ color: '#9ca3af', marginBottom: '2rem', fontSize: '0.9rem' }}>
+        Envía a tu cliente los credenciales y detalles de su nueva agenda online. Esto abrirá tu cliente de correo (Outlook/Mail) con todo preparado.
+      </p>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2rem' }}>
+        <div className="form-group">
+          <label style={{ color: '#d1d5db' }}>Nombre del Cliente</label>
+          <input type="text" value={clientName} onChange={e => setClientName(e.target.value)} placeholder="Ej: Carlos" style={{ background: '#111827', color: '#fff', border: '1px solid #4b5563', width: '100%', padding: '0.75rem', borderRadius: '8px' }} />
+        </div>
+        <div className="form-group">
+          <label style={{ color: '#d1d5db' }}>Email del Cliente</label>
+          <input type="email" value={clientEmail} onChange={e => setClientEmail(e.target.value)} placeholder="carlos@negocio.com" style={{ background: '#111827', color: '#fff', border: '1px solid #4b5563', width: '100%', padding: '0.75rem', borderRadius: '8px' }} />
+        </div>
+        
+        <div className="form-group">
+          <label style={{ color: '#d1d5db' }}>Nombre del Negocio</label>
+          <input type="text" value={businessName} onChange={e => setBusinessName(e.target.value)} style={{ background: '#111827', color: '#fff', border: '1px solid #4b5563', width: '100%', padding: '0.75rem', borderRadius: '8px' }} />
+        </div>
+        <div className="form-group">
+          <label style={{ color: '#d1d5db' }}>Teléfono</label>
+          <input type="text" value={phone} onChange={e => setPhone(e.target.value)} style={{ background: '#111827', color: '#fff', border: '1px solid #4b5563', width: '100%', padding: '0.75rem', borderRadius: '8px' }} />
+        </div>
+        
+        <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+          <label style={{ color: '#d1d5db' }}>Dirección</label>
+          <input type="text" value={address} onChange={e => setAddress(e.target.value)} style={{ background: '#111827', color: '#fff', border: '1px solid #4b5563', width: '100%', padding: '0.75rem', borderRadius: '8px' }} />
+        </div>
+
+        <div className="form-group">
+          <label style={{ color: '#d1d5db' }}>URL Web Reservas</label>
+          <input type="text" value={bookingUrl} onChange={e => setBookingUrl(e.target.value)} style={{ background: '#111827', color: '#fff', border: '1px solid #4b5563', width: '100%', padding: '0.75rem', borderRadius: '8px' }} />
+        </div>
+        <div className="form-group">
+          <label style={{ color: '#d1d5db' }}>URL Panel de Administración</label>
+          <input type="text" value={adminUrl} onChange={e => setAdminUrl(e.target.value)} style={{ background: '#111827', color: '#fff', border: '1px solid #4b5563', width: '100%', padding: '0.75rem', borderRadius: '8px' }} />
+        </div>
+        
+        <div className="form-group">
+          <label style={{ color: '#d1d5db' }}>Usuario Administrador</label>
+          <input type="text" value={adminUser} onChange={e => setAdminUser(e.target.value)} style={{ background: '#111827', color: '#fff', border: '1px solid #4b5563', width: '100%', padding: '0.75rem', borderRadius: '8px' }} />
+        </div>
+        <div className="form-group">
+          <label style={{ color: '#d1d5db' }}>Enlace Restablecer Contraseña</label>
+          <input type="text" value={passwordLink} onChange={e => setPasswordLink(e.target.value)} style={{ background: '#111827', color: '#fff', border: '1px solid #4b5563', width: '100%', padding: '0.75rem', borderRadius: '8px' }} />
+        </div>
+        
+        <div className="form-group">
+          <label style={{ color: '#d1d5db' }}>Horario del Negocio</label>
+          <input type="text" value={businessHours} onChange={e => setBusinessHours(e.target.value)} placeholder="Ej: L-V 09:00 a 14:00" style={{ background: '#111827', color: '#fff', border: '1px solid #4b5563', width: '100%', padding: '0.75rem', borderRadius: '8px' }} />
+        </div>
+        <div className="form-group">
+          <label style={{ color: '#d1d5db' }}>Duración Citas</label>
+          <input type="text" value={appointmentDuration} onChange={e => setAppointmentDuration(e.target.value)} style={{ background: '#111827', color: '#fff', border: '1px solid #4b5563', width: '100%', padding: '0.75rem', borderRadius: '8px' }} />
+        </div>
+        
+        <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+          <label style={{ color: '#d1d5db' }}>Servicios Configurados</label>
+          <input type="text" value={configuredServices} onChange={e => setConfiguredServices(e.target.value)} style={{ background: '#111827', color: '#fff', border: '1px solid #4b5563', width: '100%', padding: '0.75rem', borderRadius: '8px' }} />
+        </div>
+        
+        <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+          <label style={{ color: '#d1d5db' }}>Asunto del Email</label>
+          <input type="text" value={subject} onChange={e => setSubject(e.target.value)} style={{ background: '#111827', color: '#fff', border: '1px solid #4b5563', width: '100%', padding: '0.75rem', borderRadius: '8px' }} />
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', gap: '1rem', borderTop: '1px solid #374151', paddingTop: '2rem' }}>
+        <button className="btn-secondary" onClick={() => setShowPreview(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#374151', color: '#fff', border: 'none' }}>
+          <Eye size={18} /> Vista Previa
+        </button>
+        <button className="btn-primary" onClick={handleSendEmail} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#eab308', color: '#111' }}>
+          <Send size={18} /> Preparar y Enviar Email
+        </button>
+      </div>
+
+      {showPreview && (
+        <div className="modal-overlay" onClick={() => setShowPreview(false)}>
+          <div className="modal-content animate-pop-in" onClick={e => e.stopPropagation()} style={{ background: '#1f2937', color: '#fff', maxWidth: '700px', border: '1px solid #374151' }}>
+             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #374151', paddingBottom: '1rem' }}>
+                <h3 style={{ margin: 0, color: '#eab308' }}>Vista Previa del Email</h3>
+                <button className="btn-icon" onClick={() => setShowPreview(false)} style={{ color: '#9ca3af' }}><XCircle /></button>
+            </div>
+            <div style={{ marginBottom: '1rem', color: '#9ca3af', fontSize: '0.9rem' }}>
+              <strong>Asunto:</strong> {subject}
+            </div>
+            <div style={{ background: '#111827', padding: '1.5rem', borderRadius: '8px', whiteSpace: 'pre-wrap', fontFamily: 'monospace', fontSize: '0.9rem', lineHeight: '1.5', border: '1px solid #374151', maxHeight: '50vh', overflowY: 'auto' }}>
+              {generateEmailBody()}
+            </div>
+            <div style={{ marginTop: '1.5rem', textAlign: 'right' }}>
+              <button className="btn-primary" onClick={() => { setShowPreview(false); handleSendEmail(); }} style={{ background: '#eab308', color: '#111' }}>
+                 Enviar Ahora
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Historial */}
+      <div style={{ marginTop: '3rem' }}>
+        <h3 style={{ color: '#fff', marginBottom: '1rem', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+           Historial de Envíos
+        </h3>
+        {emailLogs.length === 0 ? (
+          <div style={{ padding: '2rem', textAlign: 'center', border: '1px dashed #374151', borderRadius: '8px', color: '#9ca3af' }}>
+            No hay registros de correos de bienvenida enviados.
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gap: '0.5rem' }}>
+            {emailLogs.map(log => (
+              <div key={log.id} style={{ background: '#111827', padding: '1rem', borderRadius: '8px', border: '1px solid #374151', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <strong style={{ color: '#eab308', display: 'block', marginBottom: '0.25rem' }}>{log.recipientName}</strong>
+                  <span style={{ color: '#9ca3af', fontSize: '0.85rem' }}>{log.recipientEmail}</span>
+                </div>
+                <div style={{ textAlign: 'right', color: '#9ca3af', fontSize: '0.85rem' }}>
+                  {new Date(log.sentAt).toLocaleString()}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
     </div>
   );
 };

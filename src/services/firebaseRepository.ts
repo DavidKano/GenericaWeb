@@ -1,5 +1,5 @@
 import type { DataRepository } from './repository';
-import type { User, BookingService, Appointment, BusinessConfig, DaySchedule, BlockedDay, CompanyData, DesignConfig, PromoOffer } from './models';
+import type { User, BookingService, Appointment, BusinessConfig, DaySchedule, BlockedDay, CompanyData, DesignConfig, PromoOffer, EmailLog } from './models';
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import type { FirebaseOptions } from 'firebase/app';
 import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc, getDoc, onSnapshot } from 'firebase/firestore';
@@ -140,5 +140,15 @@ export class FirebaseRepository implements DataRepository {
 
   async deletePromoOffer(id: string): Promise<void> {
     await deleteDoc(doc(this.db, 'promoOffers', id));
+  }
+
+  // --- Email Logs ---
+  async getEmailLogs(): Promise<EmailLog[]> {
+    const snapshot = await getDocs(collection(this.db, 'emailLogs'));
+    return snapshot.docs.map(doc => doc.data() as EmailLog);
+  }
+
+  async saveEmailLog(log: EmailLog): Promise<void> {
+    await setDoc(doc(this.db, 'emailLogs', log.id), log);
   }
 }

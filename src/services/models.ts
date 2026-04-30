@@ -108,3 +108,12 @@ export interface PromoOffer {
   designSeed?: number;
   legalDisclaimer?: string;
 }
+
+export interface EmailLog {
+  id: string;
+  sentAt: number; // timestamp
+  recipientName: string;
+  recipientEmail: string;
+  subject: string;
+  sentByUserId: string;
+}
