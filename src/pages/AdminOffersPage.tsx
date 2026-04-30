@@ -171,13 +171,13 @@ export const AdminOffersPage: React.FC = () => {
             
             <div className="form-group" style={{ marginBottom: '1.5rem' }}>
               <label>Tipo de Oferta</label>
-              <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
+              <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '1rem', marginTop: '0.5rem' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 'normal' }}>
-                  <input type="radio" value="image" checked={offerType === 'image'} onChange={() => setOfferType('image')} />
+                  <input type="radio" value="image" checked={offerType === 'image'} onChange={() => setOfferType('image')} style={{ width: 'auto', margin: 0 }} />
                   Subir Imagen
                 </label>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 'normal' }}>
-                  <input type="radio" value="text" checked={offerType === 'text'} onChange={() => setOfferType('text')} />
+                  <input type="radio" value="text" checked={offerType === 'text'} onChange={() => setOfferType('text')} style={{ width: 'auto', margin: 0 }} />
                   Diseño de Texto Automático
                 </label>
               </div>
@@ -250,7 +250,7 @@ export const AdminOffersPage: React.FC = () => {
               </div>
             )}
 
-            <div style={{ display: 'flex', gap: '1rem' }}>
+            <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '1rem' }}>
               <div className="form-group" style={{ flex: 1 }}>
                 <label>Desde Fecha</label>
                 <input 
@@ -274,13 +274,13 @@ export const AdminOffersPage: React.FC = () => {
             
             <div className="form-group" style={{ marginBottom: '1.5rem' }}>
               <label>Modo de Visualización</label>
-              <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
+              <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '1rem', marginTop: '0.5rem' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 'normal' }}>
-                  <input type="radio" value="popup" checked={displayMode === 'popup'} onChange={() => setDisplayMode('popup')} />
+                  <input type="radio" value="popup" checked={displayMode === 'popup'} onChange={() => setDisplayMode('popup')} style={{ width: 'auto', margin: 0 }} />
                   Ventana Emergente (Pop-up)
                 </label>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 'normal' }}>
-                  <input type="radio" value="inline" checked={displayMode === 'inline'} onChange={() => setDisplayMode('inline')} />
+                  <input type="radio" value="inline" checked={displayMode === 'inline'} onChange={() => setDisplayMode('inline')} style={{ width: 'auto', margin: 0 }} />
                   Integrada bajo los servicios
                 </label>
               </div>

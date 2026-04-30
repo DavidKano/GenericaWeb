@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import type { User, Appointment, BookingService } from '../services/models';
-import { Search, User as UserIcon, Calendar, FileText, ChevronRight, Phone, Mail, MapPin, Edit, X, Info } from 'lucide-react';
+import { Search, User as UserIcon, Calendar, FileText, ChevronRight, Phone, Mail, MapPin, Edit, X, Info, Trash2 } from 'lucide-react';
 
 export const AdminUsersPage: React.FC = () => {
   const { repo } = useData();
@@ -80,6 +80,25 @@ export const AdminUsersPage: React.FC = () => {
       } catch (err: any) {
         console.error('Error al guardar notas:', err);
         alert(`Error al guardar: ${err.message}`);
+      }
+    }
+  };
+
+  const handleDeleteUser = async () => {
+    if (selectedUser) {
+      if (window.confirm('¿Estás seguro de que quieres eliminar a este cliente? Esta acción no se puede deshacer.')) {
+        if (window.confirm('¿Confirmas definitivamente la eliminación de este usuario y todos sus datos?')) {
+          setSaving(true);
+          try {
+            await repo.deleteUser(selectedUser.id);
+            setSelectedUserId(null);
+            await loadData();
+          } catch (err: any) {
+            alert(`Error al eliminar: ${err.message}`);
+          } finally {
+            setSaving(false);
+          }
+        }
       }
     }
   };
@@ -201,7 +220,7 @@ export const AdminUsersPage: React.FC = () => {
       </div>
 
       {/* Detalle del Usuario */}
-      <div className="user-detail-content" style={{ overflowY: 'auto' }}>
+      <div className="user-detail-content" style={{ overflowY: 'auto', overflowX: 'hidden' }}>
         {selectedUser ? (
           <div className="animate-fade-in" style={{ display: 'grid', gap: '1.5rem' }}>
             {/* Header / Info Básica */}
@@ -218,6 +237,13 @@ export const AdminUsersPage: React.FC = () => {
                     title="Editar datos del cliente"
                   >
                     <Edit size={18} />
+                  </button>
+                  <button 
+                    onClick={handleDeleteUser}
+                    style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '4px' }}
+                    title="Eliminar cliente"
+                  >
+                    <Trash2 size={18} />
                   </button>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -257,7 +283,7 @@ export const AdminUsersPage: React.FC = () => {
                 value={adminNotes}
                 onChange={(e) => setAdminNotes(e.target.value)}
                 placeholder="Añade notas privadas sobre este paciente..."
-                style={{ width: '100%', minHeight: '120px', marginBottom: '1rem', background: 'var(--bg-color)', fontSize: '0.9rem', padding: '0.8rem', borderRadius: '8px', border: '1px solid var(--glass-border)', fontFamily: 'inherit' }}
+                style={{ width: '100%', minHeight: '120px', marginBottom: '1rem', background: 'var(--bg-color)', fontSize: '0.9rem', padding: '0.8rem', borderRadius: '8px', border: '1px solid var(--glass-border)', fontFamily: 'inherit', resize: 'vertical' }}
               />
               <button className="btn-primary" onClick={handleSaveNotes} style={{ width: 'fit-content', alignSelf: 'flex-end', padding: '0.6rem 1.5rem' }}>Guardar Notas</button>
             </div>

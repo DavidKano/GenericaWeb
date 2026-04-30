@@ -81,7 +81,7 @@ export const AdminDashboard: React.FC = () => {
   const [newDays, setNewDays] = useState(0);
   const [newHours, setNewHours] = useState(0);
   const [newMinutes, setNewMinutes] = useState(0);
-  const [newPrice, setNewPrice] = useState(0);
+  const [newPrice, setNewPrice] = useState<number | string>('');
   const [newColor, setNewColor] = useState('#3174ad');
   const [newIsActive, setNewIsActive] = useState(true);
   const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
@@ -181,7 +181,7 @@ export const AdminDashboard: React.FC = () => {
       id: editingServiceId || 'svc-' + Date.now(),
       name: newName,
       durationMin: totalDuration,
-      price: newPrice || undefined,
+      price: newPrice !== '' && newPrice !== undefined ? Number(newPrice) : undefined,
       color: newColor,
       isActive: newIsActive,
     };
@@ -206,7 +206,7 @@ export const AdminDashboard: React.FC = () => {
     setNewDays(0);
     setNewHours(0);
     setNewMinutes(0);
-    setNewPrice(0);
+    setNewPrice('');
     setNewColor('#3174ad');
     setNewIsActive(true);
     setEditingServiceId(null);
@@ -226,7 +226,7 @@ export const AdminDashboard: React.FC = () => {
     setNewHours(h);
     setNewMinutes(m);
     
-    setNewPrice(svc.price || 0);
+    setNewPrice(svc.price !== undefined ? svc.price : '');
     setNewColor(svc.color || '#3174ad');
     setNewIsActive(svc.isActive !== false);
     setShowModal(true);
@@ -844,7 +844,7 @@ export const AdminDashboard: React.FC = () => {
             </div>
             <div className="form-group">
               <label>Precio (€, opcional)</label>
-              <input type="number" value={newPrice} onChange={e => setNewPrice(Number(e.target.value))} />
+              <input type="number" value={newPrice} onChange={e => setNewPrice(e.target.value === '' ? '' : Number(e.target.value))} />
             </div>
             <div className="form-group">
               <label>Color en el Calendario</label>
