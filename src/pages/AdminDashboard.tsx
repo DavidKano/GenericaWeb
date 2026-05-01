@@ -176,28 +176,46 @@ export const AdminDashboard: React.FC = () => {
 
   const addOrUpdateService = async () => {
     if (!newName.trim()) return;
-    const totalDuration = (newDays * 1440) + (newHours * 60) + newMinutes;
-    const svc: BookingService = {
-      id: editingServiceId || 'svc-' + Date.now(),
-      name: newName,
-      durationMin: totalDuration,
-      price: newPrice !== '' && newPrice !== undefined ? Number(newPrice) : undefined,
-      color: newColor,
-      isActive: newIsActive,
-    };
-    await repo.saveService(svc);
-    setShowModal(false);
-    resetServiceForm();
-    loadData();
+    
+    try {
+      const totalDuration = (newDays * 1440) + (newHours * 60) + newMinutes;
+      const svc: BookingService = {
+        id: editingServiceId || 'svc-' + Date.now(),
+        name: newName,
+        durationMin: totalDuration,
+        color: newColor,
+        isActive: newIsActive,
+      };
+      
+      // Solo incluimos el precio si tiene un valor válido para evitar errores en Firebase (unsupported field value: undefined)
+      if (newPrice !== '' && newPrice !== undefined && newPrice !== null) {
+        svc.price = Number(newPrice);
+      }
+
+      await repo.saveService(svc);
+      setShowModal(false);
+      resetServiceForm();
+      loadData();
+      // No alert here to avoid friction, but the modal closing is feedback enough. 
+      // If we wanted success feedback: alert('Servicio guardado correctamente');
+    } catch (error: any) {
+      console.error('Error saving service:', error);
+      alert('Error al guardar el servicio: ' + (error.message || 'Error desconocido'));
+    }
   };
 
   const deleteService = async () => {
     if (!editingServiceId) return;
     if (window.confirm('¿Estás seguro de que deseas eliminar este servicio? Esta acción no se puede deshacer.')) {
-      await repo.deleteService(editingServiceId);
-      setShowModal(false);
-      resetServiceForm();
-      loadData();
+      try {
+        await repo.deleteService(editingServiceId);
+        setShowModal(false);
+        resetServiceForm();
+        loadData();
+      } catch (error: any) {
+        console.error('Error deleting service:', error);
+        alert('Error al eliminar el servicio: ' + (error.message || 'Error desconocido'));
+      }
     }
   };
 
@@ -275,14 +293,24 @@ export const AdminDashboard: React.FC = () => {
   };
 
   const saveAllSchedules = async () => {
-    await repo.saveSchedules(schedules);
-    alert('Horarios guardados correctamente');
+    try {
+      await repo.saveSchedules(schedules);
+      alert('Horarios guardados correctamente');
+    } catch (error: any) {
+      console.error('Error saving schedules:', error);
+      alert('Error al guardar horarios: ' + (error.message || 'Error desconocido'));
+    }
   };
 
   const saveGlobalConfig = async () => {
     if (config) {
-      await repo.saveConfig(config);
-      alert('Configuración guardada');
+      try {
+        await repo.saveConfig(config);
+        alert('Configuración guardada');
+      } catch (error: any) {
+        console.error('Error saving config:', error);
+        alert('Error al guardar configuración: ' + (error.message || 'Error desconocido'));
+      }
     }
   };
 
@@ -426,11 +454,15 @@ export const AdminDashboard: React.FC = () => {
 
   const updateAppointment = async (updatedFields: Partial<Appointment>) => {
     if (!selectedEvent) return;
-    const updatedAppt = { ...selectedEvent.resource, ...updatedFields };
-    await repo.saveAppointment(updatedAppt);
-    // Refresh modal local state if status changes dynamically, but typically we close or reload
-    setShowEventModal(false);
-    loadData();
+    try {
+      const updatedAppt = { ...selectedEvent.resource, ...updatedFields };
+      await repo.saveAppointment(updatedAppt);
+      setShowEventModal(false);
+      loadData();
+    } catch (error: any) {
+      console.error('Error updating appointment:', error);
+      alert('Error al actualizar la cita: ' + (error.message || 'Error desconocido'));
+    }
   };
 
   const handleSaveManualAppt = async () => {
