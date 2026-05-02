@@ -6,7 +6,7 @@ import {
   Download, 
   Share2, 
   Loader2, 
-  Smartphone 
+  Smartphone
 } from 'lucide-react';
 import type { DesignConfig } from '../services/models';
 
@@ -41,6 +41,117 @@ export const AdminPromotePage: React.FC = () => {
         }
     }).then(setAdminQr).catch(err => console.error(err));
   }, [repo]);
+
+  const handlePrintCard = () => {
+    if (!design?.qrCardUrl) return;
+    
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Tarjeta de Instalación</title>
+            <style>
+              body { 
+                margin: 0; 
+                display: flex; 
+                justify-content: center; 
+                align-items: center; 
+                min-height: 100vh; 
+                background: #f1f5f9;
+                font-family: system-ui, -apple-system, sans-serif;
+              }
+              .container {
+                background: white;
+                padding: 2.5rem;
+                border-radius: 24px;
+                box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+                text-align: center;
+                max-width: 90%;
+              }
+              img { 
+                max-width: 100%; 
+                height: auto; 
+                display: block;
+                border-radius: 16px;
+                margin: 0 auto;
+              }
+              .actions {
+                margin-bottom: 2rem;
+                display: flex;
+                justify-content: center;
+                gap: 1rem;
+                flex-wrap: wrap;
+              }
+              button, .btn {
+                border: none;
+                padding: 0.8rem 1.5rem;
+                border-radius: 12px;
+                font-weight: 600;
+                cursor: pointer;
+                font-size: 1rem;
+                transition: all 0.2s;
+                text-decoration: none;
+                display: inline-flex;
+                align-items: center;
+                gap: 0.5rem;
+              }
+              button:hover, .btn:hover {
+                transform: translateY(-2px);
+                filter: brightness(1.1);
+              }
+              .btn-print { background: #059669; color: white; }
+              .btn-download { background: #2563eb; color: white; }
+              
+              @media print {
+                body { background: white; }
+                .container { box-shadow: none; padding: 0; max-width: none; }
+                .actions { display: none; }
+                img { width: 100%; border-radius: 0; }
+              }
+            </style>
+            <script>
+              async function downloadImage(url, filename) {
+                try {
+                  const response = await fetch(url);
+                  const blob = await response.blob();
+                  const blobUrl = window.URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = blobUrl;
+                  a.download = filename;
+                  document.body.appendChild(a);
+                  a.click();
+                  window.URL.revokeObjectURL(blobUrl);
+                  document.body.removeChild(a);
+                } catch (e) {
+                  // Fallback if fetch fails (CORS)
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = filename;
+                  a.target = '_blank';
+                  a.click();
+                }
+              }
+            </script>
+          </head>
+          <body>
+            <div class="container">
+              <div class="actions">
+                <button class="btn btn-print" onclick="window.print()">
+                   Imprimir tarjeta
+                </button>
+                <button class="btn btn-download" onclick="downloadImage('${design.qrCardUrl}', 'Tarjeta-QR.jpg')">
+                   Descargar Imagen
+                </button>
+              </div>
+              <img src="${design.qrCardUrl}" />
+            </div>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+    }
+  };
 
   if (loading) {
     return (
@@ -102,14 +213,13 @@ export const AdminPromotePage: React.FC = () => {
                         <p>El Super Admin aún no ha generado la tarjeta gráfica QR.</p>
                     </div>
                 )}
-                <a 
-                    href={design?.qrCardUrl || '#'} 
-                    download="Instalacion-App-Clientes.jpg"
+                <button 
+                    onClick={handlePrintCard}
                     className="btn-primary" 
-                    style={{ width: '100%', maxWidth: '350px', display: 'flex', justifyContent: 'center', gap: '0.5rem', alignItems: 'center', textDecoration: 'none' }}
+                    style={{ width: '100%', maxWidth: '350px', display: 'flex', justifyContent: 'center', gap: '0.5rem', alignItems: 'center' }}
                 >
-                    <Download size={18} /> Descargar Cartel QR
-                </a>
+                    Imprimir/descargar tarjeta
+                </button>
               </>
           ) : (
               <>
