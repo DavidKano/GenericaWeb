@@ -1016,14 +1016,56 @@ export const AdminDashboard: React.FC = () => {
             </p>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-              <div className="form-group">
+              <div className="form-group" style={{ position: 'relative' }}>
                 <label>Nombre del Cliente</label>
                 <input 
                   value={mName} 
                   onChange={e => setMName(e.target.value)} 
                   placeholder="Ej: Juan Pérez"
+                  autoComplete="off"
                   style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', background: 'var(--surface-color)', border: '1px solid var(--glass-border)', color: 'var(--text-primary)' }}
                 />
+                {mName && mName.length >= 2 && users.some(u => u.name.toLowerCase().includes(mName.toLowerCase()) && u.role === 'CUSTOMER' && !(u.name === mName && u.phone === mPhone)) && (
+                  <ul style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    right: 0,
+                    background: 'var(--surface-color)',
+                    border: '1px solid var(--glass-border)',
+                    borderRadius: '8px',
+                    maxHeight: '200px',
+                    overflowY: 'auto',
+                    zIndex: 50,
+                    margin: '4px 0 0 0',
+                    padding: 0,
+                    listStyle: 'none',
+                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)'
+                  }}>
+                    {users.filter(u => u.name.toLowerCase().includes(mName.toLowerCase()) && u.role === 'CUSTOMER' && !(u.name === mName && u.phone === mPhone)).map(user => (
+                      <li 
+                        key={user.id}
+                        onClick={() => {
+                          setMName(user.name);
+                          setMPhone(user.phone || '');
+                        }}
+                        style={{
+                          padding: '0.8rem',
+                          cursor: 'pointer',
+                          borderBottom: '1px solid var(--glass-border)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          color: 'var(--text-primary)'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                      >
+                        <span style={{ fontWeight: '600' }}>{user.name}</span>
+                        {user.phone && <span style={{ fontSize: '0.8rem', opacity: 0.8 }}>{user.phone}</span>}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
               <div className="form-group">
                 <label>Teléfono</label>
