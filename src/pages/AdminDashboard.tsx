@@ -103,6 +103,7 @@ export const AdminDashboard: React.FC = () => {
   const [showNewApptModal, setShowNewApptModal] = useState(false);
   const [mName, setMName] = useState('');
   const [mPhone, setMPhone] = useState('');
+  const [mEmail, setMEmail] = useState('');
   const [mServiceId, setMServiceId] = useState('');
   const [mDate, setMDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [mTime, setMTime] = useState('10:00');
@@ -478,13 +479,16 @@ export const AdminDashboard: React.FC = () => {
       
       if (existingUser) {
         userId = existingUser.id;
+        if (mEmail && !existingUser.email) {
+          await repo.saveUser({ ...existingUser, email: mEmail });
+        }
       } else {
         userId = 'usr-' + Date.now();
         const newUser: User = {
           id: userId,
           name: mName,
           phone: mPhone,
-          email: '', // Manual doesn't strictly need email
+          email: mEmail,
           role: 'CUSTOMER'
         };
         await repo.saveUser(newUser);
@@ -507,6 +511,7 @@ export const AdminDashboard: React.FC = () => {
       // Reset
       setMName('');
       setMPhone('');
+      setMEmail('');
       setMServiceId('');
       setMNotes('');
       setMTime('10:00');
@@ -1048,7 +1053,7 @@ export const AdminDashboard: React.FC = () => {
             </p>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-              <div className="form-group" style={{ position: 'relative' }}>
+              <div className="form-group" style={{ position: 'relative', gridColumn: '1 / -1' }}>
                 <label>Nombre del Cliente</label>
                 <input 
                   value={mName} 
@@ -1057,7 +1062,7 @@ export const AdminDashboard: React.FC = () => {
                   autoComplete="off"
                   style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', background: 'var(--surface-color)', border: '1px solid var(--glass-border)', color: 'var(--text-primary)' }}
                 />
-                {mName && mName.length >= 2 && users.some(u => u.name.toLowerCase().includes(mName.toLowerCase()) && u.role === 'CUSTOMER' && !(u.name === mName && u.phone === mPhone)) && (
+                {mName && mName.length >= 2 && (
                   <ul style={{
                     position: 'absolute',
                     top: '100%',
@@ -1080,6 +1085,7 @@ export const AdminDashboard: React.FC = () => {
                         onClick={() => {
                           setMName(user.name);
                           setMPhone(user.phone || '');
+                          setMEmail(user.email || '');
                         }}
                         style={{
                           padding: '0.8rem',
@@ -1096,6 +1102,11 @@ export const AdminDashboard: React.FC = () => {
                         {user.phone && <span style={{ fontSize: '0.8rem', opacity: 0.8 }}>{user.phone}</span>}
                       </li>
                     ))}
+                    {!users.some(u => u.name.toLowerCase() === mName.toLowerCase() && u.role === 'CUSTOMER') && (
+                       <li style={{ padding: '0.8rem', color: '#10b981', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                         <Plus size={14} /> Cliente no registrado (se creará ficha nueva)
+                       </li>
+                    )}
                   </ul>
                 )}
               </div>
@@ -1105,6 +1116,16 @@ export const AdminDashboard: React.FC = () => {
                   value={mPhone} 
                   onChange={e => setMPhone(e.target.value)} 
                   placeholder="Ej: 600123456"
+                  style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', background: 'var(--surface-color)', border: '1px solid var(--glass-border)', color: 'var(--text-primary)' }}
+                />
+              </div>
+              <div className="form-group">
+                <label>Email <small>(opcional)</small></label>
+                <input 
+                  type="email"
+                  value={mEmail} 
+                  onChange={e => setMEmail(e.target.value)} 
+                  placeholder="Ej: correo@ejemplo.com"
                   style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', background: 'var(--surface-color)', border: '1px solid var(--glass-border)', color: 'var(--text-primary)' }}
                 />
               </div>

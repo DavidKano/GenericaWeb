@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useData } from '../context/DataContext';
 import type { DaySchedule, BlockedDay, TimeRange } from '../services/models';
-import { Clock, CalendarOff, Plus, Trash2, Save, Loader2 } from 'lucide-react';
+import { Clock, CalendarOff, Plus, Trash2, Save, Loader2, Edit2, X } from 'lucide-react';
 import { INITIAL_SCHEDULES } from '../services/scheduleDefaults';
 import { format, parseISO, addDays } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -23,6 +23,7 @@ export const AdminSchedulePage: React.FC = () => {
   }, []);
 
   // Formulario nuevo Bloqueo
+  const [editingBlockId, setEditingBlockId] = useState<string | null>(null);
   const [blockDate, setBlockDate] = useState('');
   const [blockEndDate, setBlockEndDate] = useState('');
   const [blockReason, setBlockReason] = useState('');
@@ -93,6 +94,25 @@ export const AdminSchedulePage: React.FC = () => {
     setBlockRanges(newRanges);
   };
 
+  const handleEditBlockedDay = (b: BlockedDay) => {
+    setEditingBlockId(b.id);
+    setBlockDate(b.date);
+    setBlockEndDate('');
+    setBlockReason(b.reason || '');
+    setIsFullDay(b.isFullDay !== false);
+    setBlockRanges(b.blockedRanges || []);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingBlockId(null);
+    setBlockDate('');
+    setBlockEndDate('');
+    setBlockReason('');
+    setIsFullDay(true);
+    setBlockRanges([]);
+  };
+
   const handleSaveBlockedDay = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!blockDate) return;
@@ -119,11 +139,18 @@ export const AdminSchedulePage: React.FC = () => {
       }
       
       const savePromises = datesToBlock.map(async (dateKey) => {
+        const isEditingCurrent = editingBlockId && datesToBlock.length === 1;
         const existingIndex = blockedDays.findIndex(b => b.date === dateKey);
         
-        // Creamos el objeto dinámicamente para no enviar undefined
+        let targetId = `blocked-${dateKey}-${Date.now().toString().slice(-4)}`;
+        if (isEditingCurrent) {
+           targetId = editingBlockId;
+        } else if (existingIndex >= 0) {
+           targetId = blockedDays[existingIndex].id;
+        }
+
         const newBlock: any = {
-          id: existingIndex >= 0 ? blockedDays[existingIndex].id : `blocked-${dateKey}-${Date.now().toString().slice(-4)}`,
+          id: targetId,
           date: dateKey,
           reason: blockReason || '',
           isFullDay: !!isFullDay
@@ -142,11 +169,7 @@ export const AdminSchedulePage: React.FC = () => {
       setBlockedDays(bDays);
       
       // Reiniciar form
-      setBlockDate('');
-      setBlockEndDate('');
-      setBlockReason('');
-      setIsFullDay(true);
-      setBlockRanges([]);
+      handleCancelEdit();
     } catch (err: any) {
       console.error("Error saving blocked days:", err);
       alert(`Error al guardar: ${err.message || 'Error desconocido'}. Por favor, revisa tu conexión e inténtalo de nuevo.`);
@@ -239,7 +262,14 @@ export const AdminSchedulePage: React.FC = () => {
           
           {/* Formulario de añadir */}
           <form onSubmit={handleSaveBlockedDay} style={{ background: 'var(--bg-color)', padding: '1.5rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-            <h3 style={{ fontSize: '1.1rem', marginBottom: '1.5rem' }}>Añadir Excepción</h3>
+            <h3 style={{ fontSize: '1.1rem', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span>{editingBlockId ? 'Editar Excepción' : 'Añadir Excepción'}</span>
+              {editingBlockId && (
+                <button type="button" onClick={handleCancelEdit} style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.2rem', fontSize: '0.85rem' }}>
+                  <X size={16} /> Cancelar
+                </button>
+              )}
+            </h3>
             
             <div className="form-group" style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem', marginBottom: '1rem' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'normal', cursor: 'pointer' }}>
@@ -258,7 +288,7 @@ export const AdminSchedulePage: React.FC = () => {
                 <input type="date" value={blockDate} onChange={e => setBlockDate(e.target.value)} required min={format(new Date(), 'yyyy-MM-dd')} />
               </div>
               
-              {isFullDay && (
+              {isFullDay && !editingBlockId && (
                 <div className="form-group" style={{ flex: 1 }}>
                   <label>Hasta Fecha (Opcional)</label>
                   <input type="date" value={blockEndDate} onChange={e => setBlockEndDate(e.target.value)} min={blockDate || format(new Date(), 'yyyy-MM-dd')} />
@@ -289,7 +319,8 @@ export const AdminSchedulePage: React.FC = () => {
             )}
 
             <button type="submit" disabled={savingBlock} className="btn-primary" style={{ width: '100%', display: 'flex', justifyContent: 'center', gap: '0.5rem' }}>
-               {savingBlock ? <Loader2 className="animate-spin" size={18}/> : <Save size={18}/>} Añadir Bloqueo
+               {savingBlock ? <Loader2 className="animate-spin" size={18}/> : <Save size={18}/>} 
+               {editingBlockId ? 'Guardar Cambios' : 'Añadir Bloqueo'}
             </button>
           </form>
 
@@ -310,9 +341,14 @@ export const AdminSchedulePage: React.FC = () => {
                         {b.reason || 'Sin motivo'} • {b.isFullDay !== false ? 'Todo el día cerrado' : `Cierre parcial: ${b.blockedRanges?.map(r => `${r.start}-${r.end}`).join(' y ')}`}
                       </span>
                     </div>
-                    <button onClick={() => handleDeleteBlockedDay(b.id)} title="Eliminar bloqueo" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: 'none', padding: '0.5rem', borderRadius: '6px', cursor: 'pointer' }}>
-                      <Trash2 size={16}/>
-                    </button>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button onClick={() => handleEditBlockedDay(b)} title="Editar bloqueo" style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', border: 'none', padding: '0.5rem', borderRadius: '6px', cursor: 'pointer' }}>
+                        <Edit2 size={16}/>
+                      </button>
+                      <button onClick={() => handleDeleteBlockedDay(b.id)} title="Eliminar bloqueo" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: 'none', padding: '0.5rem', borderRadius: '6px', cursor: 'pointer' }}>
+                        <Trash2 size={16}/>
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
