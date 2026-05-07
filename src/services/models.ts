@@ -42,6 +42,7 @@ export interface DesignConfig {
   primaryColor?: string;
   secondaryColor?: string;
   primaryTextColor?: string;
+  generalTextColor?: string;
   backgroundColor?: string;
   fontFamily?: string;
   customCssCustomer?: string;

@@ -87,7 +87,8 @@ function GlobalThemeInjector({ children }: { children: React.ReactNode }) {
         // Resetear a los valores CORE (Inter, Gris, etc) en el portal de control maestro
         document.documentElement.style.setProperty('--primary-color', '#3b82f6');
         document.documentElement.style.setProperty('--secondary-color', '#2563eb');
-        document.documentElement.style.setProperty('--primary-text-color', '#111827');
+        document.documentElement.style.setProperty('--primary-text-color', '#ffffff');
+        document.documentElement.style.setProperty('--text-primary', '#111827');
         document.documentElement.style.setProperty('--font-family', "'Inter', sans-serif");
         document.documentElement.style.setProperty('--bg-color', '#f3f4f6');
         
@@ -133,6 +134,9 @@ function GlobalThemeInjector({ children }: { children: React.ReactNode }) {
       }
       if (cfg?.primaryTextColor) {
         document.documentElement.style.setProperty('--primary-text-color', cfg.primaryTextColor);
+      }
+      if (cfg?.generalTextColor) {
+        document.documentElement.style.setProperty('--text-primary', cfg.generalTextColor);
       }
       if (cfg?.fontFamily) {
         document.documentElement.style.setProperty('--font-family', cfg.fontFamily);

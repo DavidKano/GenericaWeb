@@ -22,6 +22,7 @@
             const bg = cfg.backgroundColor || '#f3f4f6';
             const font = cfg.fontFamily || "'Inter', sans-serif";
             const text = cfg.primaryTextColor || '#ffffff';
+            const generalText = cfg.generalTextColor || '#111827';
 
             s.innerHTML = `
               :root {
@@ -30,8 +31,9 @@
                 --bg-color: ${bg} !important;
                 --font-family: ${font} !important;
                 --primary-text-color: ${text} !important;
+                --text-primary: ${generalText} !important;
               }
-              body { font-family: var(--font-family) !important; background-color: var(--bg-color) !important; }
+              body { font-family: var(--font-family) !important; background-color: var(--bg-color) !important; color: var(--text-primary) !important; }
               .btn-primary, .app-topbar__user, button[type="submit"] { background-color: var(--primary-color) !important; color: var(--primary-text-color) !important; }
               .login-page { background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%) !important; }
               ${isPortal ? (cfg.customCssCustomer || '') : ''}
@@ -41,6 +43,7 @@
             root.style.setProperty('--primary-color', primary, 'important');
             root.style.setProperty('--secondary-color', secondary, 'important');
             root.style.setProperty('--bg-color', bg, 'important');
+            root.style.setProperty('--text-primary', generalText, 'important');
             root.style.setProperty('--font-family', font, 'important');
 
             // Actualizar color de la barra de sistema (Android) de forma inmediata

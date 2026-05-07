@@ -197,6 +197,7 @@ export const AdminCoreDiseno: React.FC = () => {
   const [qrUrl, setQrUrl] = useState(`${window.location.origin}/welcome`);
   const [rgbInput, setRgbInput] = useState({ r: 59, g: 130, b: 246 });
   const [textRgbInput, setTextRgbInput] = useState({ r: 255, g: 255, b: 255 });
+  const [generalTextRgbInput, setGeneralTextRgbInput] = useState({ r: 17, g: 24, b: 39 }); // #111827
   const [bgRgbInput, setBgRgbInput] = useState({ r: 243, g: 244, b: 246 }); // #f3f4f6
 
   const hexToRgb = (hex: string) => {
@@ -240,6 +241,9 @@ export const AdminCoreDiseno: React.FC = () => {
           }
           if (cfg.primaryTextColor) {
              setTextRgbInput(hexToRgb(cfg.primaryTextColor));
+          }
+          if (cfg.generalTextColor) {
+             setGeneralTextRgbInput(hexToRgb(cfg.generalTextColor));
           }
           if (cfg.backgroundColor) {
              setBgRgbInput(hexToRgb(cfg.backgroundColor));
@@ -457,6 +461,28 @@ export const AdminCoreDiseno: React.FC = () => {
     } as DesignConfig));
   };
 
+  const handleGeneralTextHexChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newHex = e.target.value;
+    setConfig(prev => ({ 
+      sourceLogoUrl: '', pwaIcon: '', adminHeaderUrl: '', faviconUrl: '', qrCardUrl: '',
+      ...prev, 
+      generalTextColor: newHex 
+    } as DesignConfig));
+    setGeneralTextRgbInput(hexToRgb(newHex));
+  };
+
+  const handleGeneralTextRgbChange = (field: 'r' | 'g' | 'b', value: number) => {
+    const safeValue = Math.max(0, Math.min(255, value || 0));
+    const newRgb = { ...generalTextRgbInput, [field]: safeValue };
+    setGeneralTextRgbInput(newRgb);
+    const newHex = rgbToHex(newRgb.r, newRgb.g, newRgb.b);
+    setConfig(prev => ({ 
+      sourceLogoUrl: '', pwaIcon: '', adminHeaderUrl: '', faviconUrl: '', qrCardUrl: '',
+      ...prev, 
+      generalTextColor: newHex 
+    } as DesignConfig));
+  };
+
   const handleBgHexChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newHex = e.target.value;
     setConfig(prev => ({ 
@@ -519,6 +545,7 @@ export const AdminCoreDiseno: React.FC = () => {
   const actPrimary = config?.primaryColor || '#3b82f6';
   const actSecondary = config?.secondaryColor || '#2563eb';
   const actText = config?.primaryTextColor || '#ffffff';
+  const actGeneralText = config?.generalTextColor || '#111827';
   const actBg = config?.backgroundColor || '#f3f4f6';
   const actFont = config?.fontFamily || "'Inter', sans-serif";
 
@@ -561,6 +588,19 @@ export const AdminCoreDiseno: React.FC = () => {
             <input type="number" min="0" max="255" value={textRgbInput.r} onChange={e => handleTextRgbChange('r', parseInt(e.target.value))} style={{ padding: '0.5rem', background: '#1f2937', border: '1px solid #4b5563', color: '#fff', borderRadius: '6px', textAlign: 'center' }} />
             <input type="number" min="0" max="255" value={textRgbInput.g} onChange={e => handleTextRgbChange('g', parseInt(e.target.value))} style={{ padding: '0.5rem', background: '#1f2937', border: '1px solid #4b5563', color: '#fff', borderRadius: '6px', textAlign: 'center' }} />
             <input type="number" min="0" max="255" value={textRgbInput.b} onChange={e => handleTextRgbChange('b', parseInt(e.target.value))} style={{ padding: '0.5rem', background: '#1f2937', border: '1px solid #4b5563', color: '#fff', borderRadius: '6px', textAlign: 'center' }} />
+          </div>
+
+          <label style={{ display: 'block', marginTop: '1.5rem', marginBottom: '0.5rem', color: '#d1d5db', fontSize: '0.9rem' }}>Color de Fuente General (Títulos y Textos)</label>
+          <input 
+            type="color" 
+            value={actGeneralText} 
+            onChange={handleGeneralTextHexChange}
+            style={{ width: '100%', height: '50px', cursor: 'pointer', background: 'transparent', border: 'none', padding: '0', borderRadius: '8px' }}
+          />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem', marginTop: '0.5rem' }}>
+            <input type="number" min="0" max="255" value={generalTextRgbInput.r} onChange={e => handleGeneralTextRgbChange('r', parseInt(e.target.value))} style={{ padding: '0.5rem', background: '#1f2937', border: '1px solid #4b5563', color: '#fff', borderRadius: '6px', textAlign: 'center' }} />
+            <input type="number" min="0" max="255" value={generalTextRgbInput.g} onChange={e => handleGeneralTextRgbChange('g', parseInt(e.target.value))} style={{ padding: '0.5rem', background: '#1f2937', border: '1px solid #4b5563', color: '#fff', borderRadius: '6px', textAlign: 'center' }} />
+            <input type="number" min="0" max="255" value={generalTextRgbInput.b} onChange={e => handleGeneralTextRgbChange('b', parseInt(e.target.value))} style={{ padding: '0.5rem', background: '#1f2937', border: '1px solid #4b5563', color: '#fff', borderRadius: '6px', textAlign: 'center' }} />
           </div>
 
           <label style={{ display: 'block', marginTop: '1.5rem', marginBottom: '0.5rem', color: '#d1d5db', fontSize: '0.9rem' }}>Color de Fondo Tapiz Web (Hex)</label>
@@ -606,7 +646,7 @@ export const AdminCoreDiseno: React.FC = () => {
           <p style={{ color: '#111827', fontSize: '0.8rem', marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 'bold', opacity: 0.8 }}>Simulador de Tapiz y Botón</p>
 
           <div style={{ fontFamily: actFont, fontSize: '1.5rem', marginBottom: '1.5rem', textAlign: 'center' }}>
-            <span style={{ color: '#111827' }}>Tu Estilo Define tu Marca</span>
+            <span style={{ color: actGeneralText }}>Tu Estilo Define tu Marca</span>
           </div>
           
           <button style={{
