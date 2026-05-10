@@ -1079,7 +1079,7 @@ export const AdminDashboard: React.FC = () => {
                     listStyle: 'none',
                     boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)'
                   }}>
-                    {users.filter(u => u.name.toLowerCase().includes(mName.toLowerCase()) && u.role === 'CUSTOMER' && !(u.name === mName && u.phone === mPhone)).map(user => (
+                    {users.filter(u => u.name.toLowerCase().includes(mName.toLowerCase()) && u.role === 'CUSTOMER' && !(u.name === mName && u.phone === mPhone)).sort((a,b) => a.name.localeCompare(b.name)).map(user => (
                       <li 
                         key={user.id}
                         onClick={() => {

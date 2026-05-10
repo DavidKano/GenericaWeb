@@ -50,7 +50,7 @@ export const AdminUsersPage: React.FC = () => {
       u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       u.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       u.phone.includes(searchTerm)
-    );
+    ).sort((a, b) => a.name.localeCompare(b.name));
   }, [users, searchTerm]);
 
   const selectedUser = useMemo(() => 

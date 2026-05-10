@@ -990,7 +990,7 @@ export const AdminCoreAccesos: React.FC = () => {
     try {
       const users = await repo.getUsers();
       // Filtramos por ADMIN y por pre-registros (que también marcamos con rol ADMIN)
-      setAdmins(users.filter(u => u.role === 'ADMIN'));
+      setAdmins(users.filter(u => u.role === 'ADMIN').sort((a,b) => a.name.localeCompare(b.name)));
     } catch (err) {
       console.error('Error cargando administradores:', err);
     } finally {
