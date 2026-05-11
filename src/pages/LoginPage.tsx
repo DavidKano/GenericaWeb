@@ -111,7 +111,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ type = 'CUSTOMER' }) => {
     <div className="login-page" style={isDark ? { background: '#111' } : {}}>
       <div className="login-card animate-fade-in" style={isDark ? { background: '#262626', color: '#fff', border: '1px solid #333' } : {}}>
         <div className="login-header" style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <div className="logo-icon" style={type === 'CUSTOMER' && design?.sourceLogoUrl ? {
+          <div className="logo-icon" style={(type === 'CUSTOMER' || type === 'ADMIN') && design?.sourceLogoUrl ? {
             margin: '0 auto 1.5rem',
             display: 'flex',
             alignItems: 'center',
@@ -132,7 +132,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ type = 'CUSTOMER' }) => {
             boxShadow: isDark ? '0 8px 16px rgba(234, 179, 8, 0.2)' : '0 8px 16px rgba(0, 0, 0, 0.1)',
             overflow: 'hidden'
           }}>
-            {type === 'CUSTOMER' && design?.sourceLogoUrl ? (
+            {(type === 'CUSTOMER' || type === 'ADMIN') && design?.sourceLogoUrl ? (
               <img 
                 src={design.sourceLogoUrl} 
                 alt="Logo" 
@@ -279,7 +279,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ type = 'CUSTOMER' }) => {
               type="submit" 
               className="btn-primary" 
               disabled={loading}
-              style={{ width: '100%', padding: '1rem', marginTop: '0.5rem', background: isDark ? '#eab308' : undefined, borderColor: isDark ? '#eab308' : undefined, color: isDark ? '#111' : undefined }}
+              style={{ width: '100%', padding: '1rem', marginTop: '0.5rem', background: isDark ? '#eab308' : undefined, borderColor: isDark ? '#eab308' : undefined, color: isDark ? '#111' : undefined, fontFamily: 'inherit' }}
             >
               {loading ? (
                 <Loader2 className="animate-spin" size={18} style={{ margin: '0 auto' }} />
