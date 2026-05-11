@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
-import type { User, Appointment, BookingService, DaySchedule, BusinessConfig, CompanyData } from '../services/models';
+import type { User, Appointment, BookingService, DaySchedule, BusinessConfig, CompanyData, BlockedDay } from '../services/models';
 import { INITIAL_SCHEDULES } from '../services/scheduleDefaults';
 import { INITIAL_BUSINESS_CONFIG } from '../services/configDefaults';
 import { 
@@ -25,6 +25,7 @@ import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useAuth } from '../context/AuthContext';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
+import { generateTimeSlots } from '../utils/timeSlots';
 
 const locales = {
   'es': es,
@@ -73,6 +74,7 @@ export const AdminDashboard: React.FC = () => {
   const [services, setServices] = useState<BookingService[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [schedules, setSchedules] = useState<DaySchedule[]>([]);
+  const [blockedDays, setBlockedDays] = useState<BlockedDay[]>([]);
   const [config, setConfig] = useState<BusinessConfig | null>(null);
   const [companyData, setCompanyData] = useState<CompanyData | null>(null);
   
@@ -127,6 +129,65 @@ export const AdminDashboard: React.FC = () => {
   };
   const [mNotes, setMNotes] = useState('');
 
+  const manualAvailableSlots = useMemo(() => {
+    if (!mDate || !mServiceId) return [];
+    
+    const [y, m, d] = mDate.split('-').map(Number);
+    const selectedDate = new Date(y, m - 1, d);
+    
+    const selectedService = services.find(s => s.id === mServiceId);
+    if (!selectedService) return [];
+
+    const dayOfWeek = selectedDate.getDay();
+    const schedule = schedules.find(s => s.dayOfWeek === dayOfWeek);
+    
+    if (!schedule || !schedule.isOpen) return [];
+    
+    const dateKey = mDate;
+    if (blockedDays.some(b => b.date === dateKey && b.isFullDay !== false)) return [];
+
+    const dayStart = new Date(selectedDate);
+    dayStart.setHours(0,0,0,0);
+    const dayEnd = new Date(selectedDate);
+    dayEnd.setHours(23,59,59,999);
+
+    const existingApptRanges = appointments
+      .filter(a => a.dateTimeStart >= dayStart.getTime() && a.dateTimeStart <= dayEnd.getTime() && a.status !== 'CANCELLED')
+      .map(a => {
+        const svc = services.find(s => s.id === a.serviceId);
+        const duration = svc?.durationMin || 30;
+        return {
+          start: a.dateTimeStart,
+          end: a.dateTimeStart + (duration * 60000)
+        };
+      });
+
+    const ptBlockedConfig = blockedDays.find(b => b.date === dateKey && b.isFullDay === false);
+    const ptBlockedRanges = ptBlockedConfig?.blockedRanges
+      ? ptBlockedConfig.blockedRanges.map(br => ({
+          start: parse(br.start, 'HH:mm', selectedDate).getTime(),
+          end: parse(br.end, 'HH:mm', selectedDate).getTime()
+        }))
+      : [];
+
+    return generateTimeSlots(
+      schedule.ranges,
+      selectedService.durationMin,
+      selectedDate,
+      existingApptRanges,
+      config?.concurrentSlots || 1,
+      ptBlockedRanges
+    );
+  }, [mDate, mServiceId, schedules, appointments, services, config, blockedDays]);
+
+  useEffect(() => {
+    if (manualAvailableSlots.length > 0 && !manualAvailableSlots.includes(mTime)) {
+      setMTime(manualAvailableSlots[0]);
+    } else if (manualAvailableSlots.length === 0) {
+      setMTime('');
+    }
+  }, [manualAvailableSlots, mTime, mDate, mServiceId]);
+
   useEffect(() => {
     if (isInitialized) {
       loadData();
@@ -148,14 +209,16 @@ export const AdminDashboard: React.FC = () => {
       const svcsPromise = repo.getServices().catch(e => { throw new Error(`Servicios: ${e.message}`); });
       const usersPromise = repo.getUsers().catch(e => { throw new Error(`Usuarios: ${e.message}`); });
       const schsPromise = repo.getSchedules().catch(e => { throw new Error(`Horarios: ${e.message}`); });
+      const bDaysPromise = repo.getBlockedDays().catch(e => { throw new Error(`Bloqueos: ${e.message}`); });
       const cfgPromise = repo.getConfig().catch(e => { throw new Error(`Configuración: ${e.message}`); });
       const companyPromise = repo.getCompanyData().catch(e => { throw new Error(`Datos Empresa: ${e.message}`); });
  
-      const [appts, svcs, usrs, schs, cfg, comp] = await Promise.all([
+      const [appts, svcs, usrs, schs, bDays, cfg, comp] = await Promise.all([
         apptsPromise,
         svcsPromise,
         usersPromise,
         schsPromise,
+        bDaysPromise,
         cfgPromise,
         companyPromise,
       ]);
@@ -164,6 +227,7 @@ export const AdminDashboard: React.FC = () => {
       setServices(svcs);
       setUsers(usrs);
       setSchedules(schs.length > 0 ? schs : INITIAL_SCHEDULES);
+      setBlockedDays(bDays);
       setConfig(cfg || INITIAL_BUSINESS_CONFIG);
       setCompanyData(comp);
     } catch (err: any) {
@@ -1157,12 +1221,19 @@ export const AdminDashboard: React.FC = () => {
               </div>
               <div className="form-group" style={{ flex: 1 }}>
                 <label>Hora</label>
-                <input 
-                  type="time" 
+                <select 
                   value={mTime} 
                   onChange={e => setMTime(e.target.value)} 
+                  disabled={!mServiceId || manualAvailableSlots.length === 0}
                   style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'var(--surface-color)', color: 'var(--text-primary)', fontFamily: 'inherit' }} 
-                />
+                >
+                  <option value="" disabled>
+                    {!mServiceId ? 'Selecciona un servicio...' : (manualAvailableSlots.length === 0 ? 'Sin huecos libres' : 'Selecciona hora...')}
+                  </option>
+                  {manualAvailableSlots.map(time => (
+                    <option key={time} value={time}>{time}</option>
+                  ))}
+                </select>
               </div>
             </div>
 
