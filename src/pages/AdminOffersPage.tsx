@@ -23,6 +23,7 @@ export const AdminOffersPage: React.FC = () => {
   const [textBody, setTextBody] = useState('');
   const [startDate, setStartDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [endDate, setEndDate] = useState('');
+  const [noEndDate, setNoEndDate] = useState(false);
   const [base64Img, setBase64Img] = useState<string>('');
   const [displayMode, setDisplayMode] = useState<'popup' | 'inline'>('popup');
   const [legalDisclaimer, setLegalDisclaimer] = useState('Promoción no acumulable con otras. Consulta condiciones.');
@@ -39,7 +40,7 @@ export const AdminOffersPage: React.FC = () => {
         
         // Auto-limpieza de ofertas caducadas
         for (const offer of currentOffers) {
-          if (offer.endDate < todayStr) {
+          if (offer.endDate && offer.endDate < todayStr) {
             console.log(`Eliminando oferta caducada: ${offer.id}`);
             await repo.deletePromoOffer(offer.id);
           } else {
@@ -86,12 +87,12 @@ export const AdminOffersPage: React.FC = () => {
       return;
     }
 
-    if (!startDate || !endDate) {
+    if (!startDate || (!noEndDate && !endDate)) {
       alert('Debes rellenar las fechas.');
       return;
     }
 
-    if (endDate < startDate) {
+    if (!noEndDate && endDate < startDate) {
       alert('La fecha de fin no puede ser anterior a la de inicio.');
       return;
     }
@@ -114,7 +115,7 @@ export const AdminOffersPage: React.FC = () => {
           designSeed: Math.floor(Math.random() * 1000)
         } : {}),
         startDate,
-        endDate,
+        endDate: noEndDate ? undefined : endDate,
         isActive: true,
         displayMode,
         legalDisclaimer
@@ -129,6 +130,7 @@ export const AdminOffersPage: React.FC = () => {
       setTextBody('');
       setStartDate(format(new Date(), 'yyyy-MM-dd'));
       setEndDate('');
+      setNoEndDate(false);
       setDisplayMode('popup');
       setLegalDisclaimer('Promoción no acumulable con otras. Consulta condiciones.');
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -267,8 +269,28 @@ export const AdminOffersPage: React.FC = () => {
                   value={endDate} 
                   onChange={e => setEndDate(e.target.value)} 
                   min={startDate}
-                  required 
+                  required={!noEndDate}
+                  disabled={noEndDate}
+                  style={noEndDate ? { opacity: 0.5 } : {}}
                 />
+                <div style={{ marginTop: '0.5rem' }}>
+                  <label style={{ 
+                    fontSize: '0.75rem', 
+                    color: noEndDate ? '#fff' : 'var(--primary-color)', 
+                    background: noEndDate ? 'var(--primary-color)' : 'rgba(59, 130, 246, 0.05)',
+                    padding: '4px 10px',
+                    borderRadius: '6px',
+                    display: 'inline-flex', 
+                    alignItems: 'center', 
+                    gap: '0.5rem', 
+                    cursor: 'pointer',
+                    border: '1px solid var(--primary-color)',
+                    transition: 'all 0.2s'
+                  }}>
+                    <input type="checkbox" checked={noEndDate} onChange={e => setNoEndDate(e.target.checked)} style={{ width: '14px', height: '14px', margin: 0 }} />
+                    <span style={{ fontWeight: '600' }}>Promoción sin fecha de fin</span>
+                  </label>
+                </div>
               </div>
             </div>
             
@@ -324,7 +346,7 @@ export const AdminOffersPage: React.FC = () => {
                         Periodo de validez
                       </p>
                       <strong style={{ fontSize: '0.95rem', color: 'var(--text-primary)', marginBottom: '0.5rem', display: 'block' }}>
-                        {format(new Date(offer.startDate), 'd MMM yyyy', { locale: es })} — {format(new Date(offer.endDate), 'd MMM yyyy', { locale: es })}
+                        {format(new Date(offer.startDate), 'd MMM yyyy', { locale: es })} — {offer.endDate ? format(new Date(offer.endDate), 'd MMM yyyy', { locale: es }) : 'Indefinida'}
                       </strong>
                       <span style={{ display: 'inline-block', padding: '0.2rem 0.5rem', background: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '4px', fontSize: '0.75rem', color: 'var(--text-secondary)', alignSelf: 'flex-start' }}>
                         {offer.displayMode === 'inline' ? 'Fija bajo servicios' : 'Ventana Pop-up'}

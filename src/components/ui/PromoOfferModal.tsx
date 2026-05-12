@@ -21,7 +21,7 @@ export const PromoOfferModal: React.FC = () => {
             o.isActive !== false && 
             o.displayMode !== 'inline' &&
             todayStr >= o.startDate && 
-            todayStr <= o.endDate
+            (!o.endDate || todayStr <= o.endDate)
         );
 
         if (activeOffers.length > 0) {

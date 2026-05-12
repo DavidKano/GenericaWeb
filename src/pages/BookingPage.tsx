@@ -52,7 +52,7 @@ export const BookingPage: React.FC = () => {
         o.isActive !== false && 
         o.displayMode === 'inline' &&
         todayStr >= o.startDate && 
-        todayStr <= o.endDate
+        (!o.endDate || todayStr <= o.endDate)
       ));
     };
     loadStatic();

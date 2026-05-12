@@ -77,7 +77,8 @@ export const PromoOfferTextDesign: React.FC<Props> = ({ offer, className, style 
             maxWidth: '100%',
             marginLeft: 'auto',
             marginRight: 'auto',
-            fontFamily: "'Inter', sans-serif" // Keep base font for readability of body
+            fontFamily: "'Inter', sans-serif", // Keep base font for readability of body
+            whiteSpace: 'pre-line'
           }}>
             {offer.textBody}
           </p>
@@ -89,7 +90,8 @@ export const PromoOfferTextDesign: React.FC<Props> = ({ offer, className, style 
             opacity: 0.7, 
             marginTop: '1.5rem', 
             fontStyle: 'italic',
-            fontFamily: "'Inter', sans-serif"
+            fontFamily: "'Inter', sans-serif",
+            whiteSpace: 'pre-line'
           }}>
             {offer.legalDisclaimer}
           </p>

@@ -100,7 +100,7 @@ export interface PromoOffer {
   id: string;
   imageUrl: string;
   startDate: string; // ISO "YYYY-MM-DD"
-  endDate: string; // ISO "YYYY-MM-DD"
+  endDate?: string; // ISO "YYYY-MM-DD" (Optional = permanent)
   isActive: boolean;
   displayMode?: 'popup' | 'inline'; // popup (modal) o inline (debajo de servicios)
   type?: 'image' | 'text';
