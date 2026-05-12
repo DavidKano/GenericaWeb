@@ -271,7 +271,7 @@ export const AdminSchedulePage: React.FC = () => {
               )}
             </h3>
             
-            <div className="form-group" style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem', marginBottom: '1rem' }}>
+            <div className="form-group" style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '1rem', marginTop: '1.5rem', marginBottom: '1rem' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'normal', cursor: 'pointer' }}>
                 <input type="radio" checked={isFullDay} onChange={() => setIsFullDay(true)} />
                 Día completo cerrado
@@ -282,7 +282,7 @@ export const AdminSchedulePage: React.FC = () => {
               </label>
             </div>
 
-            <div style={{ display: 'flex', gap: '1rem' }}>
+            <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '1rem' }}>
               <div className="form-group" style={{ flex: 1 }}>
                 <label>{isFullDay ? 'Desde Fecha' : 'Fecha a bloquear'}</label>
                 <input type="date" value={blockDate} onChange={e => setBlockDate(e.target.value)} required min={format(new Date(), 'yyyy-MM-dd')} />
@@ -305,7 +305,7 @@ export const AdminSchedulePage: React.FC = () => {
               <div style={{ padding: '1rem', background: '#fff', borderRadius: '6px', border: '1px dashed #cbd5e1', marginBottom: '1.5rem' }}>
                 <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>Añade y especifica las franjas horarias que NO estarán disponibles (ej. tarde libre).</p>
                 {blockRanges.map((br, idx) => (
-                  <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                  <div key={idx} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
                      <input type="time" required value={br.start} onChange={e => handleUpdateBlockRange(idx, 'start', e.target.value)} />
                      <span>-</span>
                      <input type="time" required value={br.end} onChange={e => handleUpdateBlockRange(idx, 'end', e.target.value)} />
