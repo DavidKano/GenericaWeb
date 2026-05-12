@@ -64,13 +64,13 @@ export const AdminLayout: React.FC = () => {
 
         <div className="app-topbar__actions">
           {!isMobile && (
-             <a 
-               href={`mailto:${company?.supportEmail || ''}?subject=Consulta Técnica de ${user?.name || 'Admin'}`}
+             <button 
+               onClick={() => alert('Sección de soporte en construcción')}
                className="btn-text"
-               style={{ fontSize: '0.85rem', color: design?.primaryColor || 'var(--primary-color)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.4rem 0.8rem', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '6px', fontWeight: 600, marginRight: '0.5rem' }}
+               style={{ border: 'none', cursor: 'pointer', fontSize: '0.85rem', color: design?.primaryColor || 'var(--primary-color)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.4rem 0.8rem', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '6px', fontWeight: 600, marginRight: '0.5rem' }}
              >
                Soporte
-             </a>
+             </button>
           )}
           {user && (
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>

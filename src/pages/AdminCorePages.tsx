@@ -347,9 +347,9 @@ export const AdminCoreDiseno: React.FC = () => {
     const fontMain = config?.fontFamily || "'Inter', sans-serif";
 
     // Logo: lo subimos y alineamos a la izquierda
-    const logoScale = Math.min(240 / img.width, 240 / img.height);
+    const logoScale = Math.min(220 / img.width, 200 / img.height);
     const lx = 50; // Alineado a la izquierda con margen de 50px
-    const ly = 130 - (img.height * logoScale / 2);
+    const ly = 120 - (img.height * logoScale / 2);
     cardCtx.drawImage(img, lx, ly, img.width * logoScale, img.height * logoScale);
 
     // Textos debajo del logo, alineados a la izquierda
@@ -358,22 +358,22 @@ export const AdminCoreDiseno: React.FC = () => {
 
     // 1. Nombre del Negocio (Negrita, tamaño mediano)
     cardCtx.font = `bold 24px ${fontMain}`;
-    cardCtx.fillText(company?.nombreEmpresa || 'Tu Negocio', 50, 260);
+    cardCtx.fillText(company?.nombreEmpresa || 'Tu Negocio', 50, 280);
 
     // 2. Solo la dirección (Pequeño, normal)
     cardCtx.font = `14px ${fontMain}`;
     cardCtx.fillStyle = '#64748b';
-    cardCtx.fillText(company?.direccion || '', 50, 290);
+    cardCtx.fillText(company?.direccion || '', 50, 310);
 
     // 3. Código Postal y Población (Mismo estilo que anterior)
     const locationInfo = [company?.cp, company?.localidad].filter(Boolean).join(' - ');
-    cardCtx.fillText(locationInfo, 50, 315);
+    cardCtx.fillText(locationInfo, 50, 335);
 
     // 4. Teléfono y Email de cliente
     const phone = company?.telefono || '';
     const email = company?.contactEmail || '';
     const contactInfo = [phone, email].filter(Boolean).join(' - ');
-    cardCtx.fillText(contactInfo, 50, 340);
+    cardCtx.fillText(contactInfo, 50, 360);
 
     // Dibujar el QR a la derecha
     cardCtx.drawImage(qrCanvas, 400, 0, 400, 400);

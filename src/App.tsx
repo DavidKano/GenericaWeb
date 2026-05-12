@@ -20,6 +20,7 @@ import { AdminCoreDatos, AdminCoreDiseno, AdminCorePoliticas, AdminCoreCss, Admi
 import { AdminPromotePage } from './pages/AdminPromotePage';
 import { AdminSchedulePage } from './pages/AdminSchedulePage';
 import { AdminOffersPage } from './pages/AdminOffersPage';
+import { UpdateNotification } from './components/ui/UpdateNotification';
 
 import './App.css';
 
@@ -177,6 +178,7 @@ function App() {
   return (
     <BrowserRouter>
       <GlobalThemeInjector>
+        <UpdateNotification />
         <Routes>
           {/* Core Initialization Route */}
           <Route path="/initconfig" element={<SystemIgnition />} />

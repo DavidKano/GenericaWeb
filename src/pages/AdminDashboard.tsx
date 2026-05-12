@@ -803,22 +803,6 @@ export const AdminDashboard: React.FC = () => {
           
           <div className="form-group" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <label style={{ margin: 0 }}>Permitir cancelaciones por clientes</label>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Si se activa, los clientes podrán cancelar citas desde su perfil.</p>
-            </div>
-            <input 
-              type="checkbox" 
-              checked={config?.allowClientCancellation !== false} 
-              onChange={(e) => setConfig(prev => {
-                const base = prev || INITIAL_BUSINESS_CONFIG;
-                return { ...base, allowClientCancellation: e.target.checked };
-              })}
-              style={{ width: 'auto' }}
-            />
-          </div>
-
-          <div className="form-group" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.5rem' }}>
-            <div>
               <label style={{ margin: 0 }}>Servicios simultáneos (Capacidad)</label>
               <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Define cuántas citas se pueden realizar a la vez en la misma franja horaria (Ej: número de puestos o empleados).</p>
             </div>
@@ -831,20 +815,38 @@ export const AdminDashboard: React.FC = () => {
             />
           </div>
 
-          <div className="form-group" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.5rem' }}>
-            <div>
-              <label style={{ margin: 0 }}>Notificaciones WhatsApp (Botones de aviso)</label>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Muestra u oculta los accesos directos para enviar recordatorios por WhatsApp.</p>
-            </div>
+          <div className="form-group" style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginTop: '1.5rem' }}>
             <input 
               type="checkbox" 
+              id="allow-cancellation"
+              checked={config?.allowClientCancellation !== false} 
+              onChange={(e) => setConfig(prev => {
+                const base = prev || INITIAL_BUSINESS_CONFIG;
+                return { ...base, allowClientCancellation: e.target.checked };
+              })}
+              style={{ width: 'auto', margin: 0 }}
+            />
+            <label htmlFor="allow-cancellation" style={{ margin: 0, cursor: 'pointer' }}>
+              <strong>Permitir cancelaciones por clientes</strong>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0 }}>Si se activa, los clientes podrán cancelar citas desde su perfil.</p>
+            </label>
+          </div>
+
+          <div className="form-group" style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginTop: '1.5rem' }}>
+            <input 
+              type="checkbox" 
+              id="whatsapp-notif"
               checked={config?.whatsappEnabled !== false} 
               onChange={(e) => setConfig(prev => {
                 const base = prev || INITIAL_BUSINESS_CONFIG;
                 return { ...base, whatsappEnabled: e.target.checked };
               })}
-              style={{ width: 'auto' }}
+              style={{ width: 'auto', margin: 0 }}
             />
+            <label htmlFor="whatsapp-notif" style={{ margin: 0, cursor: 'pointer' }}>
+              <strong>Notificaciones WhatsApp (Botones de aviso)</strong>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0 }}>Muestra u oculta los accesos directos para enviar recordatorios por WhatsApp.</p>
+            </label>
           </div>
 
           <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid var(--glass-border)' }}>

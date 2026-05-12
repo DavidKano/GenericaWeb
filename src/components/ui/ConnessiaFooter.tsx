@@ -41,7 +41,8 @@ export const ConnessiaFooter: React.FC<ConnessiaFooterProps> = ({ isDark, compac
             style={{ 
               height: '22px', 
               width: 'auto', 
-              display: 'block'
+              display: 'block',
+              mixBlendMode: 'multiply'
             }} 
           />
           <span style={{ 
@@ -101,6 +102,7 @@ export const ConnessiaFooter: React.FC<ConnessiaFooterProps> = ({ isDark, compac
             height: '35px', 
             width: 'auto', 
             display: 'block',
+            mixBlendMode: 'multiply',
             filter: isDark ? 'none' : 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))'
           }} 
         />
@@ -113,28 +115,6 @@ export const ConnessiaFooter: React.FC<ConnessiaFooterProps> = ({ isDark, compac
         }}>
           CONNESSIA
         </span>
-      </a>
-
-      <a 
-        href="https://connessia.es/" 
-        target="_blank" 
-        rel="noopener noreferrer" 
-        style={{ 
-          color: isDark ? '#facc15' : 'var(--primary-color, #3b82f6)', 
-          fontSize: '0.85rem', 
-          fontWeight: 600, 
-          textDecoration: 'none',
-          opacity: 0.6,
-          transition: 'opacity 0.2s ease',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.3rem',
-          marginTop: '0.2rem'
-        }}
-        onMouseEnter={e => e.currentTarget.style.opacity = '1'}
-        onMouseLeave={e => e.currentTarget.style.opacity = '0.6'}
-      >
-        Visítanos <span style={{ fontSize: '1rem' }}>→</span>
       </a>
     </footer>
   );
