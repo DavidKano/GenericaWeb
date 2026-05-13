@@ -167,6 +167,17 @@ export const AdminCoreDatos: React.FC = () => {
           </div>
         </div>
 
+        <div className="form-group" style={{ marginTop: '1.5rem' }}>
+          <label style={{ color: '#d1d5db' }}>Enlace a la pasarela de pago para renovación</label>
+          <input 
+            type="url" 
+            placeholder="https://buy.stripe.com/..." 
+            value={companyData.paymentGatewayUrl || ''} 
+            onChange={e => handleCompanyChange('paymentGatewayUrl', e.target.value)} 
+            style={{ background: '#111827', color: '#fff', border: '1px solid #4b5563', width: '100%', padding: '0.6rem', borderRadius: '4px' }} 
+          />
+        </div>
+
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2.5rem' }}>
           <button type="submit" disabled={saving} className="btn-primary" style={{ padding: '0.75rem 2rem', background: '#eab308', color: '#111', borderColor: '#eab308', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'bold' }}>
             {saving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />} 

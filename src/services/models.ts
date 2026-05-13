@@ -31,6 +31,7 @@ export interface CompanyData {
   contactEmail?: string;
   telefono?: string;
   renewalType?: 'Mensual' | 'Anual';
+  paymentGatewayUrl?: string;
 }
 
 export interface DesignConfig {

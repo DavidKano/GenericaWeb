@@ -129,6 +129,30 @@ export const AdminDashboard: React.FC = () => {
   };
   const [mNotes, setMNotes] = useState('');
 
+  // Subscription notification logic
+  const [showSubPopup, setShowSubPopup] = useState<'15_days' | '5_days' | null>(null);
+
+  useEffect(() => {
+    if (companyData?.fechaRenovacion) {
+      const renewalDate = new Date(companyData.fechaRenovacion);
+      const today = new Date();
+      
+      const diffTime = renewalDate.getTime() - today.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+      const hasSeen15 = sessionStorage.getItem('seen_sub_15');
+      const hasSeen5 = sessionStorage.getItem('seen_sub_5');
+
+      if (diffDays <= 5 && diffDays > 0 && !hasSeen5) {
+        setShowSubPopup('5_days');
+        sessionStorage.setItem('seen_sub_5', 'true');
+      } else if (diffDays <= 15 && diffDays > 5 && !hasSeen15) {
+        setShowSubPopup('15_days');
+        sessionStorage.setItem('seen_sub_15', 'true');
+      }
+    }
+  }, [companyData]);
+
   const manualAvailableSlots = useMemo(() => {
     if (!mDate || !mServiceId) return [];
     
@@ -677,6 +701,45 @@ export const AdminDashboard: React.FC = () => {
 
   return (
     <div className="animate-fade-in">
+      {/* Subscription Expiration Text */}
+      {companyData?.fechaRenovacion && (
+        <div style={{ background: 'rgba(234, 179, 8, 0.1)', border: '1px solid #eab308', padding: '0.5rem 1rem', borderRadius: '8px', marginBottom: '1rem', color: '#eab308', fontSize: '0.9rem', display: 'inline-block' }}>
+          Tu suscripción caduca el <strong>{format(new Date(companyData.fechaRenovacion), 'dd/MM/yyyy')}</strong>
+        </div>
+      )}
+
+      {/* Subscription Expiration Popup */}
+      {showSubPopup && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+          <div style={{ background: '#1f2937', padding: '2.5rem', borderRadius: '12px', border: '1px solid #eab308', textAlign: 'center', maxWidth: '400px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)' }}>
+            <h3 style={{ color: '#eab308', marginBottom: '1rem', fontSize: '1.5rem' }}>¡Aviso de Suscripción!</h3>
+            <p style={{ color: '#d1d5db', marginBottom: '2rem', fontSize: '1.1rem' }}>
+              Te quedan <strong>{showSubPopup === '5_days' ? '5' : '15'}</strong> días para que caduque tu suscripción.
+            </p>
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+              <button 
+                className="btn-secondary" 
+                onClick={() => setShowSubPopup(null)}
+                style={{ padding: '0.75rem 1.5rem', borderRadius: '8px', border: '1px solid #4b5563', background: 'transparent', color: '#d1d5db', cursor: 'pointer' }}
+              >
+                Cerrar
+              </button>
+              {companyData?.paymentGatewayUrl && (
+                <a 
+                  href={companyData.paymentGatewayUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  style={{ textDecoration: 'none', background: '#eab308', color: '#111', padding: '0.75rem 1.5rem', borderRadius: '8px', fontWeight: 'bold' }}
+                  onClick={() => setShowSubPopup(null)}
+                >
+                  Renueva aquí
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', gap: '1rem', flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
           <h2 style={{ margin: 0, fontSize: isMobile ? '1.25rem' : '1.5rem' }}>📊 Gestión</h2>
