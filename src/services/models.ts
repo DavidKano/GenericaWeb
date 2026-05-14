@@ -57,6 +57,7 @@ export interface BookingService {
   price?: number;
   color?: string;
   isActive: boolean;
+  folderName?: string;
 }
 
 export interface Appointment {
@@ -76,6 +77,7 @@ export interface BusinessConfig {
   allowClientCancellation: boolean;
   concurrentSlots: number;
   whatsappEnabled: boolean;
+  serviceFolders?: string[];
 }
 
 export interface TimeRange {

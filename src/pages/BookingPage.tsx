@@ -25,6 +25,7 @@ export const BookingPage: React.FC = () => {
   const [inlineOffers, setInlineOffers] = useState<PromoOffer[]>([]);
   
   const [step, setStep] = useState(1);
+  const [expandedFolder, setExpandedFolder] = useState<string | null>(null);
   const [selectedService, setSelectedService] = useState<BookingService | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState('');
@@ -306,8 +307,48 @@ export const BookingPage: React.FC = () => {
       {step === 1 && (
         <div className="animate-fade-in">
           <h3 style={{ marginBottom: '1rem' }}>Elige un servicio</h3>
-          <div className="services-grid">
-            {services.filter(s => s.isActive !== false).map(svc => (
+          
+          {(businessConfig?.serviceFolders || []).map(folder => {
+            const folderServices = services.filter(s => s.isActive !== false && s.folderName === folder);
+            if (folderServices.length === 0) return null;
+            
+            const isExpanded = expandedFolder === folder;
+            
+            return (
+              <div key={folder} style={{ marginBottom: '1rem', background: 'var(--surface-color)', borderRadius: '12px', border: '1px solid var(--glass-border)', overflow: 'hidden', transition: 'all 0.3s' }}>
+                <div 
+                  onClick={() => setExpandedFolder(isExpanded ? null : folder)}
+                  style={{ padding: '1rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', background: isExpanded ? 'rgba(var(--primary-color-rgb), 0.05)' : 'transparent' }}
+                >
+                  <h4 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text-color)' }}>📁 {folder}</h4>
+                  <span style={{ color: 'var(--text-secondary)', transition: 'transform 0.3s', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0)' }}>▼</span>
+                </div>
+                
+                {isExpanded && (
+                  <div style={{ padding: '0 1.5rem 1.5rem 1.5rem' }}>
+                    <div className="services-grid" style={{ marginTop: '1rem' }}>
+                      {folderServices.map(svc => (
+                        <div
+                          key={svc.id}
+                          className={`service-card ${selectedService?.id === svc.id ? 'active' : ''}`}
+                          onClick={() => { setSelectedService(svc); setStep(2); }}
+                        >
+                          <h3>{svc.name}</h3>
+                          <div className="service-meta">
+                            <span>⏱ {svc.durationMin} min</span>
+                            {svc.price !== undefined && <span>💰 {svc.price}€</span>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          <div className="services-grid" style={{ marginTop: '1rem' }}>
+            {services.filter(s => s.isActive !== false && (!s.folderName || !(businessConfig?.serviceFolders || []).includes(s.folderName))).map(svc => (
               <div
                 key={svc.id}
                 className={`service-card ${selectedService?.id === svc.id ? 'active' : ''}`}

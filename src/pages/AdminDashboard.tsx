@@ -86,7 +86,12 @@ export const AdminDashboard: React.FC = () => {
   const [newPrice, setNewPrice] = useState<number | string>('');
   const [newColor, setNewColor] = useState('#3174ad');
   const [newIsActive, setNewIsActive] = useState(true);
+  const [newFolderName, setNewFolderName] = useState('');
   const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
+
+  // Folder management
+  const [showFolderModal, setShowFolderModal] = useState(false);
+  const [newFolderInput, setNewFolderInput] = useState('');
   
   // Controles de Vista de Calendario
   const [currentView, setCurrentView] = useState<any>(window.innerWidth <= 768 ? 'day' : 'week');
@@ -274,6 +279,7 @@ export const AdminDashboard: React.FC = () => {
         durationMin: totalDuration,
         color: newColor,
         isActive: newIsActive,
+        folderName: newFolderName || undefined,
       };
       
       // Solo incluimos el precio si tiene un valor válido para evitar errores en Firebase (unsupported field value: undefined)
@@ -316,6 +322,7 @@ export const AdminDashboard: React.FC = () => {
     setNewPrice('');
     setNewColor('#3174ad');
     setNewIsActive(true);
+    setNewFolderName('');
     setEditingServiceId(null);
   };
 
@@ -336,12 +343,46 @@ export const AdminDashboard: React.FC = () => {
     setNewPrice(svc.price !== undefined ? svc.price : '');
     setNewColor(svc.color || '#3174ad');
     setNewIsActive(svc.isActive !== false);
+    setNewFolderName(svc.folderName || '');
     setShowModal(true);
   };
   
   const openNewService = () => {
     resetServiceForm();
     setShowModal(true);
+  };
+
+  const addFolder = async () => {
+    if (!newFolderInput.trim()) return;
+    const folders = config?.serviceFolders || [];
+    if (folders.includes(newFolderInput.trim())) {
+      alert('Esta carpeta ya existe.');
+      return;
+    }
+    const newConfig = { ...(config || INITIAL_BUSINESS_CONFIG), serviceFolders: [...folders, newFolderInput.trim()] } as BusinessConfig;
+    setConfig(newConfig);
+    try {
+      await repo.saveConfig(newConfig);
+      setNewFolderInput('');
+      setShowFolderModal(false);
+    } catch (e: any) {
+      console.error(e);
+      alert('Error guardando carpeta');
+    }
+  };
+
+  const deleteFolder = async (folder: string) => {
+    if (!window.confirm(`¿Estás seguro de que deseas eliminar la carpeta "${folder}"? Los servicios que contenga quedarán sin carpeta.`)) return;
+    
+    const folders = (config?.serviceFolders || []).filter(f => f !== folder);
+    const newConfig = { ...(config || INITIAL_BUSINESS_CONFIG), serviceFolders: folders } as BusinessConfig;
+    setConfig(newConfig);
+    try {
+      await repo.saveConfig(newConfig);
+    } catch (e: any) {
+      console.error(e);
+      alert('Error al eliminar la carpeta');
+    }
   };
 
   const handleScheduleToggle = (dayOfWeek: number) => {
@@ -853,30 +894,84 @@ export const AdminDashboard: React.FC = () => {
 
       {activeTab === 'services' && (
         <div className="animate-fade-in">
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
             <h3>Servicios Disponibles</h3>
-            <button className="btn-primary" onClick={openNewService}>+ Añadir Nuevo</button>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button className="btn-secondary" onClick={() => setShowFolderModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.4rem 0.8rem' }}>
+                + Añadir Carpeta
+              </button>
+              <button className="btn-primary" onClick={openNewService} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.4rem 0.8rem' }}>
+                + Añadir Servicio
+              </button>
+            </div>
           </div>
-          <div className="services-grid">
-            {services.map(svc => (
-              <div key={svc.id} className="service-card hover-glow" onClick={() => openEditService(svc)} style={{ cursor: 'pointer', transition: 'border 0.2s', border: '1px solid var(--glass-border)' }} onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--primary-color)'} onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--glass-border)'}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <h3>{svc.name}</h3>
-                  <span style={{ fontSize: '0.75rem', background: 'rgba(255,255,255,0.1)', padding: '2px 8px', borderRadius: '12px' }}>Editar</span>
+
+          {(config?.serviceFolders || []).map(folder => {
+            const folderServices = services.filter(s => s.folderName === folder);
+            return (
+              <div key={folder} style={{ marginBottom: '2rem', background: 'rgba(255,255,255,0.02)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--glass-border)', paddingBottom: '0.5rem' }}>
+                  <h4 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--primary-color)' }}>📁 {folder}</h4>
+                  <button className="btn-icon" onClick={() => deleteFolder(folder)} title="Eliminar carpeta" style={{ color: '#ef4444' }}>
+                    <Trash2 size={16} />
+                  </button>
                 </div>
-                <div className="service-meta">
-                  <span>⏱ {svc.durationMin} min</span>
-                  {svc.price !== undefined && <span>💰 {svc.price}€</span>}
-                </div>
-                <div className="service-meta" style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ width: '16px', height: '16px', backgroundColor: svc.color || '#3174ad', borderRadius: '50%', display: 'inline-block' }}></span>
-                  <span style={{ fontSize: '0.8rem' }}>Color en calendario</span>
-                  {svc.isActive === false && (
-                    <span style={{ marginLeft: 'auto', background: '#ef4444', color: 'white', fontSize: '0.7rem', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold' }}>DESACTIVADO</span>
-                  )}
-                </div>
+                
+                {folderServices.length === 0 ? (
+                  <p style={{ color: 'var(--text-secondary)', fontStyle: 'italic', fontSize: '0.9rem', margin: 0 }}>Carpeta vacía</p>
+                ) : (
+                  <div className="services-grid">
+                    {folderServices.map(svc => (
+                      <div key={svc.id} className="service-card hover-glow" onClick={() => openEditService(svc)} style={{ cursor: 'pointer', transition: 'border 0.2s', border: '1px solid var(--glass-border)' }} onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--primary-color)'} onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--glass-border)'}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <h3 style={{ margin: 0 }}>{svc.name}</h3>
+                          <span style={{ fontSize: '0.75rem', background: 'rgba(255,255,255,0.1)', padding: '2px 8px', borderRadius: '12px' }}>Editar</span>
+                        </div>
+                        <div className="service-meta" style={{ marginTop: '0.5rem' }}>
+                          <span>⏱ {svc.durationMin} min</span>
+                          {svc.price !== undefined && <span>💰 {svc.price}€</span>}
+                        </div>
+                        <div className="service-meta" style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ width: '16px', height: '16px', backgroundColor: svc.color || '#3174ad', borderRadius: '50%', display: 'inline-block' }}></span>
+                          <span style={{ fontSize: '0.8rem' }}>Color</span>
+                          {svc.isActive === false && (
+                            <span style={{ marginLeft: 'auto', background: '#ef4444', color: 'white', fontSize: '0.7rem', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold' }}>DESACTIVADO</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-            ))}
+            );
+          })}
+
+          <div style={{ marginTop: (config?.serviceFolders?.length || 0) > 0 ? '2rem' : '0' }}>
+            {(config?.serviceFolders?.length || 0) > 0 && <h4 style={{ marginBottom: '1rem', color: 'var(--text-secondary)' }}>Sin Carpeta</h4>}
+            <div className="services-grid">
+              {services.filter(s => !s.folderName || !(config?.serviceFolders || []).includes(s.folderName)).map(svc => (
+                <div key={svc.id} className="service-card hover-glow" onClick={() => openEditService(svc)} style={{ cursor: 'pointer', transition: 'border 0.2s', border: '1px solid var(--glass-border)' }} onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--primary-color)'} onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--glass-border)'}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h3 style={{ margin: 0 }}>{svc.name}</h3>
+                    <span style={{ fontSize: '0.75rem', background: 'rgba(255,255,255,0.1)', padding: '2px 8px', borderRadius: '12px' }}>Editar</span>
+                  </div>
+                  <div className="service-meta" style={{ marginTop: '0.5rem' }}>
+                    <span>⏱ {svc.durationMin} min</span>
+                    {svc.price !== undefined && <span>💰 {svc.price}€</span>}
+                  </div>
+                  <div className="service-meta" style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ width: '16px', height: '16px', backgroundColor: svc.color || '#3174ad', borderRadius: '50%', display: 'inline-block' }}></span>
+                    <span style={{ fontSize: '0.8rem' }}>Color</span>
+                    {svc.isActive === false && (
+                      <span style={{ marginLeft: 'auto', background: '#ef4444', color: 'white', fontSize: '0.7rem', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold' }}>DESACTIVADO</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {services.filter(s => !s.folderName || !(config?.serviceFolders || []).includes(s.folderName)).length === 0 && (
+                <p style={{ color: 'var(--text-secondary)', fontStyle: 'italic', fontSize: '0.9rem' }}>No hay servicios sueltos.</p>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -1019,6 +1114,19 @@ export const AdminDashboard: React.FC = () => {
                 <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)'}}>Identificador visual en la agenda</span>
               </div>
             </div>
+            <div className="form-group" style={{ marginTop: '1.5rem' }}>
+              <label>Carpeta (Categoría)</label>
+              <select 
+                value={newFolderName} 
+                onChange={e => setNewFolderName(e.target.value)}
+                style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: 'var(--surface-color)', border: '1px solid var(--glass-border)', color: 'var(--text-color)' }}
+              >
+                <option value="">Sin carpeta</option>
+                {(config?.serviceFolders || []).map(f => (
+                  <option key={f} value={f}>{f}</option>
+                ))}
+              </select>
+            </div>
             <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '1.5rem', padding: '1rem', background: 'rgba(255,255,255,0.05)', borderRadius: '8px' }}>
               <input 
                 type="checkbox" 
@@ -1044,6 +1152,29 @@ export const AdminDashboard: React.FC = () => {
                 <button className="btn-secondary" onClick={() => setShowModal(false)}>Cancelar</button>
                 <button className="btn-primary" onClick={addOrUpdateService}>Guardar</button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Nueva Carpeta */}
+      {showFolderModal && (
+        <div className="modal-overlay" onClick={() => setShowFolderModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px' }}>
+            <h2>Añadir Carpeta</h2>
+            <div className="form-group">
+              <label>Nombre de la carpeta</label>
+              <input 
+                autoFocus
+                value={newFolderInput} 
+                onChange={e => setNewFolderInput(e.target.value)} 
+                placeholder="Ej: Peluquería, Estética..." 
+                onKeyDown={(e) => { if(e.key === 'Enter') addFolder(); }}
+              />
+            </div>
+            <div className="modal-actions" style={{ marginTop: '2rem', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+              <button className="btn-secondary" onClick={() => setShowFolderModal(false)}>Cancelar</button>
+              <button className="btn-primary" onClick={addFolder}>Añadir</button>
             </div>
           </div>
         </div>
