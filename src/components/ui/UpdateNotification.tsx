@@ -92,16 +92,18 @@ export const UpdateNotification: React.FC = () => {
     }
 
     if (worker) {
+      // Escuchamos el cambio de estado para recargar justo cuando termine de activarse
+      worker.addEventListener('statechange', () => {
+        if (worker?.state === 'activated') {
+          window.location.reload();
+        }
+      });
       // Envía el mensaje para que el SW pase de 'waiting' a 'active'
       worker.postMessage('SKIP_WAITING');
-    }
-    
-    // Forzamos la recarga siempre. Si el mensaje SKIP_WAITING funcionó, 
-    // la página se recargará con el nuevo SW. Si no, esta recarga 
-    // al menos refrescará la UI y el estado del SW.
-    setTimeout(() => {
+    } else {
+      // Si por alguna razón no hay worker, forzamos recarga
       window.location.reload();
-    }, 1000);
+    }
   };
 
   const handleDismiss = () => {
