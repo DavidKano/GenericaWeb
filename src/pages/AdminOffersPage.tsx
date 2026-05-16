@@ -115,7 +115,7 @@ export const AdminOffersPage: React.FC = () => {
           designSeed: Math.floor(Math.random() * 1000)
         } : {}),
         startDate,
-        endDate: noEndDate ? undefined : endDate,
+        ...(noEndDate ? {} : { endDate }),
         isActive: true,
         displayMode,
         legalDisclaimer
