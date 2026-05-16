@@ -7,8 +7,34 @@
       (function() {
         try {
           const cache = localStorage.getItem('design_config_cache');
+          let font = "'Inter', sans-serif";
+          let cfg = null;
+
           if (cache) {
-            const cfg = JSON.parse(cache);
+            cfg = JSON.parse(cache);
+            if (cfg.fontFamily) font = cfg.fontFamily;
+          }
+
+          const fontMap = {
+            "'Inter', sans-serif": "Inter:wght@400;500;600;700",
+            "'Playfair Display', serif": "Playfair+Display:ital,wght@0,400;0,600;1,400",
+            "'Outfit', sans-serif": "Outfit:wght@400;500;600;700",
+            "'Gochi Hand', cursive": "Gochi+Hand",
+            "'Cinzel', serif": "Cinzel:wght@400;600;700",
+            "'Montserrat', sans-serif": "Montserrat:wght@400;500;600;700",
+            "'Lora', serif": "Lora:ital,wght@0,400;0,600;1,400",
+            "'Roboto Slab', serif": "Roboto+Slab:wght@400;600;700",
+            "'Bebas Neue', sans-serif": "Bebas+Neue",
+            "'Quicksand', sans-serif": "Quicksand:wght@400;500;600;700"
+          };
+          const googleFont = fontMap[font] || "Inter:wght@400;500;600;700";
+          const fontLink = document.createElement('link');
+          fontLink.rel = 'stylesheet';
+          fontLink.id = 'dynamic-font';
+          fontLink.href = 'https://fonts.googleapis.com/css2?family=' + googleFont + '&display=swap';
+          document.head.appendChild(fontLink);
+
+          if (cfg) {
             const root = document.documentElement;
             const isSuperAdmin = window.location.pathname.startsWith('/superadmin');
             const isAdmin = window.location.pathname.startsWith('/admin') && !isSuperAdmin;
@@ -21,7 +47,6 @@
             const primary = cfg.primaryColor || '#3b82f6';
             const secondary = cfg.secondaryColor || '#2563eb';
             const bg = cfg.backgroundColor || '#f3f4f6';
-            const font = cfg.fontFamily || "'Inter', sans-serif";
             const text = cfg.primaryTextColor || '#ffffff';
             const generalText = cfg.generalTextColor || '#111827';
 
@@ -73,7 +98,6 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="manifest" id="dynamic-manifest" href="/manifest.json" />
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Gochi+Hand&family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet" />
     <title>Gestor de Reservas</title>
   </head>
   <body>

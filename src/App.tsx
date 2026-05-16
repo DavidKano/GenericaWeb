@@ -141,6 +141,27 @@ function GlobalThemeInjector({ children }: { children: React.ReactNode }) {
       }
       if (cfg?.fontFamily) {
         document.documentElement.style.setProperty('--font-family', cfg.fontFamily);
+        const fontMap: Record<string, string> = {
+          "'Inter', sans-serif": "Inter:wght@400;500;600;700",
+          "'Playfair Display', serif": "Playfair+Display:ital,wght@0,400;0,600;1,400",
+          "'Outfit', sans-serif": "Outfit:wght@400;500;600;700",
+          "'Gochi Hand', cursive": "Gochi+Hand",
+          "'Cinzel', serif": "Cinzel:wght@400;600;700",
+          "'Montserrat', sans-serif": "Montserrat:wght@400;500;600;700",
+          "'Lora', serif": "Lora:ital,wght@0,400;0,600;1,400",
+          "'Roboto Slab', serif": "Roboto+Slab:wght@400;600;700",
+          "'Bebas Neue', sans-serif": "Bebas+Neue",
+          "'Quicksand', sans-serif": "Quicksand:wght@400;500;600;700"
+        };
+        const googleFont = fontMap[cfg.fontFamily] || "Inter:wght@400;500;600;700";
+        let fontLink = document.getElementById('dynamic-font') as HTMLLinkElement;
+        if (!fontLink) {
+          fontLink = document.createElement('link');
+          fontLink.rel = 'stylesheet';
+          fontLink.id = 'dynamic-font';
+          document.head.appendChild(fontLink);
+        }
+        fontLink.href = 'https://fonts.googleapis.com/css2?family=' + googleFont + '&display=swap';
       }
       if (cfg?.backgroundColor) {
         document.documentElement.style.setProperty('--bg-color', cfg.backgroundColor);

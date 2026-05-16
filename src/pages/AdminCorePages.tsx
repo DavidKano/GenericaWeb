@@ -645,6 +645,11 @@ export const AdminCoreDiseno: React.FC = () => {
             <option value="'Outfit', sans-serif">3. Outfit (Geométrica y Tecnológica)</option>
             <option value="'Gochi Hand', cursive">4. Gochi Hand (Estilo Cómic / Divertido)</option>
             <option value="'Cinzel', serif">5. Cinzel (Estilo Cinematográfico)</option>
+            <option value="'Montserrat', sans-serif">6. Montserrat (Urbana y Versátil)</option>
+            <option value="'Lora', serif">7. Lora (Seria y Confiable)</option>
+            <option value="'Roboto Slab', serif">8. Roboto Slab (Robusta e Industrial)</option>
+            <option value="'Bebas Neue', sans-serif">9. Bebas Neue (Impactante y Publicitaria)</option>
+            <option value="'Quicksand', sans-serif">10. Quicksand (Amigable y Orgánica)</option>
           </select>
 
           <button onClick={saveColors} disabled={savingColors} style={{ marginTop: '2.5rem', padding: '0.75rem 2rem', background: '#eab308', color: '#111', border: 'none', borderRadius: '6px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
