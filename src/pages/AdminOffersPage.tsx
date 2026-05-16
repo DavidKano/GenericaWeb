@@ -18,7 +18,7 @@ export const AdminOffersPage: React.FC = () => {
   }, []);
   
   // Nuevo formulario de oferta
-  const [offerType, setOfferType] = useState<'image' | 'text'>('image');
+  const [offerType, setOfferType] = useState<'image' | 'text'>('text');
   const [textHeader, setTextHeader] = useState('');
   const [textBody, setTextBody] = useState('');
   const [startDate, setStartDate] = useState(format(new Date(), 'yyyy-MM-dd'));
