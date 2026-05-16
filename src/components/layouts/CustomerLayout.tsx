@@ -3,7 +3,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import { Calendar, Users, User as UserIcon, LogOut } from 'lucide-react';
-import type { CompanyData, DesignConfig } from '../../services/models';
+import type { CompanyData } from '../../services/models';
 import { LegalModal } from '../ui/LegalModal';
 import { PromoOfferModal } from '../ui/PromoOfferModal';
 import { getDefaultPrivacyPolicy, getDefaultTermsOfUse } from '../../services/policyDefaults';
@@ -14,13 +14,13 @@ export const CustomerLayout: React.FC = () => {
   const { repo } = useData();
   const navigate = useNavigate();
   const [company, setCompany] = React.useState<CompanyData | null>(null);
-  const [design, setDesign] = React.useState<DesignConfig | null>(null);
+
   const [showPrivacy, setShowPrivacy] = React.useState(false);
   const [showTerms, setShowTerms] = React.useState(false);
 
   React.useEffect(() => {
     repo.getCompanyData().then(setCompany);
-    repo.getDesignConfig().then(setDesign);
+
   }, [repo]);
 
   const handleLogout = () => {
@@ -31,7 +31,6 @@ export const CustomerLayout: React.FC = () => {
   return (
     <div className="app-layout">
       <PromoOfferModal />
-      {design?.customCssCustomer && <style dangerouslySetInnerHTML={{ __html: design.customCssCustomer }} />}
       {/* Top Bar */}
       <header className="app-topbar">
         <div className="app-topbar__brand" onClick={() => navigate('/booking')} style={{ cursor: 'pointer' }}>

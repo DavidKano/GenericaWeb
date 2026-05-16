@@ -11,6 +11,7 @@
             const cfg = JSON.parse(cache);
             const root = document.documentElement;
             const isSuperAdmin = window.location.pathname.startsWith('/superadmin');
+            const isAdmin = window.location.pathname.startsWith('/admin') && !isSuperAdmin;
             const isPortal = !window.location.pathname.startsWith('/admin') && !isSuperAdmin;
 
             if (isSuperAdmin) return;
@@ -37,6 +38,7 @@
               .btn-primary, .app-topbar__user, button[type="submit"] { background-color: var(--primary-color) !important; color: var(--primary-text-color) !important; }
               .login-page { background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%) !important; }
               ${isPortal ? (cfg.customCssCustomer || '') : ''}
+              ${isAdmin ? (cfg.customCssAdmin || '') : ''}
             `;
             document.head.appendChild(s);
 

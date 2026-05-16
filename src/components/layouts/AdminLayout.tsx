@@ -44,7 +44,6 @@ export const AdminLayout: React.FC = () => {
 
   return (
     <div className="app-layout">
-      {design?.customCssAdmin && <style dangerouslySetInnerHTML={{ __html: design.customCssAdmin }} />}
       
       {/* Top Bar */}
       <header className="app-topbar admin-portal-topbar">

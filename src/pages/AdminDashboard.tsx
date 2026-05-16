@@ -279,7 +279,7 @@ export const AdminDashboard: React.FC = () => {
         durationMin: totalDuration,
         color: newColor,
         isActive: newIsActive,
-        folderName: newFolderName || undefined,
+        ...(newFolderName ? { folderName: newFolderName } : {}),
       };
       
       // Solo incluimos el precio si tiene un valor válido para evitar errores en Firebase (unsupported field value: undefined)

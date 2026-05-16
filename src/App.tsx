@@ -146,21 +146,34 @@ function GlobalThemeInjector({ children }: { children: React.ReactNode }) {
         document.documentElement.style.setProperty('--bg-color', cfg.backgroundColor);
       }
 
-      // 3. Custom CSS injection (only if not admin)
-      const isPortal = !window.location.pathname.startsWith('/admin') && !window.location.pathname.startsWith('/superadmin');
-      if (isPortal && cfg?.customCssCustomer) {
-        // Eliminar el estilo previo de inyección temprana si existe para evitar duplicados
-        const earlyStyle = document.getElementById('ultra-early-style');
-        if (earlyStyle) earlyStyle.remove();
+      // 3. Custom CSS injection
+      const path = window.location.pathname;
+      const isCustomerPortal = !path.startsWith('/admin') && !path.startsWith('/superadmin');
+      const isAdminPortal = path.startsWith('/admin') && !path.startsWith('/superadmin');
 
-        const styleId = 'dynamic-custom-css';
-        let styleTag = document.getElementById(styleId);
+      // Eliminar el estilo previo de inyección temprana si existe para evitar duplicados
+      const earlyStyle = document.getElementById('ultra-early-style');
+      if (earlyStyle) earlyStyle.remove();
+
+      const styleId = 'dynamic-custom-css';
+      let styleTag = document.getElementById(styleId);
+      
+      let cssToInject = '';
+      if (isCustomerPortal && cfg?.customCssCustomer) {
+        cssToInject = cfg.customCssCustomer;
+      } else if (isAdminPortal && cfg?.customCssAdmin) {
+        cssToInject = cfg.customCssAdmin;
+      }
+
+      if (cssToInject) {
         if (!styleTag) {
           styleTag = document.createElement('style');
           styleTag.id = styleId;
           document.head.appendChild(styleTag);
         }
-        styleTag.innerHTML = cfg.customCssCustomer;
+        styleTag.innerHTML = cssToInject;
+      } else if (styleTag) {
+        styleTag.innerHTML = '';
       }
     }).catch(err => {
       console.error('CRITICAL: Fallo en la inyección de temas core:', err);
