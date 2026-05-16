@@ -449,29 +449,64 @@ export const AdminDashboard: React.FC = () => {
     return names[num];
   };
 
-  // Preparar eventos para react-big-calendar
+  // Preparar eventos para react-big-calendar y asignar Puestos (Resources)
+  const resources = useMemo(() => {
+    const count = config?.concurrentSlots || 1;
+    if (count <= 1) return undefined;
+    return Array.from({ length: count }, (_, i) => ({
+      id: `slot-${i + 1}`,
+      title: `Puesto ${i + 1}`,
+    }));
+  }, [config?.concurrentSlots]);
+
   const events = useMemo(() => {
-    return appointments
+    const numSlots = config?.concurrentSlots || 1;
+    
+    // Sort chronologically for greedy slot allocation
+    const sortedAppointments = [...appointments]
       .filter(a => a.status !== 'CANCELLED')
-      .map(app => {
+      .sort((a, b) => a.dateTimeStart - b.dateTimeStart);
+
+    const assignedEvents: any[] = [];
+
+    sortedAppointments.forEach(app => {
       const service = services.find(s => s.id === app.serviceId);
       const customer = users.find(u => u.id === app.customerId);
       const duration = service?.durationMin || 30;
       const start = new Date(app.dateTimeStart);
       const end = new Date(start.getTime() + duration * 60000);
       
-      return {
+      let assignedSlot = 'slot-1';
+      
+      if (numSlots > 1) {
+        // Find the first available slot that doesn't overlap
+        for (let i = 1; i <= numSlots; i++) {
+          const slotId = `slot-${i}`;
+          const hasOverlap = assignedEvents.some(e => 
+            e.resourceId === slotId && (start < e.end && end > e.start)
+          );
+          if (!hasOverlap) {
+            assignedSlot = slotId;
+            break;
+          }
+        }
+      }
+      
+      assignedEvents.push({
         id: app.id,
         title: `${customer?.name || 'Cliente'} - ${service?.name || ''}`,
         start,
         end,
         resource: app,
-        customer, // Incluimos el objeto cliente para acceso rápido
-        service,  // Incluimos el objeto servicio para acceso rápido
-        color: service?.color || '#3174ad'
-      };
+        customer, 
+        service,  
+        color: service?.color || '#3174ad',
+        resourceId: numSlots > 1 ? assignedSlot : undefined,
+      });
     });
-  }, [appointments, services, users]);
+
+    return assignedEvents;
+  }, [appointments, services, users, config?.concurrentSlots]);
 
   const calendarBounds = useMemo(() => {
     let minH = 24;
@@ -882,6 +917,9 @@ export const AdminDashboard: React.FC = () => {
                 max={calendarBounds.max}
                 slotPropGetter={slotPropGetter}
                 dayPropGetter={dayPropGetter}
+                resources={currentView === 'day' ? resources : undefined}
+                resourceIdAccessor="id"
+                resourceTitleAccessor="title"
                 components={{
                   toolbar: CustomToolbar,
                   event: EventComponent
