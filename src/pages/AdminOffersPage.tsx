@@ -149,6 +149,17 @@ export const AdminOffersPage: React.FC = () => {
     setOffers(offers.filter(o => o.id !== id));
   };
 
+  const handleToggleActive = async (offer: PromoOffer, isActive: boolean) => {
+    try {
+      const updatedOffer = { ...offer, isActive };
+      await repo.savePromoOffer(updatedOffer);
+      setOffers(offers.map(o => o.id === offer.id ? updatedOffer : o));
+    } catch (err: any) {
+      console.error(err);
+      alert(`Error al actualizar estado: ${err.message}`);
+    }
+  };
+
   if (loading) return <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}><Loader2 className="animate-spin" size={32} /></div>;
 
   return (
@@ -341,22 +352,44 @@ export const AdminOffersPage: React.FC = () => {
                          <img src={offer.imageUrl} alt="Promo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                        )}
                     </div>
-                    <div style={{ padding: '1rem', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                      <p style={{ margin: '0 0 0.25rem', fontSize: '0.8rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                        Periodo de validez
-                      </p>
-                      <strong style={{ fontSize: '0.95rem', color: 'var(--text-primary)', marginBottom: '0.5rem', display: 'block' }}>
-                        {format(new Date(offer.startDate), 'd MMM yyyy', { locale: es })} — {offer.endDate ? format(new Date(offer.endDate), 'd MMM yyyy', { locale: es }) : 'Indefinida'}
-                      </strong>
-                      <span style={{ display: 'inline-block', padding: '0.2rem 0.5rem', background: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '4px', fontSize: '0.75rem', color: 'var(--text-secondary)', alignSelf: 'flex-start' }}>
-                        {offer.displayMode === 'inline' ? 'Fija bajo servicios' : 'Ventana Pop-up'}
-                      </span>
-                      <div style={{ marginTop: '0.75rem' }}>
+                    <div style={{ padding: '1rem', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', opacity: offer.isActive === false ? 0.6 : 1 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                        <div style={{ flex: 1 }}>
+                          {offer.type === 'text' && offer.textHeader && (
+                            <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '1.05rem', color: 'var(--text-primary)', fontWeight: 600 }}>
+                              {offer.textHeader}
+                            </h4>
+                          )}
+                          <p style={{ margin: '0 0 0.25rem', fontSize: '0.8rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                            Periodo de validez
+                          </p>
+                          <strong style={{ fontSize: '0.95rem', color: 'var(--text-primary)', marginBottom: '0.5rem', display: 'block' }}>
+                            {format(new Date(offer.startDate), 'd MMM yyyy', { locale: es })} — {offer.endDate ? format(new Date(offer.endDate), 'd MMM yyyy', { locale: es }) : 'Indefinida'}
+                          </strong>
+                        </div>
+                        
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', fontSize: '0.85rem', color: offer.isActive !== false ? 'var(--primary-color)' : 'var(--text-secondary)' }}>
+                            <input 
+                              type="checkbox" 
+                              checked={offer.isActive !== false}
+                              onChange={(e) => handleToggleActive(offer, e.target.checked)} 
+                              style={{ width: '16px', height: '16px', margin: 0 }}
+                            />
+                            <span style={{ fontWeight: 600 }}>{offer.isActive !== false ? 'Publicada' : 'Pausada'}</span>
+                          </label>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', paddingTop: '0.5rem' }}>
+                        <span style={{ display: 'inline-block', padding: '0.2rem 0.5rem', background: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '4px', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                          {offer.displayMode === 'inline' ? 'Fija bajo servicios' : 'Ventana Pop-up'}
+                        </span>
                         <button 
                           onClick={() => handleDeleteOffer(offer.id)}
                           style={{ background: 'transparent', border: 'none', color: '#ef4444', fontSize: '0.85rem', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: '0.25rem' }}
                         >
-                          <Trash2 size={14} /> Eliminar ahora
+                          <Trash2 size={14} /> Eliminar
                         </button>
                       </div>
                     </div>

@@ -127,48 +127,51 @@ function GlobalThemeInjector({ children }: { children: React.ReactNode }) {
       const themeColorMeta = document.getElementById('meta-theme-color') as HTMLMetaElement;
       if (themeColorMeta && cfg?.primaryColor) themeColorMeta.content = cfg.primaryColor;
 
+      const path = window.location.pathname;
+
       // 2. CSS variables injection (Priority is already handled by index.html for fast load,
       // here we ensure the absolute latest from DB is applied)
-      if (cfg?.primaryColor) {
-        document.documentElement.style.setProperty('--primary-color', cfg.primaryColor);
-        document.documentElement.style.setProperty('--secondary-color', cfg.secondaryColor || '#2563eb');
-      }
-      if (cfg?.primaryTextColor) {
-        document.documentElement.style.setProperty('--primary-text-color', cfg.primaryTextColor);
-      }
-      if (cfg?.generalTextColor) {
-        document.documentElement.style.setProperty('--text-primary', cfg.generalTextColor);
-      }
-      if (cfg?.fontFamily) {
-        document.documentElement.style.setProperty('--font-family', cfg.fontFamily);
-        const fontMap: Record<string, string> = {
-          "'Inter', sans-serif": "Inter:wght@400;500;600;700",
-          "'Playfair Display', serif": "Playfair+Display:ital,wght@0,400;0,600;1,400",
-          "'Outfit', sans-serif": "Outfit:wght@400;500;600;700",
-          "'Gochi Hand', cursive": "Gochi+Hand",
-          "'Cinzel', serif": "Cinzel:wght@400;600;700",
-          "'Montserrat', sans-serif": "Montserrat:wght@400;500;600;700",
-          "'Lora', serif": "Lora:ital,wght@0,400;0,600;1,400",
-          "'Roboto Slab', serif": "Roboto+Slab:wght@400;600;700",
-          "'Bebas Neue', sans-serif": "Bebas+Neue",
-          "'Quicksand', sans-serif": "Quicksand:wght@400;500;600;700"
-        };
-        const googleFont = fontMap[cfg.fontFamily] || "Inter:wght@400;500;600;700";
-        let fontLink = document.getElementById('dynamic-font') as HTMLLinkElement;
-        if (!fontLink) {
-          fontLink = document.createElement('link');
-          fontLink.rel = 'stylesheet';
-          fontLink.id = 'dynamic-font';
-          document.head.appendChild(fontLink);
+      if (!isSuperAdmin) {
+        if (cfg?.primaryColor) {
+          document.documentElement.style.setProperty('--primary-color', cfg.primaryColor);
+          document.documentElement.style.setProperty('--secondary-color', cfg.secondaryColor || '#2563eb');
         }
-        fontLink.href = 'https://fonts.googleapis.com/css2?family=' + googleFont + '&display=swap';
-      }
-      if (cfg?.backgroundColor) {
-        document.documentElement.style.setProperty('--bg-color', cfg.backgroundColor);
+        if (cfg?.primaryTextColor) {
+          document.documentElement.style.setProperty('--primary-text-color', cfg.primaryTextColor);
+        }
+        if (cfg?.generalTextColor) {
+          document.documentElement.style.setProperty('--text-primary', cfg.generalTextColor);
+        }
+        if (cfg?.fontFamily) {
+          document.documentElement.style.setProperty('--font-family', cfg.fontFamily);
+          const fontMap: Record<string, string> = {
+            "'Inter', sans-serif": "Inter:wght@400;500;600;700",
+            "'Playfair Display', serif": "Playfair+Display:ital,wght@0,400;0,600;1,400",
+            "'Outfit', sans-serif": "Outfit:wght@400;500;600;700",
+            "'Gochi Hand', cursive": "Gochi+Hand",
+            "'Cinzel', serif": "Cinzel:wght@400;600;700",
+            "'Montserrat', sans-serif": "Montserrat:wght@400;500;600;700",
+            "'Lora', serif": "Lora:ital,wght@0,400;0,600;1,400",
+            "'Roboto Slab', serif": "Roboto+Slab:wght@400;600;700",
+            "'Bebas Neue', sans-serif": "Bebas+Neue",
+            "'Quicksand', sans-serif": "Quicksand:wght@400;500;600;700"
+          };
+          const googleFont = fontMap[cfg.fontFamily] || "Inter:wght@400;500;600;700";
+          let fontLink = document.getElementById('dynamic-font') as HTMLLinkElement;
+          if (!fontLink) {
+            fontLink = document.createElement('link');
+            fontLink.rel = 'stylesheet';
+            fontLink.id = 'dynamic-font';
+            document.head.appendChild(fontLink);
+          }
+          fontLink.href = 'https://fonts.googleapis.com/css2?family=' + googleFont + '&display=swap';
+        }
+        if (cfg?.backgroundColor) {
+          document.documentElement.style.setProperty('--bg-color', cfg.backgroundColor);
+        }
       }
 
       // 3. Custom CSS injection
-      const path = window.location.pathname;
       const isCustomerPortal = !path.startsWith('/admin') && !path.startsWith('/superadmin');
       const isAdminPortal = path.startsWith('/admin') && !path.startsWith('/superadmin');
 
