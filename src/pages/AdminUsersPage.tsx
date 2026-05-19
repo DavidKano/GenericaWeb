@@ -360,6 +360,23 @@ export const AdminUsersPage: React.FC = () => {
                            appt.status === 'CONFIRMED' ? 'CONFIRMADA' : 
                            appt.status === 'COMPLETED' ? 'COMPLETADA' : 'CANCELADA'}
                         </span>
+                        {appt.status === 'PENDING' && (
+                          <button 
+                            className="btn-primary" 
+                            style={{ padding: '0.3rem 0.6rem', fontSize: '0.7rem', marginTop: '0.2rem' }}
+                            onClick={async () => {
+                              try {
+                                await repo.saveAppointment({ ...appt, status: 'CONFIRMED' });
+                                loadData();
+                              } catch (e) {
+                                console.error(e);
+                                alert('Error al confirmar la cita');
+                              }
+                            }}
+                          >
+                            Aceptar Cita
+                          </button>
+                        )}
                         {appt.adminNotes && (
                           <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontStyle: 'italic', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={appt.adminNotes}>
                             📌 {appt.adminNotes}

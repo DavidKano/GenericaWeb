@@ -101,6 +101,8 @@ export const AdminDashboard: React.FC = () => {
   // Subscription notification logic
   const [showSubPopup, setShowSubPopup] = useState<'15_days' | '5_days' | null>(null);
 
+  const [showPendingModal, setShowPendingModal] = useState(false);
+
   const openWhatsApp = (url: string) => {
     const name = 'whatsappWindow';
     if (!waWindow || waWindow.closed) {
@@ -587,6 +589,8 @@ export const AdminDashboard: React.FC = () => {
     return d.toDateString() === today.toDateString() && a.status !== 'CANCELLED';
   });
 
+  const pendingAppts = appointments.filter(a => a.status === 'PENDING');
+
   return (
     <div className="animate-fade-in">
       {/* Subscription Expiration Popup */}
@@ -645,29 +649,60 @@ export const AdminDashboard: React.FC = () => {
             }}>
               <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 600, color: 'var(--text-primary)' }}>Calendario de Reservas</h3>
               
-              {/* Premium Live Stat Indicator */}
-              <div style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '0.6rem',
-                background: 'rgba(59, 130, 246, 0.1)', 
-                border: '1px solid rgba(59, 130, 246, 0.25)', 
-                padding: '0.35rem 0.85rem', 
-                borderRadius: '999px',
-                color: '#3b82f6',
-                fontSize: '0.8rem',
-                fontWeight: '600',
-                boxShadow: '0 2px 8px rgba(59, 130, 246, 0.08)'
-              }}>
-                <span style={{ 
-                  display: 'inline-flex', 
-                  width: '7px', 
-                  height: '7px', 
-                  borderRadius: '50%', 
-                  backgroundColor: '#3b82f6'
-                }}></span>
-                <span>Citas Hoy:</span>
-                <strong style={{ fontSize: '0.95rem', color: 'var(--text-primary)' }}>{todayAppts.length}</strong>
+              <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                {/* Pending Appts Indicator */}
+                <div 
+                  onClick={() => setShowPendingModal(true)}
+                  style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '0.6rem',
+                    background: 'rgba(234, 179, 8, 0.1)', 
+                    border: '1px solid rgba(234, 179, 8, 0.25)', 
+                    padding: '0.35rem 0.85rem', 
+                    borderRadius: '999px',
+                    color: '#eab308',
+                    fontSize: '0.8rem',
+                    fontWeight: '600',
+                    boxShadow: '0 2px 8px rgba(234, 179, 8, 0.08)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <span style={{ 
+                    display: 'inline-flex', 
+                    width: '7px', 
+                    height: '7px', 
+                    borderRadius: '50%', 
+                    backgroundColor: '#eab308'
+                  }}></span>
+                  <span>Citas Pendientes:</span>
+                  <strong style={{ fontSize: '0.95rem', color: 'var(--text-primary)' }}>{pendingAppts.length}</strong>
+                </div>
+
+                {/* Premium Live Stat Indicator */}
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '0.6rem',
+                  background: 'rgba(59, 130, 246, 0.1)', 
+                  border: '1px solid rgba(59, 130, 246, 0.25)', 
+                  padding: '0.35rem 0.85rem', 
+                  borderRadius: '999px',
+                  color: '#3b82f6',
+                  fontSize: '0.8rem',
+                  fontWeight: '600',
+                  boxShadow: '0 2px 8px rgba(59, 130, 246, 0.08)'
+                }}>
+                  <span style={{ 
+                    display: 'inline-flex', 
+                    width: '7px', 
+                    height: '7px', 
+                    borderRadius: '50%', 
+                    backgroundColor: '#3b82f6'
+                  }}></span>
+                  <span>Citas Hoy:</span>
+                  <strong style={{ fontSize: '0.95rem', color: 'var(--text-primary)' }}>{todayAppts.length}</strong>
+                </div>
               </div>
             </div>
             <div style={{ flex: 'none', height: 'auto' }} className={`admin-calendar-container view-${currentView}`}>
@@ -715,6 +750,70 @@ export const AdminDashboard: React.FC = () => {
             </div>
           </div>
         </>
+      )}
+
+      {/* Modal Citas Pendientes */}
+      {showPendingModal && (
+        <div className="modal-overlay" onClick={() => setShowPendingModal(false)}>
+          <div className="modal-content animate-pop-in" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', width: '90%' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                <h2 style={{ margin: 0, color: '#eab308' }}>⏳ Citas Pendientes</h2>
+                <button className="btn-icon" onClick={() => setShowPendingModal(false)}><XCircle /></button>
+            </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxHeight: '60vh', overflowY: 'auto' }}>
+              {pendingAppts.length === 0 ? (
+                <p style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>No hay citas pendientes de confirmación.</p>
+              ) : (
+                pendingAppts.map(appt => {
+                  const customer = users.find(u => u.id === appt.customerId);
+                  const service = services.find(s => s.id === appt.serviceId);
+                  return (
+                    <div key={appt.id} style={{ 
+                      padding: '1rem', 
+                      background: 'var(--bg-color)', 
+                      borderRadius: '8px', 
+                      border: '1px solid var(--glass-border)',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      gap: '1rem',
+                      flexWrap: 'wrap'
+                    }}>
+                      <div>
+                        <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{customer?.name || 'Cliente Desconocido'}</div>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                          {service?.name || 'Servicio'} - {new Date(appt.dateTimeStart).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button 
+                          className="btn-primary" 
+                          style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}
+                          onClick={async () => {
+                            try {
+                              await repo.saveAppointment({ ...appt, status: 'CONFIRMED' });
+                              loadData();
+                            } catch (e) {
+                              console.error(e);
+                              alert('Error al confirmar la cita');
+                            }
+                          }}
+                        >
+                          Aceptar
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+            
+            <div className="modal-actions" style={{ marginTop: '2rem' }}>
+              <button className="btn-secondary" onClick={() => setShowPendingModal(false)}>Cerrar</button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Modal Detalles Cita (Calendario) */}
