@@ -10,7 +10,6 @@ import {
   User as UserIcon,
   ChevronLeft,
   ChevronRight,
-  Calendar as CalendarIcon,
   Columns,
   Minus,
   MessageCircle
@@ -73,6 +72,12 @@ export const AdminDashboard: React.FC = () => {
   // Controles de Vista de Calendario
   const [currentView, setCurrentView] = useState<any>(window.innerWidth <= 768 ? 'day' : 'week');
   const [currentDate, setCurrentDate] = useState(new Date());
+
+  useEffect(() => {
+    if (isMobile && currentView === 'month') {
+      setCurrentView('day');
+    }
+  }, [isMobile, currentView]);
 
   // Variables del Modal de Citas en el Calendario
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
@@ -456,11 +461,16 @@ export const AdminDashboard: React.FC = () => {
     const goToNext = () => toolbar.onNavigate('NEXT');
     const goToToday = () => toolbar.onNavigate('TODAY');
 
-    const viewNamesGroup = [
-      { view: 'month', label: isMobile ? <CalendarIcon size={18} /> : 'Mensual' },
-      { view: 'week', label: isMobile ? <Columns size={18} /> : 'Semanal' },
-      { view: 'day', label: isMobile ? <Minus size={18} style={{ transform: 'rotate(90deg)' }} /> : 'Diario' }
-    ];
+    const viewNamesGroup = isMobile
+      ? [
+          { view: 'week', label: <Columns size={18} /> },
+          { view: 'day', label: <Minus size={18} style={{ transform: 'rotate(90deg)' }} /> }
+        ]
+      : [
+          { view: 'month', label: 'Mensual' },
+          { view: 'week', label: 'Semanal' },
+          { view: 'day', label: 'Diario' }
+        ];
 
     return (
       <div className="rbc-toolbar" style={{ marginBottom: '1.5rem', flexDirection: isMobile ? 'column' : 'row', gap: '1rem' }}>
@@ -670,7 +680,7 @@ export const AdminDashboard: React.FC = () => {
                 eventPropGetter={eventPropGetter}
                 onSelectEvent={handleSelectEvent}
                 culture="es"
-                views={['month', 'week', 'day']}
+                views={isMobile ? ['week', 'day'] : ['month', 'week', 'day']}
                 view={currentView as any}
                 onView={(v) => setCurrentView(v)}
                 date={currentDate}

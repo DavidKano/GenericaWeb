@@ -98,10 +98,19 @@ export const UpdateNotification: React.FC = () => {
           window.location.reload();
         }
       });
+
+      // Failsafe absoluto: Si por algún motivo el navegador móvil (en especial Chrome de Android o Safari iOS
+      // en modo PWA/Acceso directo) no dispara el evento 'statechange' o 'controllerchange',
+      // forzamos la recarga de la ventana a los 1.2 segundos. Para ese momento, el postMessage ya habrá
+      // activado el nuevo Service Worker en segundo plano, y al recargar se iniciará con la versión fresca.
+      setTimeout(() => {
+        window.location.reload();
+      }, 1200);
+
       // Envía el mensaje para que el SW pase de 'waiting' a 'active'
       worker.postMessage('SKIP_WAITING');
     } else {
-      // Si por alguna razón no hay worker, forzamos recarga
+      // Si por alguna razón no hay worker, forzamos recarga inmediata
       window.location.reload();
     }
   };
