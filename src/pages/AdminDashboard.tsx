@@ -670,7 +670,7 @@ export const AdminDashboard: React.FC = () => {
                 <strong style={{ fontSize: '0.95rem', color: 'var(--text-primary)' }}>{todayAppts.length}</strong>
               </div>
             </div>
-            <div style={{ flex: 'none', height: 'auto' }}>
+            <div style={{ flex: 'none', height: 'auto' }} className={`admin-calendar-container view-${currentView}`}>
               <Calendar
                 localizer={localizer}
                 events={events}

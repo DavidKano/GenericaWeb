@@ -135,5 +135,53 @@ body {
   min-height: 120px !important;
 }
 
+/* ==========================================================================
+   VISTA SEMANAL SCROLLABLE EN MÓVIL (Muestra exactamente 3 días a la vez)
+   ========================================================================== */
+@media (max-width: 768px) {
+  /* Habilitar scroll horizontal nativo y suave en la vista semanal de móvil */
+  .admin-calendar-container.view-week .rbc-time-view {
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch;
+    position: relative;
+  }
+
+  /* Forzar que las filas internas del calendario abarquen el ancho natural del scroll */
+  .admin-calendar-container.view-week .rbc-time-header,
+  .admin-calendar-container.view-week .rbc-time-content {
+    min-width: max-content !important;
+    width: 100% !important;
+  }
+
+  .admin-calendar-container.view-week .rbc-time-header-content,
+  .admin-calendar-container.view-week .rbc-time-header-content .rbc-row {
+    min-width: max-content !important;
+    flex: 1 0 0% !important;
+  }
+
+  /* Fijar la columna de horas (gutter) a la izquierda de forma pegajosa (sticky) */
+  .admin-calendar-container.view-week .rbc-time-header-gutter,
+  .admin-calendar-container.view-week .rbc-time-gutter {
+    position: sticky !important;
+    left: 0 !important;
+    z-index: 10 !important;
+    background-color: var(--surface-color) !important;
+    border-right: 1px solid var(--glass-border) !important;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05) !important;
+    width: 60px !important;
+    min-width: 60px !important;
+    flex: 0 0 60px !important;
+  }
+
+  /* Distribuir exactamente 3 días visibles en el espacio restante de la pantalla */
+  .admin-calendar-container.view-week .rbc-header,
+  .admin-calendar-container.view-week .rbc-day-slot {
+    width: calc((100vw - 3rem - 60px) / 3) !important;
+    min-width: calc((100vw - 3rem - 60px) / 3) !important;
+    flex: 0 0 calc((100vw - 3rem - 60px) / 3) !important;
+  }
+}
+
 
 
