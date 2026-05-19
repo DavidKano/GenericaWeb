@@ -126,5 +126,14 @@ body {
   height: auto !important;
 }
 
+/* Permitir que la vista mensual crezca naturalmente y no colapse a 0px de altura */
+.rbc-month-view {
+  flex: none !important;
+  height: auto !important;
+}
+.rbc-month-row {
+  min-height: 120px !important;
+}
+
 
 
