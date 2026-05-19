@@ -18,9 +18,16 @@ export const CustomerLayout: React.FC = () => {
   const [showPrivacy, setShowPrivacy] = React.useState(false);
   const [showTerms, setShowTerms] = React.useState(false);
 
+  const [isMobile, setIsMobile] = React.useState(window.innerWidth <= 768);
+
   React.useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    window.addEventListener('resize', handleResize);
     repo.getCompanyData().then(setCompany);
 
+    return () => window.removeEventListener('resize', handleResize);
   }, [repo]);
 
   const handleLogout = () => {
@@ -81,6 +88,19 @@ export const CustomerLayout: React.FC = () => {
           <ConnessiaFooter />
         </main>
       </div>
+
+      {isMobile && (
+        <nav className="admin-bottom-nav">
+          <NavLink to="/booking" className={({ isActive }) => isActive ? 'active' : ''}>
+            <Calendar size={22} />
+            <span>Reservar</span>
+          </NavLink>
+          <NavLink to="/profile" className={({ isActive }) => isActive ? 'active' : ''}>
+            <Users size={22} />
+            <span>Mis Citas</span>
+          </NavLink>
+        </nav>
+      )}
     </div>
   );
 };

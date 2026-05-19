@@ -40,8 +40,7 @@ body {
 }
 
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
+  width: 100%;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -82,3 +81,50 @@ body {
   border: 1px solid var(--glass-border);
   border-radius: var(--border-radius);
 }
+
+/* Unificar scrollbar: desactivar scroll interno en el calendario y permitir que la página haga scroll de manera natural */
+.rbc-time-content {
+  overflow-y: visible !important;
+  flex: none !important;
+}
+.rbc-time-view {
+  flex: none !important;
+  min-height: auto !important;
+}
+
+/* Forzar que la cabecera superior sea siempre compacta y ocultar la fila vacía de 'Todo el día' */
+.rbc-time-header {
+  min-height: auto !important;
+  height: auto !important;
+}
+.rbc-time-header-content {
+  min-height: auto !important;
+  height: auto !important;
+}
+.rbc-allday-cell,
+.rbc-time-header-gutter .rbc-allday-cell {
+  display: none !important;
+}
+.rbc-header {
+  padding: 6px 4px !important;
+  font-size: 0.85rem !important;
+  font-weight: 600 !important;
+  min-height: auto !important;
+}
+
+/* Aumentar el alto de las horas exclusivamente en el grid y el gutter del calendario, alineándolos */
+.rbc-time-content .rbc-timeslot-group {
+  min-height: 108px !important;
+  height: 108px !important;
+}
+.rbc-time-content .rbc-time-slot {
+  min-height: 54px !important;
+  height: 54px !important;
+}
+
+.rbc-calendar {
+  height: auto !important;
+}
+
+
+

@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import type { User, Appointment, BookingService } from '../services/models';
-import { Search, User as UserIcon, Calendar, FileText, ChevronRight, Phone, Mail, MapPin, Edit, X, Info, Trash2 } from 'lucide-react';
+import { Search, User as UserIcon, Calendar, FileText, ChevronRight, Phone, Mail, MapPin, Edit, X, Info, Trash2, ArrowLeft } from 'lucide-react';
 
 export const AdminUsersPage: React.FC = () => {
   const { repo } = useData();
@@ -148,7 +148,8 @@ export const AdminUsersPage: React.FC = () => {
   return (
     <div className="admin-users-layout animate-fade-in" style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '350px 1fr', gap: '1.5rem', height: isMobile ? 'auto' : 'calc(100vh - 120px)', overflow: isMobile ? 'visible' : 'hidden' }}>
       {/* Sidebar de Usuarios */}
-      <div className="card glass-panel" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '1rem' }}>
+      {(!isMobile || !selectedUserId) && (
+        <div className="card glass-panel" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '1rem' }}>
         <div className="search-box" style={{ 
           position: 'relative', 
           marginBottom: '1.5rem',
@@ -218,59 +219,72 @@ export const AdminUsersPage: React.FC = () => {
           )}
         </div>
       </div>
-
+      )}
+      
       {/* Detalle del Usuario */}
-      <div className="user-detail-content" style={{ overflowY: 'auto', overflowX: 'hidden' }}>
+      {(!isMobile || selectedUserId) && (
+        <div className="user-detail-content" style={{ overflowY: 'auto', overflowX: 'hidden' }}>
         {selectedUser ? (
           <div className="animate-fade-in" style={{ display: 'grid', gap: '1.5rem' }}>
             {/* Header / Info Básica */}
-            <div className="card glass-panel" style={{ display: 'flex', gap: '2rem', alignItems: 'center', flexWrap: 'wrap' }}>
-              <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'var(--primary-color)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <UserIcon size={40} />
-              </div>
-              <div style={{ flex: 1, minWidth: '200px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem' }}>
-                  <h2 style={{ margin: 0 }}>{selectedUser.name}</h2>
-                  <button 
-                    onClick={openEditModal}
-                    style={{ background: 'none', border: 'none', color: 'var(--primary-color)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '4px' }}
-                    title="Editar datos del cliente"
-                  >
-                    <Edit size={18} />
-                  </button>
-                  <button 
-                    onClick={handleDeleteUser}
-                    style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '4px' }}
-                    title="Eliminar cliente"
-                  >
-                    <Trash2 size={18} />
-                  </button>
+            <div className="card glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '1.5rem' }}>
+              {isMobile && (
+                <button 
+                  onClick={() => setSelectedUserId(null)}
+                  className="btn-secondary"
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginBottom: '0.5rem', alignSelf: 'flex-start' }}
+                >
+                  <ArrowLeft size={16} /> Volver a la Lista
+                </button>
+              )}
+              <div style={{ display: 'flex', gap: '2rem', alignItems: 'center', flexWrap: 'wrap', width: '100%' }}>
+                <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'var(--primary-color)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <UserIcon size={40} />
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><Mail size={14} /> {selectedUser.email}</span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><Phone size={14} /> {selectedUser.phone}</span>
-                    {selectedUser.dni && <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><FileText size={14} /> {selectedUser.dni}</span>}
+                <div style={{ flex: 1, minWidth: '200px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem' }}>
+                    <h2 style={{ margin: 0 }}>{selectedUser.name}</h2>
+                    <button 
+                      onClick={openEditModal}
+                      style={{ background: 'none', border: 'none', color: 'var(--primary-color)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '4px' }}
+                      title="Editar datos del cliente"
+                    >
+                      <Edit size={18} />
+                    </button>
+                    <button 
+                      onClick={handleDeleteUser}
+                      style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '4px' }}
+                      title="Eliminar cliente"
+                    >
+                      <Trash2 size={18} />
+                    </button>
                   </div>
-                  {(selectedUser.address || selectedUser.city) && (
-                    <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.25rem' }}>
-                      <MapPin size={14} />
-                      <span>
-                        {selectedUser.address}
-                        {(selectedUser.cp || selectedUser.city) && ` - ${selectedUser.cp || ''} ${selectedUser.city || ''}`}
-                        {selectedUser.province && `, ${selectedUser.province}`}
-                      </span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><Mail size={14} /> {selectedUser.email}</span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><Phone size={14} /> {selectedUser.phone}</span>
+                      {selectedUser.dni && <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><FileText size={14} /> {selectedUser.dni}</span>}
                     </div>
-                  )}
+                    {(selectedUser.address || selectedUser.city) && (
+                      <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.25rem' }}>
+                        <MapPin size={14} />
+                        <span>
+                          {selectedUser.address}
+                          {(selectedUser.cp || selectedUser.city) && ` - ${selectedUser.cp || ''} ${selectedUser.city || ''}`}
+                          {selectedUser.province && `, ${selectedUser.province}`}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
+                <a 
+                  href={`mailto:${selectedUser.email}`} 
+                  className="btn-secondary" 
+                  style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', flexShrink: 0 }}
+                >
+                  <Mail size={16} /> Enviar Mensaje
+                </a>
               </div>
-              <a 
-                href={`mailto:${selectedUser.email}`} 
-                className="btn-secondary" 
-                style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', flexShrink: 0 }}
-              >
-                <Mail size={16} /> Enviar Mensaje
-              </a>
             </div>
 
             {/* Notas Administrativas - Ancho completo */}
@@ -370,6 +384,7 @@ export const AdminUsersPage: React.FC = () => {
           </div>
         )}
       </div>
+      )}
 
       {/* Modal Editar Usuario */}
       {showEditModal && selectedUser && (

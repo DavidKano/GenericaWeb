@@ -211,7 +211,7 @@ export const BookingPage: React.FC = () => {
     };
 
     return (
-      <div className="booking-page" style={{ textAlign: 'center', paddingTop: '2rem' }}>
+      <div className="booking-page" style={{ textAlign: 'center', paddingTop: '2rem', maxWidth: '1100px', margin: '0 auto', width: '100%' }}>
         <div style={{ transform: 'scale(1.2)', display: 'inline-block', marginBottom: '1.5rem' }}>
           <CheckCircle2 size={64} color="#10b981" />
         </div>
@@ -295,7 +295,7 @@ export const BookingPage: React.FC = () => {
   }
 
   return (
-    <div className="booking-page">
+    <div className="booking-page" style={{ maxWidth: '1100px', margin: '0 auto', width: '100%' }}>
       <h2 style={{ marginBottom: '1rem' }}>📅 Reservar Cita</h2>
 
       <div className="booking-steps">

@@ -1,16 +1,18 @@
 import React from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { LayoutDashboard, Users, User as UserIcon, LogOut, QrCode, Clock, Megaphone, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Users, User as UserIcon, LogOut, QrCode, Clock, Megaphone, Menu, X, Sliders, Settings } from 'lucide-react';
 import { useData } from '../../context/DataContext';
-import type { DesignConfig } from '../../services/models';
+import type { DesignConfig, CompanyData } from '../../services/models';
 import { ConnessiaFooter } from '../ui/ConnessiaFooter';
+import { format } from 'date-fns';
 
 export const AdminLayout: React.FC = () => {
   const { user, logout } = useAuth();
   const { repo } = useData();
   const navigate = useNavigate();
   const [design, setDesign] = React.useState<DesignConfig | null>(null);
+  const [companyData, setCompanyData] = React.useState<CompanyData | null>(null);
 
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const [showSupportModal, setShowSupportModal] = React.useState(false);
@@ -25,6 +27,7 @@ export const AdminLayout: React.FC = () => {
     };
     window.addEventListener('resize', handleResize);
     repo.getDesignConfig().then(setDesign);
+    repo.getCompanyData().then(setCompanyData);
 
     return () => window.removeEventListener('resize', handleResize);
   }, [repo]);
@@ -36,10 +39,12 @@ export const AdminLayout: React.FC = () => {
 
   const navItems = [
     { to: "/admin", icon: <LayoutDashboard size={18} />, label: "Panel Control", end: true },
+    { to: "/admin/services", icon: <Sliders size={18} />, label: "Gestión Servicios" },
     { to: "/admin/users", icon: <Users size={18} />, label: "Gestión Clientes" },
     { to: "/admin/schedule", icon: <Clock size={18} />, label: "Horarios y Bloqueos" },
     { to: "/admin/offers", icon: <Megaphone size={18} />, label: "Ofertas y Promos" },
     { to: "/admin/promote", icon: <QrCode size={18} />, label: "Promocionar App" },
+    { to: "/admin/settings", icon: <Settings size={18} />, label: "Ajustes" },
   ];
 
   return (
@@ -47,7 +52,7 @@ export const AdminLayout: React.FC = () => {
       
       {/* Top Bar */}
       <header className="app-topbar admin-portal-topbar">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
           {isMobile && (
             <button 
               onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -60,6 +65,21 @@ export const AdminLayout: React.FC = () => {
           <div className="app-topbar__brand" onClick={() => navigate('/admin')} style={{ cursor: 'pointer' }}>
             {isMobile ? 'Admin' : 'Workspace Admin'}
           </div>
+          {!isMobile && companyData?.fechaRenovacion && (
+            <div style={{ 
+              background: 'rgba(234, 179, 8, 0.1)', 
+              border: '1px solid #eab308', 
+              padding: '0.25rem 0.75rem', 
+              borderRadius: '8px', 
+              color: '#eab308', 
+              fontSize: '0.75rem',
+              fontWeight: '600',
+              marginLeft: '1rem',
+              display: 'inline-block'
+            }}>
+              Tu suscripción caduca el <strong>{format(new Date(companyData.fechaRenovacion), 'dd/MM/yyyy')}</strong>
+            </div>
+          )}
         </div>
 
         <div className="app-topbar__actions">

@@ -3,13 +3,9 @@ import { useData } from '../context/DataContext';
 import type { User, Appointment, BookingService, DaySchedule, BusinessConfig, CompanyData, BlockedDay } from '../services/models';
 import { INITIAL_SCHEDULES } from '../services/scheduleDefaults';
 import { INITIAL_BUSINESS_CONFIG } from '../services/configDefaults';
+import { generateTimeSlots } from '../utils/timeSlots';
 import { 
-  BarChart3, 
-  Settings, 
-  Clock, 
   Plus, 
-  Trash2, 
-  Save, 
   XCircle,
   User as UserIcon,
   ChevronLeft,
@@ -25,7 +21,6 @@ import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useAuth } from '../context/AuthContext';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
-import { generateTimeSlots } from '../utils/timeSlots';
 
 const locales = {
   'es': es,
@@ -39,14 +34,11 @@ const localizer = dateFnsLocalizer({
   locales,
 });
 
-type AdminTab = 'stats' | 'services' | 'schedule' | 'config';
-
 // Variable global para mantener la referencia a la ventana de WhatsApp fuera del ciclo de vida de React
 let waWindow: Window | null = null;
 
 const getWhatsAppLink = (phone: string, name: string, date: string, time: string, businessName: string, serviceName: string, useWebVersion?: boolean) => {
   const cleanPhone = phone.replace(/\D/g, '');
-  // Aseguramos prefijo 34 si tiene 9 dígitos (formato España)
   const finalPhone = (cleanPhone.length === 9) ? `34${cleanPhone}` : cleanPhone;
   const message = `Hola ${name}, te recuerdo tu cita en ${businessName} el ${date} a las ${time} para ${serviceName}. ¡Te esperamos!`;
   
@@ -66,7 +58,7 @@ export const AdminDashboard: React.FC = () => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-  const [activeTab, setActiveTab] = useState<AdminTab>('stats');
+
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
@@ -77,21 +69,6 @@ export const AdminDashboard: React.FC = () => {
   const [blockedDays, setBlockedDays] = useState<BlockedDay[]>([]);
   const [config, setConfig] = useState<BusinessConfig | null>(null);
   const [companyData, setCompanyData] = useState<CompanyData | null>(null);
-  
-  const [showModal, setShowModal] = useState(false);
-  const [newName, setNewName] = useState('');
-  const [newDays, setNewDays] = useState(0);
-  const [newHours, setNewHours] = useState(0);
-  const [newMinutes, setNewMinutes] = useState(0);
-  const [newPrice, setNewPrice] = useState<number | string>('');
-  const [newColor, setNewColor] = useState('#3174ad');
-  const [newIsActive, setNewIsActive] = useState(true);
-  const [newFolderName, setNewFolderName] = useState('');
-  const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
-
-  // Folder management
-  const [showFolderModal, setShowFolderModal] = useState(false);
-  const [newFolderInput, setNewFolderInput] = useState('');
   
   // Controles de Vista de Calendario
   const [currentView, setCurrentView] = useState<any>(window.innerWidth <= 768 ? 'day' : 'week');
@@ -114,6 +91,10 @@ export const AdminDashboard: React.FC = () => {
   const [mServiceId, setMServiceId] = useState('');
   const [mDate, setMDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [mTime, setMTime] = useState('10:00');
+  const [mNotes, setMNotes] = useState('');
+
+  // Subscription notification logic
+  const [showSubPopup, setShowSubPopup] = useState<'15_days' | '5_days' | null>(null);
 
   const openWhatsApp = (url: string) => {
     const name = 'whatsappWindow';
@@ -121,21 +102,14 @@ export const AdminDashboard: React.FC = () => {
       waWindow = window.open(url, name);
     } else {
       try {
-        // Intentamos actualizar la URL directamente (esto puede fallar por cross-origin)
         waWindow.location.href = url;
         waWindow.focus();
       } catch (e) {
-        // Si falla por seguridad (cross-origin), usamos window.open con el mismo nombre
-        // que es la forma estándar de actualizar una ventana existente
         waWindow = window.open(url, name);
         if (waWindow) waWindow.focus();
       }
     }
   };
-  const [mNotes, setMNotes] = useState('');
-
-  // Subscription notification logic
-  const [showSubPopup, setShowSubPopup] = useState<'15_days' | '5_days' | null>(null);
 
   useEffect(() => {
     if (companyData?.fechaRenovacion) {
@@ -207,49 +181,19 @@ export const AdminDashboard: React.FC = () => {
       config?.concurrentSlots || 1,
       ptBlockedRanges
     );
-  }, [mDate, mServiceId, schedules, appointments, services, config, blockedDays]);
-
-  useEffect(() => {
-    if (manualAvailableSlots.length > 0 && !manualAvailableSlots.includes(mTime)) {
-      setMTime(manualAvailableSlots[0]);
-    } else if (manualAvailableSlots.length === 0) {
-      setMTime('');
-    }
-  }, [manualAvailableSlots, mTime, mDate, mServiceId]);
-
-  useEffect(() => {
-    if (isInitialized) {
-      loadData();
-      
-      const unsubscribe = repo.subscribeToAppointments((appts) => {
-        setAppointments(appts);
-      });
-      return () => unsubscribe();
-    }
-  }, [repo, isInitialized]);
+  }, [mDate, mServiceId, services, schedules, blockedDays, appointments, config?.concurrentSlots]);
 
   const loadData = async () => {
     setIsLoading(true);
-    setErrorMessage(null);
-    
     try {
-      // Cargamos cada recurso individualmente para identificar cuál falla específicamente
-      const apptsPromise = repo.getAppointments().catch(e => { throw new Error(`Citas: ${e.message}`); });
-      const svcsPromise = repo.getServices().catch(e => { throw new Error(`Servicios: ${e.message}`); });
-      const usersPromise = repo.getUsers().catch(e => { throw new Error(`Usuarios: ${e.message}`); });
-      const schsPromise = repo.getSchedules().catch(e => { throw new Error(`Horarios: ${e.message}`); });
-      const bDaysPromise = repo.getBlockedDays().catch(e => { throw new Error(`Bloqueos: ${e.message}`); });
-      const cfgPromise = repo.getConfig().catch(e => { throw new Error(`Configuración: ${e.message}`); });
-      const companyPromise = repo.getCompanyData().catch(e => { throw new Error(`Datos Empresa: ${e.message}`); });
- 
       const [appts, svcs, usrs, schs, bDays, cfg, comp] = await Promise.all([
-        apptsPromise,
-        svcsPromise,
-        usersPromise,
-        schsPromise,
-        bDaysPromise,
-        cfgPromise,
-        companyPromise,
+        repo.getAppointments(),
+        repo.getServices(),
+        repo.getUsers(),
+        repo.getSchedules(),
+        repo.getBlockedDays(),
+        repo.getConfig(),
+        repo.getCompanyData(),
       ]);
  
       setAppointments(appts);
@@ -261,193 +205,17 @@ export const AdminDashboard: React.FC = () => {
       setCompanyData(comp);
     } catch (err: any) {
       console.error('Error cargando panel de administrador:', err);
-      // El mensaje ahora dirá algo como "Servicios: Missing or insufficient permissions"
       setErrorMessage(err.message || 'Error de conexión con Firestore');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const addOrUpdateService = async () => {
-    if (!newName.trim()) return;
-    
-    try {
-      const totalDuration = (newDays * 1440) + (newHours * 60) + newMinutes;
-      const svc: BookingService = {
-        id: editingServiceId || 'svc-' + Date.now(),
-        name: newName,
-        durationMin: totalDuration,
-        color: newColor,
-        isActive: newIsActive,
-        ...(newFolderName ? { folderName: newFolderName } : {}),
-      };
-      
-      // Solo incluimos el precio si tiene un valor válido para evitar errores en Firebase (unsupported field value: undefined)
-      if (newPrice !== '' && newPrice !== undefined && newPrice !== null) {
-        svc.price = Number(newPrice);
-      }
-
-      await repo.saveService(svc);
-      setShowModal(false);
-      resetServiceForm();
+  useEffect(() => {
+    if (isInitialized) {
       loadData();
-      // No alert here to avoid friction, but the modal closing is feedback enough. 
-      // If we wanted success feedback: alert('Servicio guardado correctamente');
-    } catch (error: any) {
-      console.error('Error saving service:', error);
-      alert('Error al guardar el servicio: ' + (error.message || 'Error desconocido'));
     }
-  };
-
-  const deleteService = async () => {
-    if (!editingServiceId) return;
-    if (window.confirm('¿Estás seguro de que deseas eliminar este servicio? Esta acción no se puede deshacer.')) {
-      try {
-        await repo.deleteService(editingServiceId);
-        setShowModal(false);
-        resetServiceForm();
-        loadData();
-      } catch (error: any) {
-        console.error('Error deleting service:', error);
-        alert('Error al eliminar el servicio: ' + (error.message || 'Error desconocido'));
-      }
-    }
-  };
-
-  const resetServiceForm = () => {
-    setNewName('');
-    setNewDays(0);
-    setNewHours(0);
-    setNewMinutes(0);
-    setNewPrice('');
-    setNewColor('#3174ad');
-    setNewIsActive(true);
-    setNewFolderName('');
-    setEditingServiceId(null);
-  };
-
-  const openEditService = (svc: BookingService) => {
-    setEditingServiceId(svc.id);
-    setNewName(svc.name);
-    
-    // Split durationMin into d/h/m
-    const total = svc.durationMin || 0;
-    const d = Math.floor(total / 1440);
-    const h = Math.floor((total % 1440) / 60);
-    const m = total % 60;
-    
-    setNewDays(d);
-    setNewHours(h);
-    setNewMinutes(m);
-    
-    setNewPrice(svc.price !== undefined ? svc.price : '');
-    setNewColor(svc.color || '#3174ad');
-    setNewIsActive(svc.isActive !== false);
-    setNewFolderName(svc.folderName || '');
-    setShowModal(true);
-  };
-  
-  const openNewService = () => {
-    resetServiceForm();
-    setShowModal(true);
-  };
-
-  const addFolder = async () => {
-    if (!newFolderInput.trim()) return;
-    const folders = config?.serviceFolders || [];
-    if (folders.includes(newFolderInput.trim())) {
-      alert('Esta carpeta ya existe.');
-      return;
-    }
-    const newConfig = { ...(config || INITIAL_BUSINESS_CONFIG), serviceFolders: [...folders, newFolderInput.trim()] } as BusinessConfig;
-    setConfig(newConfig);
-    try {
-      await repo.saveConfig(newConfig);
-      setNewFolderInput('');
-      setShowFolderModal(false);
-    } catch (e: any) {
-      console.error(e);
-      alert('Error guardando carpeta');
-    }
-  };
-
-  const deleteFolder = async (folder: string) => {
-    if (!window.confirm(`¿Estás seguro de que deseas eliminar la carpeta "${folder}"? Los servicios que contenga quedarán sin carpeta.`)) return;
-    
-    const folders = (config?.serviceFolders || []).filter(f => f !== folder);
-    const newConfig = { ...(config || INITIAL_BUSINESS_CONFIG), serviceFolders: folders } as BusinessConfig;
-    setConfig(newConfig);
-    try {
-      await repo.saveConfig(newConfig);
-    } catch (e: any) {
-      console.error(e);
-      alert('Error al eliminar la carpeta');
-    }
-  };
-
-  const handleScheduleToggle = (dayOfWeek: number) => {
-    const newSchedules = schedules.map(s => 
-      s.dayOfWeek === dayOfWeek ? { ...s, isOpen: !s.isOpen } : s
-    );
-    setSchedules(newSchedules);
-  };
-
-  const handleAddRange = (dayOfWeek: number) => {
-    const newSchedules = schedules.map(s => 
-      s.dayOfWeek === dayOfWeek 
-        ? { ...s, ranges: [...s.ranges, { start: '09:00', end: '14:00' }] } 
-        : s
-    );
-    setSchedules(newSchedules);
-  };
-
-  const handleRemoveRange = (dayOfWeek: number, index: number) => {
-    const newSchedules = schedules.map(s => 
-      s.dayOfWeek === dayOfWeek 
-        ? { ...s, ranges: s.ranges.filter((_, i) => i !== index) } 
-        : s
-    );
-    setSchedules(newSchedules);
-  };
-
-  const handleRangeChange = (dayOfWeek: number, index: number, field: 'start' | 'end', value: string) => {
-    const newSchedules = schedules.map(s => 
-      s.dayOfWeek === dayOfWeek 
-        ? { 
-            ...s, 
-            ranges: s.ranges.map((r, i) => i === index ? { ...r, [field]: value } : r) 
-          } 
-        : s
-    );
-    setSchedules(newSchedules);
-  };
-
-  const saveAllSchedules = async () => {
-    try {
-      await repo.saveSchedules(schedules);
-      alert('Horarios guardados correctamente');
-    } catch (error: any) {
-      console.error('Error saving schedules:', error);
-      alert('Error al guardar horarios: ' + (error.message || 'Error desconocido'));
-    }
-  };
-
-  const saveGlobalConfig = async () => {
-    if (config) {
-      try {
-        await repo.saveConfig(config);
-        alert('Configuración guardada');
-      } catch (error: any) {
-        console.error('Error saving config:', error);
-        alert('Error al guardar configuración: ' + (error.message || 'Error desconocido'));
-      }
-    }
-  };
-
-  const getDayName = (num: number) => {
-    const names = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-    return names[num];
-  };
+  }, [repo, isInitialized]);
 
   // Preparar eventos para react-big-calendar y asignar Puestos (Resources)
   const resources = useMemo(() => {
@@ -462,7 +230,6 @@ export const AdminDashboard: React.FC = () => {
   const events = useMemo(() => {
     const numSlots = config?.concurrentSlots || 1;
     
-    // Sort chronologically for greedy slot allocation
     const sortedAppointments = [...appointments]
       .filter(a => a.status !== 'CANCELLED')
       .sort((a, b) => a.dateTimeStart - b.dateTimeStart);
@@ -592,13 +359,12 @@ export const AdminDashboard: React.FC = () => {
     setEventServiceId(event.resource.serviceId);
     setEventStatus(event.resource.status);
     
-    // YYYY-MM-DD
     const d = new Date(event.start);
     const yyyy = d.getFullYear();
     const mm = String(d.getMonth() + 1).padStart(2, '0');
     const dd = String(d.getDate()).padStart(2, '0');
     setEventDate(`${yyyy}-${mm}-${dd}`);
-    // HH:mm
+    
     const hh = String(d.getHours()).padStart(2, '0');
     const mins = String(d.getMinutes()).padStart(2, '0');
     setEventTime(`${hh}:${mins}`);
@@ -637,7 +403,6 @@ export const AdminDashboard: React.FC = () => {
     }
 
     try {
-      // 1. Verify or create user
       let userId;
       const existingUser = users.find(u => u.phone === mPhone);
       
@@ -658,14 +423,13 @@ export const AdminDashboard: React.FC = () => {
         await repo.saveUser(newUser);
       }
 
-      // 2. Create appointment
       const startDateTime = new Date(`${mDate}T${mTime}`).getTime();
       const newAppt: Appointment = {
         id: 'appt-' + Date.now(),
         customerId: userId,
         serviceId: mServiceId,
         dateTimeStart: startDateTime,
-        status: 'CONFIRMED', // Manual is auto-confirmed
+        status: 'CONFIRMED',
         adminNotes: mNotes
       };
 
@@ -726,6 +490,7 @@ export const AdminDashboard: React.FC = () => {
       </div>
     );
   };
+
   const EventComponent = ({ event }: any) => {
     const phone = event.customer?.phone;
     
@@ -736,15 +501,52 @@ export const AdminDashboard: React.FC = () => {
       const time = format(event.start, 'HH:mm');
       const businessName = companyData?.nombreEmpresa || config?.name || 'nuestro centro';
       const serviceName = event.service?.name || 'tu cita';
-      // Forzamos la URL de WhatsApp Web en desktop para mejor comportamiento
       const url = getWhatsAppLink(phone, event.customer.name, date, time, businessName, serviceName, !isMobile);
       openWhatsApp(url);
     };
 
     return (
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', height: '100%', minWidth: 0 }}>
-        <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-          {event.title}
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        width: '100%', 
+        height: '100%', 
+        minWidth: 0,
+        padding: '0.15rem 0'
+      }}>
+        <div style={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          gap: '0.2rem', 
+          flex: 1, 
+          minWidth: 0, 
+          overflow: 'hidden' 
+        }}>
+          {/* Nombre del cliente */}
+          <div style={{ 
+            fontWeight: '700', 
+            fontSize: '0.85rem', 
+            overflow: 'hidden', 
+            textOverflow: 'ellipsis', 
+            whiteSpace: 'nowrap',
+            color: 'white'
+          }}>
+            {event.customer?.name || 'Cliente'}
+          </div>
+          
+          {/* Nombre del servicio */}
+          <div style={{ 
+            fontSize: '0.75rem', 
+            overflow: 'hidden', 
+            textOverflow: 'ellipsis', 
+            whiteSpace: 'nowrap',
+            opacity: 0.95,
+            color: 'white',
+            fontWeight: '500'
+          }}>
+            {event.service?.name || 'Servicio'}
+          </div>
         </div>
         {phone && config?.whatsappEnabled !== false && (
           <button 
@@ -753,16 +555,16 @@ export const AdminDashboard: React.FC = () => {
             style={{ 
               background: 'rgba(255,255,255,0.2)', 
               border: 'none', 
-              borderRadius: '4px', 
+              borderRadius: '6px', 
               color: 'white', 
-              padding: '2px', 
+              padding: '4px', 
               display: 'flex', 
               cursor: 'pointer',
-              marginLeft: '4px',
+              marginLeft: '6px',
               flexShrink: 0
             }}
           >
-            <MessageCircle size={12} />
+            <MessageCircle size={13} />
           </button>
         )}
       </div>
@@ -777,13 +579,6 @@ export const AdminDashboard: React.FC = () => {
 
   return (
     <div className="animate-fade-in">
-      {/* Subscription Expiration Text */}
-      {companyData?.fechaRenovacion && (
-        <div style={{ background: 'rgba(234, 179, 8, 0.1)', border: '1px solid #eab308', padding: '0.5rem 1rem', borderRadius: '8px', marginBottom: '1rem', color: '#eab308', fontSize: '0.9rem', display: 'inline-block' }}>
-          Tu suscripción caduca el <strong>{format(new Date(companyData.fechaRenovacion), 'dd/MM/yyyy')}</strong>
-        </div>
-      )}
-
       {/* Subscription Expiration Popup */}
       {showSubPopup && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
@@ -798,52 +593,14 @@ export const AdminDashboard: React.FC = () => {
                 onClick={() => setShowSubPopup(null)}
                 style={{ padding: '0.75rem 1.5rem', borderRadius: '8px', border: '1px solid #4b5563', background: 'transparent', color: '#d1d5db', cursor: 'pointer' }}
               >
-                Cerrar
+                Cerrar Aviso
               </button>
-              {companyData?.paymentGatewayUrl && (
-                <a 
-                  href={companyData.paymentGatewayUrl} 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
-                  style={{ textDecoration: 'none', background: '#eab308', color: '#111', padding: '0.75rem 1.5rem', borderRadius: '8px', fontWeight: 'bold' }}
-                  onClick={() => setShowSubPopup(null)}
-                >
-                  Renueva aquí
-                </a>
-              )}
             </div>
           </div>
         </div>
       )}
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', gap: '1rem', flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-          <h2 style={{ margin: 0, fontSize: isMobile ? '1.25rem' : '1.5rem' }}>📊 Gestión</h2>
-          <button 
-            className="btn-primary hover-glow" 
-            onClick={() => setShowNewApptModal(true)}
-            style={{ 
-              padding: '0.5rem 1rem', 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '0.4rem',
-              borderRadius: '10px',
-              fontSize: '0.85rem',
-              fontWeight: '600'
-            }}
-          >
-            <Plus size={16} /> Nueva Cita
-          </button>
-        </div>
-        {!isMobile && (
-          <div className="data-toggle" style={{ background: 'var(--surface-color)', padding: '4px' }}>
-            <button className={activeTab === 'stats' ? 'active' : ''} onClick={() => setActiveTab('stats')}><BarChart3 size={16} /> Resumen</button>
-            <button className={activeTab === 'services' ? 'active' : ''} onClick={() => setActiveTab('services')}><Plus size={16} /> Servicios</button>
-            <button className={activeTab === 'schedule' ? 'active' : ''} onClick={() => setActiveTab('schedule')}><Clock size={16} /> Horarios</button>
-            <button className={activeTab === 'config' ? 'active' : ''} onClick={() => setActiveTab('config')}><Settings size={16} /> Ajustes</button>
-          </div>
-        )}
-      </div>
+      {/* Agenda/Dashboard Content */}
 
       {isLoading && (
         <div style={{ padding: '5rem', textAlign: 'center' }}>
@@ -864,32 +621,52 @@ export const AdminDashboard: React.FC = () => {
         </div>
       )}
 
-      {!isLoading && !errorMessage && activeTab === 'stats' && (
+      {!isLoading && !errorMessage && (
         <>
-          <div className="dashboard-stats" style={{ gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(200px, 1fr))' }}>
-            <div className="stat-card">
-              <div className="stat-value" style={{ fontSize: isMobile ? '1.5rem' : '2rem' }}>{todayAppts.length}</div>
-              <div className="stat-label">Citas Hoy</div>
+          <div className="card glass-panel" style={{ display: 'flex', flexDirection: 'column', padding: isMobile ? '1rem 0.5rem' : '1.5rem' }}>
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center', 
+              marginBottom: '1.25rem', 
+              paddingLeft: isMobile ? '0.5rem' : 0,
+              gap: '1rem',
+              flexWrap: 'wrap'
+            }}>
+              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 600, color: 'var(--text-primary)' }}>Calendario de Reservas</h3>
+              
+              {/* Premium Live Stat Indicator */}
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '0.6rem',
+                background: 'rgba(59, 130, 246, 0.1)', 
+                border: '1px solid rgba(59, 130, 246, 0.25)', 
+                padding: '0.35rem 0.85rem', 
+                borderRadius: '999px',
+                color: '#3b82f6',
+                fontSize: '0.8rem',
+                fontWeight: '600',
+                boxShadow: '0 2px 8px rgba(59, 130, 246, 0.08)'
+              }}>
+                <span style={{ 
+                  display: 'inline-flex', 
+                  width: '7px', 
+                  height: '7px', 
+                  borderRadius: '50%', 
+                  backgroundColor: '#3b82f6'
+                }}></span>
+                <span>Citas Hoy:</span>
+                <strong style={{ fontSize: '0.95rem', color: 'var(--text-primary)' }}>{todayAppts.length}</strong>
+              </div>
             </div>
-            <div className="stat-card">
-              <div className="stat-value" style={{ fontSize: isMobile ? '1.5rem' : '2rem' }}>{appointments.filter(a => a.status === 'PENDING').length}</div>
-              <div className="stat-label">Pendientes</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-value" style={{ fontSize: isMobile ? '1.5rem' : '2rem' }}>{services.length}</div>
-              <div className="stat-label">Servicios</div>
-            </div>
-          </div>
-
-          <div className="card glass-panel" style={{ height: isMobile ? '750px' : '800px', display: 'flex', flexDirection: 'column', padding: isMobile ? '1rem 0.5rem' : '1.5rem' }}>
-            <h3 style={{ marginBottom: '1rem', paddingLeft: isMobile ? '0.5rem' : 0 }}>Calendario de Reservas</h3>
-            <div style={{ flex: 1, minHeight: 0 }}>
+            <div style={{ flex: 'none', height: 'auto' }}>
               <Calendar
                 localizer={localizer}
                 events={events}
                 startAccessor="start"
                 endAccessor="end"
-                style={{ height: '100%', background: 'white', color: 'black', borderRadius: '8px', padding: '1rem', fontFamily: 'inherit' }}
+                style={{ height: 'auto', background: 'white', color: 'black', borderRadius: '8px', padding: '1rem', fontFamily: 'inherit' }}
                 eventPropGetter={eventPropGetter}
                 onSelectEvent={handleSelectEvent}
                 culture="es"
@@ -928,294 +705,6 @@ export const AdminDashboard: React.FC = () => {
             </div>
           </div>
         </>
-      )}
-
-      {activeTab === 'services' && (
-        <div className="animate-fade-in">
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-            <h3>Servicios Disponibles</h3>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <button className="btn-secondary" onClick={() => setShowFolderModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.4rem 0.8rem' }}>
-                + Añadir Carpeta
-              </button>
-              <button className="btn-primary" onClick={openNewService} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.4rem 0.8rem' }}>
-                + Añadir Servicio
-              </button>
-            </div>
-          </div>
-
-          {(config?.serviceFolders || []).map(folder => {
-            const folderServices = services.filter(s => s.folderName === folder);
-            return (
-              <div key={folder} style={{ marginBottom: '2rem', background: 'rgba(255,255,255,0.02)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--glass-border)', paddingBottom: '0.5rem' }}>
-                  <h4 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--primary-color)' }}>📁 {folder}</h4>
-                  <button className="btn-icon" onClick={() => deleteFolder(folder)} title="Eliminar carpeta" style={{ color: '#ef4444' }}>
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-                
-                {folderServices.length === 0 ? (
-                  <p style={{ color: 'var(--text-secondary)', fontStyle: 'italic', fontSize: '0.9rem', margin: 0 }}>Carpeta vacía</p>
-                ) : (
-                  <div className="services-grid">
-                    {folderServices.map(svc => (
-                      <div key={svc.id} className="service-card hover-glow" onClick={() => openEditService(svc)} style={{ cursor: 'pointer', transition: 'border 0.2s', border: '1px solid var(--glass-border)' }} onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--primary-color)'} onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--glass-border)'}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <h3 style={{ margin: 0 }}>{svc.name}</h3>
-                          <span style={{ fontSize: '0.75rem', background: 'rgba(255,255,255,0.1)', padding: '2px 8px', borderRadius: '12px' }}>Editar</span>
-                        </div>
-                        <div className="service-meta" style={{ marginTop: '0.5rem' }}>
-                          <span>⏱ {svc.durationMin} min</span>
-                          {svc.price !== undefined && <span>💰 {svc.price}€</span>}
-                        </div>
-                        <div className="service-meta" style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ width: '16px', height: '16px', backgroundColor: svc.color || '#3174ad', borderRadius: '50%', display: 'inline-block' }}></span>
-                          <span style={{ fontSize: '0.8rem' }}>Color</span>
-                          {svc.isActive === false && (
-                            <span style={{ marginLeft: 'auto', background: '#ef4444', color: 'white', fontSize: '0.7rem', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold' }}>DESACTIVADO</span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-
-          <div style={{ marginTop: (config?.serviceFolders?.length || 0) > 0 ? '2rem' : '0' }}>
-            {(config?.serviceFolders?.length || 0) > 0 && <h4 style={{ marginBottom: '1rem', color: 'var(--text-secondary)' }}>Sin Carpeta</h4>}
-            <div className="services-grid">
-              {services.filter(s => !s.folderName || !(config?.serviceFolders || []).includes(s.folderName)).map(svc => (
-                <div key={svc.id} className="service-card hover-glow" onClick={() => openEditService(svc)} style={{ cursor: 'pointer', transition: 'border 0.2s', border: '1px solid var(--glass-border)' }} onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--primary-color)'} onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--glass-border)'}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h3 style={{ margin: 0 }}>{svc.name}</h3>
-                    <span style={{ fontSize: '0.75rem', background: 'rgba(255,255,255,0.1)', padding: '2px 8px', borderRadius: '12px' }}>Editar</span>
-                  </div>
-                  <div className="service-meta" style={{ marginTop: '0.5rem' }}>
-                    <span>⏱ {svc.durationMin} min</span>
-                    {svc.price !== undefined && <span>💰 {svc.price}€</span>}
-                  </div>
-                  <div className="service-meta" style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ width: '16px', height: '16px', backgroundColor: svc.color || '#3174ad', borderRadius: '50%', display: 'inline-block' }}></span>
-                    <span style={{ fontSize: '0.8rem' }}>Color</span>
-                    {svc.isActive === false && (
-                      <span style={{ marginLeft: 'auto', background: '#ef4444', color: 'white', fontSize: '0.7rem', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold' }}>DESACTIVADO</span>
-                    )}
-                  </div>
-                </div>
-              ))}
-              {services.filter(s => !s.folderName || !(config?.serviceFolders || []).includes(s.folderName)).length === 0 && (
-                <p style={{ color: 'var(--text-secondary)', fontStyle: 'italic', fontSize: '0.9rem' }}>No hay servicios sueltos.</p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {activeTab === 'schedule' && (
-        <div className="animate-fade-in">
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
-            <h3>Configuración de Horario Semanal</h3>
-            <button className="btn-primary" onClick={saveAllSchedules}><Save size={18} /> Guardar Cambios</button>
-          </div>
-          <div style={{ display: 'grid', gap: '1rem' }}>
-            {schedules.sort((a,b) => (a.dayOfWeek === 0 ? 7 : a.dayOfWeek) - (b.dayOfWeek === 0 ? 7 : b.dayOfWeek)).map(day => (
-              <div key={day.dayOfWeek} className="card glass-panel" style={{ display: 'flex', alignItems: 'flex-start', gap: '2rem', padding: '1.25rem' }}>
-                <div style={{ width: '120px' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 600 }}>
-                    <input type="checkbox" checked={day.isOpen} onChange={() => handleScheduleToggle(day.dayOfWeek)} />
-                    {getDayName(day.dayOfWeek)}
-                  </label>
-                  <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
-                    {day.isOpen ? 'Abierto' : 'Cerrado'}
-                  </p>
-                </div>
-                
-                <div style={{ flex: 1, display: 'grid', gap: '0.5rem' }}>
-                  {day.isOpen ? (
-                    <>
-                      {day.ranges.map((range, idx) => (
-                        <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <input type="time" value={range.start} onChange={(e) => handleRangeChange(day.dayOfWeek, idx, 'start', e.target.value)} />
-                          <span>-</span>
-                          <input type="time" value={range.end} onChange={(e) => handleRangeChange(day.dayOfWeek, idx, 'end', e.target.value)} />
-                          <button className="btn-icon" onClick={() => handleRemoveRange(day.dayOfWeek, idx)}><Trash2 size={14} /></button>
-                        </div>
-                      ))}
-                      <button className="btn-text" onClick={() => handleAddRange(day.dayOfWeek)} style={{ fontSize: '0.8rem', color: 'var(--primary-color)' }}>+ Añadir franja</button>
-                    </>
-                  ) : (
-                    <span style={{ color: 'var(--text-secondary)', fontStyle: 'italic', fontSize: '0.9rem' }}>No se pueden realizar reservas este día.</span>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {activeTab === 'config' && (
-        <div className="animate-fade-in card glass-panel" style={{ maxWidth: '600px' }}>
-          <h3>Ajustes Generales</h3>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '2rem' }}>Configuración global del comportamiento de tu plataforma.</p>
-          
-          <div className="form-group" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <label style={{ margin: 0 }}>Servicios simultáneos (Capacidad)</label>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Define cuántas citas se pueden realizar a la vez en la misma franja horaria (Ej: número de puestos o empleados).</p>
-            </div>
-            <input 
-              type="number" 
-              min="1"
-              value={config?.concurrentSlots || 1} 
-              onChange={(e) => setConfig(prev => prev ? { ...prev, concurrentSlots: Math.max(1, parseInt(e.target.value) || 1) } : null)}
-              style={{ width: '80px', textAlign: 'center' }}
-            />
-          </div>
-
-          <div className="form-group" style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginTop: '1.5rem' }}>
-            <input 
-              type="checkbox" 
-              id="allow-cancellation"
-              checked={config?.allowClientCancellation !== false} 
-              onChange={(e) => setConfig(prev => {
-                const base = prev || INITIAL_BUSINESS_CONFIG;
-                return { ...base, allowClientCancellation: e.target.checked };
-              })}
-              style={{ width: 'auto', margin: 0 }}
-            />
-            <label htmlFor="allow-cancellation" style={{ margin: 0, cursor: 'pointer' }}>
-              <strong>Permitir cancelaciones por clientes</strong>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0 }}>Si se activa, los clientes podrán cancelar citas desde su perfil.</p>
-            </label>
-          </div>
-
-          <div className="form-group" style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginTop: '1.5rem' }}>
-            <input 
-              type="checkbox" 
-              id="whatsapp-notif"
-              checked={config?.whatsappEnabled !== false} 
-              onChange={(e) => setConfig(prev => {
-                const base = prev || INITIAL_BUSINESS_CONFIG;
-                return { ...base, whatsappEnabled: e.target.checked };
-              })}
-              style={{ width: 'auto', margin: 0 }}
-            />
-            <label htmlFor="whatsapp-notif" style={{ margin: 0, cursor: 'pointer' }}>
-              <strong>Notificaciones WhatsApp (Botones de aviso)</strong>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0 }}>Muestra u oculta los accesos directos para enviar recordatorios por WhatsApp.</p>
-            </label>
-          </div>
-
-          <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid var(--glass-border)' }}>
-            <button className="btn-primary" onClick={saveGlobalConfig} style={{ width: '100%' }}>Guardar Ajustes</button>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Nuevo Servicio */}
-      {showModal && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <h2>{editingServiceId ? 'Editar Servicio' : 'Nuevo Servicio'}</h2>
-            <div className="form-group">
-              <label>Nombre del servicio</label>
-              <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Ej: Corte de pelo" />
-            </div>
-            <div className="form-group">
-              <label>Duración del Servicio</label>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
-                <div>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Días</span>
-                  <input type="number" min="0" value={newDays} onChange={e => setNewDays(Math.max(0, Number(e.target.value)))} />
-                </div>
-                <div>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Horas</span>
-                  <input type="number" min="0" max="23" value={newHours} onChange={e => setNewHours(Math.max(0, Number(e.target.value)))} />
-                </div>
-                <div>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Minutos</span>
-                  <input type="number" min="0" max="59" value={newMinutes} onChange={e => setNewMinutes(Math.max(0, Number(e.target.value)))} />
-                </div>
-              </div>
-            </div>
-            <div className="form-group">
-              <label>Precio (€, opcional)</label>
-              <input type="number" value={newPrice} onChange={e => setNewPrice(e.target.value === '' ? '' : Number(e.target.value))} />
-            </div>
-            <div className="form-group">
-              <label>Color en el Calendario</label>
-              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center'}}>
-                <input type="color" value={newColor} onChange={e => setNewColor(e.target.value)} style={{ width: '50px', height: '40px', padding: '0', cursor: 'pointer', border: 'none', background: 'transparent' }} />
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)'}}>Identificador visual en la agenda</span>
-              </div>
-            </div>
-            <div className="form-group" style={{ marginTop: '1.5rem' }}>
-              <label>Carpeta (Categoría)</label>
-              <select 
-                value={newFolderName} 
-                onChange={e => setNewFolderName(e.target.value)}
-                style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: 'var(--surface-color)', border: '1px solid var(--glass-border)', color: 'var(--text-color)' }}
-              >
-                <option value="">Sin carpeta</option>
-                {(config?.serviceFolders || []).map(f => (
-                  <option key={f} value={f}>{f}</option>
-                ))}
-              </select>
-            </div>
-            <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '1.5rem', padding: '1rem', background: 'rgba(255,255,255,0.05)', borderRadius: '8px' }}>
-              <input 
-                type="checkbox" 
-                id="svc-active" 
-                checked={newIsActive} 
-                onChange={e => setNewIsActive(e.target.checked)} 
-                style={{ width: 'auto', margin: 0 }}
-              />
-              <label htmlFor="svc-active" style={{ margin: 0, cursor: 'pointer' }}>
-                <strong>Servicio Activo</strong>
-                <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Si se desactiva, los clientes no podrán verlo ni reservarlo.</p>
-              </label>
-            </div>
-            <div className="modal-actions" style={{ marginTop: '2rem', display: 'flex', justifyContent: 'space-between' }}>
-              <div>
-                {editingServiceId && (
-                  <button className="btn-secondary" onClick={deleteService} style={{ color: '#ef4444', borderColor: '#ef4444', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <Trash2 size={16} /> Eliminar
-                  </button>
-                )}
-              </div>
-              <div style={{ display: 'flex', gap: '0.75rem' }}>
-                <button className="btn-secondary" onClick={() => setShowModal(false)}>Cancelar</button>
-                <button className="btn-primary" onClick={addOrUpdateService}>Guardar</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Nueva Carpeta */}
-      {showFolderModal && (
-        <div className="modal-overlay" onClick={() => setShowFolderModal(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px' }}>
-            <h2>Añadir Carpeta</h2>
-            <div className="form-group">
-              <label>Nombre de la carpeta</label>
-              <input 
-                autoFocus
-                value={newFolderInput} 
-                onChange={e => setNewFolderInput(e.target.value)} 
-                placeholder="Ej: Peluquería, Estética..." 
-                onKeyDown={(e) => { if(e.key === 'Enter') addFolder(); }}
-              />
-            </div>
-            <div className="modal-actions" style={{ marginTop: '2rem', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
-              <button className="btn-secondary" onClick={() => setShowFolderModal(false)}>Cancelar</button>
-              <button className="btn-primary" onClick={addFolder}>Añadir</button>
-            </div>
-          </div>
-        </div>
       )}
 
       {/* Modal Detalles Cita (Calendario) */}
@@ -1430,7 +919,7 @@ export const AdminDashboard: React.FC = () => {
             </div>
 
             <div className="form-group" style={{ marginTop: '1rem' }}>
-              <label>Servicio Solicidado</label>
+              <label>Servicio Solicitado</label>
               <select 
                 value={mServiceId} 
                 onChange={e => setMServiceId(e.target.value)}
@@ -1489,6 +978,31 @@ export const AdminDashboard: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Floating Action Button (FAB) for "+ Nueva Cita" */}
+      <button 
+        className="btn-primary hover-glow fab-button animate-fade-in" 
+        onClick={() => setShowNewApptModal(true)}
+        style={{ 
+          position: 'fixed',
+          bottom: isMobile ? '6.5rem' : '2.5rem',
+          right: isMobile ? '1.5rem' : '2.5rem',
+          width: '56px',
+          height: '56px',
+          borderRadius: '50%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          boxShadow: '0 8px 24px rgba(59, 130, 246, 0.45)',
+          zIndex: 999,
+          cursor: 'pointer',
+          border: 'none',
+          padding: 0
+        }}
+        title="Nueva Cita"
+      >
+        <Plus size={26} />
+      </button>
     </div>
   );
 };

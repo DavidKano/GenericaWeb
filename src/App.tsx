@@ -20,6 +20,8 @@ import { AdminCoreDatos, AdminCoreDiseno, AdminCorePoliticas, AdminCoreCss, Admi
 import { AdminPromotePage } from './pages/AdminPromotePage';
 import { AdminSchedulePage } from './pages/AdminSchedulePage';
 import { AdminOffersPage } from './pages/AdminOffersPage';
+import { AdminServicesPage } from './pages/AdminServicesPage';
+import { AdminSettingsPage } from './pages/AdminSettingsPage';
 import { UpdateNotification } from './components/ui/UpdateNotification';
 
 import './App.css';
@@ -230,10 +232,12 @@ function App() {
             </PortalGuard>
           }>
             <Route index element={<AdminDashboard />} />
+            <Route path="services" element={<AdminServicesPage />} />
             <Route path="users" element={<AdminUsersPage />} />
             <Route path="promote" element={<AdminPromotePage />} />
             <Route path="schedule" element={<AdminSchedulePage />} />
             <Route path="offers" element={<AdminOffersPage />} />
+            <Route path="settings" element={<AdminSettingsPage />} />
           </Route>
 
           {/* ---------------- SUPER ADMIN PORTAL ---------------- */}
