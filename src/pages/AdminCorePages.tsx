@@ -1546,6 +1546,24 @@ Tu equipo de Connessia`;
   );
 };
 
+const CALENDAR_COLORS = [
+  '#3b82f6', // Azul
+  '#10b981', // Esmeralda
+  '#8b5cf6', // Violeta
+  '#f59e0b', // Ámbar
+  '#ef4444', // Rojo
+  '#ec4899', // Rosa
+  '#06b6d4', // Cian
+  '#14b8a6', // Turquesa
+  '#f97316', // Naranja
+  '#6366f1', // Índigo
+  '#a855f7', // Púrpura
+  '#059669', // Esmeralda Oscuro
+  '#d97706', // Ámbar Oscuro
+  '#db2777', // Rosa Oscuro
+  '#2563eb'  // Azul Oscuro
+];
+
 export const AdminCoreImportServices: React.FC = () => {
   const { repo } = useData();
   const [fileName, setFileName] = useState<string>('');
@@ -1562,10 +1580,10 @@ export const AdminCoreImportServices: React.FC = () => {
   const downloadTemplate = () => {
     // Semicolon formatted since it's the standard for Spanish Excel exports.
     // Also provides a header explanation line as requested.
-    const headers = "nombre;duracionMin;precio;color;activo";
-    const row1 = "Corte de Pelo Caballero;30;15.50;#3b82f6;true";
-    const row2 = "Manicura Completa;45;20,00;#ec4899;true";
-    const row3 = "Barba Premium;20;;#10b981;false";
+    const headers = "nombre;duracionMin;precio;activo";
+    const row1 = "Corte de Pelo Caballero;30;15.50;true";
+    const row2 = "Manicura Completa;45;20,00;true";
+    const row3 = "Barba Premium;20;;false";
     
     const csvContent = `${headers}\n${row1}\n${row2}\n${row3}\n`;
     const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: 'text/csv;charset=utf-8;' }); // UTF-8 with BOM for Spanish characters
@@ -1649,7 +1667,6 @@ export const AdminCoreImportServices: React.FC = () => {
           if (norm.includes('nombre')) headerMap['nombre'] = h;
           else if (norm.includes('duracion') || norm.includes('duración') || norm.includes('minutos') || norm.includes('duracionmin')) headerMap['duracionMin'] = h;
           else if (norm.includes('precio') || norm.includes('coste')) headerMap['precio'] = h;
-          else if (norm.includes('color')) headerMap['color'] = h;
           else if (norm.includes('activo') || norm.includes('habilitado')) headerMap['activo'] = h;
         });
 
@@ -1724,22 +1741,6 @@ export const AdminCoreImportServices: React.FC = () => {
             }
           }
 
-          // Validate color (optional, Hex format)
-          let colorVal: string | undefined = undefined;
-          const colorRaw = headerMap['color'] ? (rowData[headerMap['color']] || '') : '';
-          if (colorRaw.trim()) {
-            let cleanColor = colorRaw.trim();
-            // Auto prepend # if they gave a 6-digit hex color
-            if (!cleanColor.startsWith('#') && /^[0-9A-F]{6}$/i.test(cleanColor)) {
-              cleanColor = '#' + cleanColor;
-            }
-            if (!/^#[0-9A-F]{6}$/i.test(cleanColor)) {
-              rowErrors.push(`El color '${colorRaw}' debe ser un código hexadecimal válido (ej: #3b82f6).`);
-            } else {
-              colorVal = cleanColor;
-            }
-          }
-
           // Validate activo (optional, boolean)
           let activeVal = true;
           const activeRaw = headerMap['activo'] ? (rowData[headerMap['activo']] || '') : '';
@@ -1759,11 +1760,13 @@ export const AdminCoreImportServices: React.FC = () => {
               errors.push(`Fila ${rowIndex}: ${err}`);
             });
           } else {
+            // Asigna un color aleatorio secuencial de nuestra paleta para evitar repeticiones consecutivas
+            const assignedColor = CALENDAR_COLORS[i % CALENDAR_COLORS.length];
             services.push({
               name: nameVal.trim(),
               durationMin: durVal,
               price: priceVal,
-              color: colorVal || '#3b82f6', // default fallback color
+              color: assignedColor,
               isActive: activeVal
             });
           }
@@ -1886,12 +1889,6 @@ export const AdminCoreImportServices: React.FC = () => {
                     <td style={{ padding: '0.4rem', color: '#10b981' }}>No</td>
                     <td style={{ padding: '0.4rem' }}>Decimal</td>
                     <td style={{ padding: '0.4rem', color: '#9ca3af' }}>Admite coma o punto (ej: 15,50 o 15.50). Puede quedar en blanco.</td>
-                  </tr>
-                  <tr style={{ borderBottom: '1px solid #374151' }}>
-                    <td style={{ padding: '0.4rem', color: '#eab308', fontWeight: 'bold' }}>color</td>
-                    <td style={{ padding: '0.4rem', color: '#10b981' }}>No</td>
-                    <td style={{ padding: '0.4rem' }}>Hex</td>
-                    <td style={{ padding: '0.4rem', color: '#9ca3af' }}>Ej: #3b82f6 (calendario). Por defecto es azul.</td>
                   </tr>
                   <tr style={{ borderBottom: '1px solid #374151' }}>
                     <td style={{ padding: '0.4rem', color: '#eab308', fontWeight: 'bold' }}>activo</td>
