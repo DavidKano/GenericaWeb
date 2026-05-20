@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
-import { Briefcase, ShieldCheck, ShieldAlert, Code, Save, Loader2, UploadCloud, CheckCircle, Palette, Type, QrCode, Users, Search, Trash2, UserRoundCheck, UserRoundX, Mail, Send, Eye, XCircle } from 'lucide-react';
-import type { CompanyData, DesignConfig, User, EmailLog } from '../services/models';
+import { Briefcase, ShieldCheck, ShieldAlert, Code, Save, Loader2, UploadCloud, CheckCircle, Palette, Type, QrCode, Users, Search, Trash2, UserRoundCheck, UserRoundX, Mail, Send, Eye, XCircle, FileSpreadsheet } from 'lucide-react';
+import type { CompanyData, DesignConfig, User, EmailLog, BookingService } from '../services/models';
 import QRCode from 'qrcode';
 import { getDefaultPrivacyPolicy, getDefaultTermsOfUse } from '../services/policyDefaults';
 
@@ -1545,3 +1545,542 @@ Tu equipo de Connessia`;
     </div>
   );
 };
+
+export const AdminCoreImportServices: React.FC = () => {
+  const { repo } = useData();
+  const [fileName, setFileName] = useState<string>('');
+  const [isDragging, setIsDragging] = useState(false);
+  const [parsing, setParsing] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [parsedServices, setParsedServices] = useState<Omit<BookingService, 'id'>[]>([]);
+  const [shouldDeleteExisting, setShouldDeleteExisting] = useState(false);
+  const [toast, setToast] = useState('');
+  const [error, setError] = useState('');
+
+  // CSV template generation
+  const downloadTemplate = () => {
+    // Semicolon formatted since it's the standard for Spanish Excel exports.
+    // Also provides a header explanation line as requested.
+    const headers = "nombre;duracionMin;precio;color;activo";
+    const row1 = "Corte de Pelo Caballero;30;15.50;#3b82f6;true";
+    const row2 = "Manicura Completa;45;20,00;#ec4899;true";
+    const row3 = "Barba Premium;20;;#10b981;false";
+    
+    const csvContent = `${headers}\n${row1}\n${row2}\n${row3}\n`;
+    const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: 'text/csv;charset=utf-8;' }); // UTF-8 with BOM for Spanish characters
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "plantilla_importar_servicios.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const droppedFile = e.dataTransfer.files?.[0];
+    if (droppedFile) {
+      processFile(droppedFile);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (selectedFile) {
+      processFile(selectedFile);
+    }
+  };
+
+  const processFile = (selectedFile: File) => {
+    if (!selectedFile.name.toLowerCase().endsWith('.csv')) {
+      setError('Solo se admiten archivos en formato CSV (.csv)');
+      setFileName('');
+      setParsedServices([]);
+      setValidationErrors([]);
+      return;
+    }
+    setError('');
+    setFileName(selectedFile.name);
+    parseAndValidate(selectedFile);
+  };
+
+  const parseAndValidate = (selectedFile: File) => {
+    setParsing(true);
+    setValidationErrors([]);
+    setParsedServices([]);
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const text = e.target?.result as string;
+        const lines = text.split(/\r?\n/).filter(line => line.trim().length > 0);
+        
+        if (lines.length === 0) {
+          setValidationErrors(['El archivo CSV está vacío.']);
+          setParsing(false);
+          return;
+        }
+
+        // Detect column separator: ',' or ';'
+        const headerLine = lines[0];
+        const commas = (headerLine.match(/,/g) || []).length;
+        const semicolons = (headerLine.match(/;/g) || []).length;
+        const delimiter = semicolons > commas ? ';' : ',';
+
+        // Parse headers and normalize them
+        const rawHeaders = headerLine.split(delimiter).map(h => h.replace(/^["']|["']$/g, '').trim().toLowerCase());
+        
+        // Map headers to fields (giving flexibility if the user used accents or slight variations)
+        const headerMap: Record<string, string> = {};
+        rawHeaders.forEach(h => {
+          const norm = h.trim();
+          if (norm.includes('nombre')) headerMap['nombre'] = h;
+          else if (norm.includes('duracion') || norm.includes('duración') || norm.includes('minutos') || norm.includes('duracionmin')) headerMap['duracionMin'] = h;
+          else if (norm.includes('precio') || norm.includes('coste')) headerMap['precio'] = h;
+          else if (norm.includes('color')) headerMap['color'] = h;
+          else if (norm.includes('activo') || norm.includes('habilitado')) headerMap['activo'] = h;
+        });
+
+        const errors: string[] = [];
+        const services: Omit<BookingService, 'id'>[] = [];
+
+        if (!headerMap['nombre'] || !headerMap['duracionMin']) {
+          errors.push("El archivo CSV debe contener al menos las columnas 'nombre' y 'duracionMin' (o 'duración').");
+          setValidationErrors(errors);
+          setParsing(false);
+          return;
+        }
+
+        for (let i = 1; i < lines.length; i++) {
+          const line = lines[i];
+          const rowIndex = i + 1;
+
+          // Split line respecting double quotes for fields containing delimiters
+          let tokens: string[] = [];
+          let insideQuote = false;
+          let currentToken = '';
+          
+          for (let c = 0; c < line.length; c++) {
+            const char = line[c];
+            if (char === '"') {
+              insideQuote = !insideQuote;
+            } else if (char === delimiter && !insideQuote) {
+              tokens.push(currentToken.trim());
+              currentToken = '';
+            } else {
+              currentToken += char;
+            }
+          }
+          tokens.push(currentToken.trim());
+          
+          // Clean quotes from tokens
+          tokens = tokens.map(t => t.replace(/^["']|["']$/g, '').trim());
+
+          const rowData: Record<string, string> = {};
+          rawHeaders.forEach((header, index) => {
+            rowData[header] = tokens[index] !== undefined ? tokens[index] : '';
+          });
+
+          const rowErrors: string[] = [];
+
+          // Validate nombre (mandatory)
+          const nameVal = rowData[headerMap['nombre']] || '';
+          if (!nameVal.trim()) {
+            rowErrors.push("El 'nombre' es obligatorio y no puede estar vacío.");
+          }
+
+          // Validate duracionMin (mandatory, integer > 0)
+          const durRaw = rowData[headerMap['duracionMin']] || '';
+          const durVal = parseInt(durRaw, 10);
+          if (!durRaw.trim()) {
+            rowErrors.push("La 'duracionMin' (duración en minutos) es obligatoria.");
+          } else if (isNaN(durVal) || durVal <= 0) {
+            rowErrors.push(`La duración '${durRaw}' debe ser un número entero mayor que 0.`);
+          }
+
+          // Validate precio (optional)
+          let priceVal: number | undefined = undefined;
+          const priceRaw = headerMap['precio'] ? (rowData[headerMap['precio']] || '') : '';
+          if (priceRaw.trim()) {
+            // Support both ',' and '.' for decimals
+            const cleanPrice = priceRaw.replace(',', '.').trim();
+            const parsedPrice = Number(cleanPrice);
+            if (isNaN(parsedPrice) || parsedPrice < 0) {
+              rowErrors.push(`El precio '${priceRaw}' debe ser un número decimal positivo válido.`);
+            } else {
+              priceVal = parsedPrice;
+            }
+          }
+
+          // Validate color (optional, Hex format)
+          let colorVal: string | undefined = undefined;
+          const colorRaw = headerMap['color'] ? (rowData[headerMap['color']] || '') : '';
+          if (colorRaw.trim()) {
+            let cleanColor = colorRaw.trim();
+            // Auto prepend # if they gave a 6-digit hex color
+            if (!cleanColor.startsWith('#') && /^[0-9A-F]{6}$/i.test(cleanColor)) {
+              cleanColor = '#' + cleanColor;
+            }
+            if (!/^#[0-9A-F]{6}$/i.test(cleanColor)) {
+              rowErrors.push(`El color '${colorRaw}' debe ser un código hexadecimal válido (ej: #3b82f6).`);
+            } else {
+              colorVal = cleanColor;
+            }
+          }
+
+          // Validate activo (optional, boolean)
+          let activeVal = true;
+          const activeRaw = headerMap['activo'] ? (rowData[headerMap['activo']] || '') : '';
+          if (activeRaw.trim()) {
+            const lower = activeRaw.toLowerCase().trim();
+            if (lower === 'false' || lower === '0' || lower === 'no') {
+              activeVal = false;
+            } else if (lower === 'true' || lower === '1' || lower === 'si' || lower === 'yes') {
+              activeVal = true;
+            } else {
+              rowErrors.push(`El estado activo '${activeRaw}' debe ser booleano (true, false, si, no, 1 o 0).`);
+            }
+          }
+
+          if (rowErrors.length > 0) {
+            rowErrors.forEach(err => {
+              errors.push(`Fila ${rowIndex}: ${err}`);
+            });
+          } else {
+            services.push({
+              name: nameVal.trim(),
+              durationMin: durVal,
+              price: priceVal,
+              color: colorVal || '#3b82f6', // default fallback color
+              isActive: activeVal
+            });
+          }
+        }
+
+        setValidationErrors(errors);
+        setParsedServices(services);
+      } catch (err: any) {
+        console.error('Error parseando CSV:', err);
+        setValidationErrors([`Error crítico de parseo: ${err.message}`]);
+      } finally {
+        setParsing(false);
+      }
+    };
+    reader.onerror = () => {
+      setValidationErrors(['Error al leer el archivo.']);
+      setParsing(false);
+    };
+    reader.readAsText(selectedFile, 'UTF-8');
+  };
+
+  const handleImport = async () => {
+    if (parsedServices.length === 0 || validationErrors.length > 0) return;
+    setImporting(true);
+    setError('');
+
+    try {
+      // 1. Delete prior services if checked
+      if (shouldDeleteExisting) {
+        const existing = await repo.getServices();
+        for (const svc of existing) {
+          await repo.deleteService(svc.id);
+        }
+      }
+
+      // 2. Add services in batch sequences
+      let count = 0;
+      for (let i = 0; i < parsedServices.length; i++) {
+        const parsed = parsedServices[i];
+        // Unique robust service ID
+        const id = 'svc-' + Date.now() + '-' + i + '-' + Math.random().toString(36).substr(2, 5);
+        const newService: BookingService = {
+          id,
+          ...parsed
+        };
+        await repo.saveService(newService);
+        count++;
+      }
+
+      setToast(`¡Se han importado ${count} servicios correctamente!`);
+      
+      // Reset uploader
+      setFileName('');
+      setParsedServices([]);
+      setValidationErrors([]);
+    } catch (err: any) {
+      console.error('Error al realizar la importación masiva:', err);
+      setError(`Error durante la importación en Firebase: ${err.message || 'Error desconocido'}`);
+    } finally {
+      setImporting(false);
+      setTimeout(() => setToast(''), 5000);
+    }
+  };
+
+  return (
+    <div className="animate-fade-in" style={{ padding: '2rem', background: '#1f2937', borderRadius: '12px', border: '1px solid #374151', color: '#fff' }}>
+      
+      <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.5rem', color: '#eab308' }}>
+        <FileSpreadsheet size={26} /> Importador Masivo de Servicios
+      </h2>
+      <p style={{ color: '#9ca3af', marginBottom: '2rem', fontSize: '0.9rem' }}>
+        Carga de manera ágil y masiva todos los servicios ofertados en tu negocio. Se validará la estructura en tu navegador antes de impactar la base de datos.
+      </p>
+
+      {/* Info Alert: Skipping service folders as requested */}
+      <div style={{ background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.3)', padding: '1rem', borderRadius: '8px', marginBottom: '2rem', fontSize: '0.85rem', color: '#9ca3af', display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+        <CheckCircle size={18} style={{ color: '#3b82f6', flexShrink: 0, marginTop: '2px' }} />
+        <div>
+          <strong style={{ color: '#3b82f6' }}>Organización en Carpetas:</strong> Esta opción se omitirá durante la importación masiva. Una vez cargados los servicios, podrás crear tus carpetas y agruparlos manualmente de forma ágil desde el panel principal de administración.
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2rem' }}>
+        
+        {/* LEFT COLUMN: GUIDES AND DOWNLOADS */}
+        <div style={{ background: '#111827', padding: '1.5rem', borderRadius: '8px', border: '1px solid #374151', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div>
+            <h3 style={{ color: '#fff', fontSize: '1rem', marginBottom: '1rem', borderBottom: '1px solid #374151', paddingBottom: '0.5rem' }}>
+              1. Estructura del Archivo CSV
+            </h3>
+            <p style={{ color: '#9ca3af', fontSize: '0.8rem', lineHeight: '1.4', marginBottom: '1.25rem' }}>
+              Descarga la plantilla pre-configurada y rellena las columnas respetando los formatos especificados a continuación:
+            </p>
+
+            <div style={{ overflowX: 'auto', marginBottom: '1.5rem' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', textAlign: 'left' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid #4b5563', color: '#9ca3af' }}>
+                    <th style={{ padding: '0.4rem' }}>Columna</th>
+                    <th style={{ padding: '0.4rem' }}>Obligatorio</th>
+                    <th style={{ padding: '0.4rem' }}>Tipo</th>
+                    <th style={{ padding: '0.4rem' }}>Pista / Formato</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr style={{ borderBottom: '1px solid #374151' }}>
+                    <td style={{ padding: '0.4rem', color: '#eab308', fontWeight: 'bold' }}>nombre</td>
+                    <td style={{ padding: '0.4rem', color: '#ef4444' }}>Sí</td>
+                    <td style={{ padding: '0.4rem' }}>Texto</td>
+                    <td style={{ padding: '0.4rem', color: '#9ca3af' }}>Ej: Corte de Pelo</td>
+                  </tr>
+                  <tr style={{ borderBottom: '1px solid #374151' }}>
+                    <td style={{ padding: '0.4rem', color: '#eab308', fontWeight: 'bold' }}>duracionMin</td>
+                    <td style={{ padding: '0.4rem', color: '#ef4444' }}>Sí</td>
+                    <td style={{ padding: '0.4rem' }}>Entero</td>
+                    <td style={{ padding: '0.4rem', color: '#9ca3af' }}>Minutos de duración (ej: 30)</td>
+                  </tr>
+                  <tr style={{ borderBottom: '1px solid #374151' }}>
+                    <td style={{ padding: '0.4rem', color: '#eab308', fontWeight: 'bold' }}>precio</td>
+                    <td style={{ padding: '0.4rem', color: '#10b981' }}>No</td>
+                    <td style={{ padding: '0.4rem' }}>Decimal</td>
+                    <td style={{ padding: '0.4rem', color: '#9ca3af' }}>Admite coma o punto (ej: 15,50 o 15.50). Puede quedar en blanco.</td>
+                  </tr>
+                  <tr style={{ borderBottom: '1px solid #374151' }}>
+                    <td style={{ padding: '0.4rem', color: '#eab308', fontWeight: 'bold' }}>color</td>
+                    <td style={{ padding: '0.4rem', color: '#10b981' }}>No</td>
+                    <td style={{ padding: '0.4rem' }}>Hex</td>
+                    <td style={{ padding: '0.4rem', color: '#9ca3af' }}>Ej: #3b82f6 (calendario). Por defecto es azul.</td>
+                  </tr>
+                  <tr style={{ borderBottom: '1px solid #374151' }}>
+                    <td style={{ padding: '0.4rem', color: '#eab308', fontWeight: 'bold' }}>activo</td>
+                    <td style={{ padding: '0.4rem', color: '#10b981' }}>No</td>
+                    <td style={{ padding: '0.4rem' }}>Bool</td>
+                    <td style={{ padding: '0.4rem', color: '#9ca3af' }}>true, false, si, no, 1 o 0. Por defecto es true.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <button 
+            onClick={downloadTemplate} 
+            className="btn-primary" 
+            style={{ 
+              width: '100%', 
+              padding: '0.75rem', 
+              background: 'rgba(234, 179, 8, 0.1)', 
+              borderColor: '#eab308', 
+              color: '#eab308', 
+              fontWeight: 'bold', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              gap: '0.5rem', 
+              cursor: 'pointer',
+              borderRadius: '6px',
+              transition: 'all 0.2s'
+            }}
+            onMouseOver={(e) => e.currentTarget.style.background = 'rgba(234, 179, 8, 0.2)'}
+            onMouseOut={(e) => e.currentTarget.style.background = 'rgba(234, 179, 8, 0.1)'}
+          >
+            <UploadCloud size={16} /> Descargar Plantilla CSV
+          </button>
+        </div>
+
+        {/* RIGHT COLUMN: UPLOAD & ACTIONS */}
+        <div style={{ background: '#111827', padding: '1.5rem', borderRadius: '8px', border: '1px solid #374151', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          
+          <h3 style={{ color: '#fff', fontSize: '1rem', borderBottom: '1px solid #374151', paddingBottom: '0.5rem', margin: 0 }}>
+            2. Carga y Verificación
+          </h3>
+
+          {/* DRAG AND DROP ZONE */}
+          <label 
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            style={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              padding: '2.5rem 1rem', 
+              border: isDragging ? '2px dashed #eab308' : '2px dashed #4b5563', 
+              borderRadius: '8px', 
+              cursor: parsing ? 'wait' : 'pointer', 
+              background: isDragging ? 'rgba(234, 179, 8, 0.05)' : 'rgba(255,255,255,0.02)', 
+              transition: 'all 0.2s',
+              textAlign: 'center'
+            }}
+          >
+            {parsing ? (
+              <>
+                <Loader2 className="animate-spin" size={32} color="#eab308" style={{ marginBottom: '1rem' }} />
+                <span style={{ color: '#eab308', fontWeight: 'bold' }}>Parseando e indexando filas...</span>
+              </>
+            ) : (
+              <>
+                <UploadCloud size={32} color={fileName ? '#10b981' : '#eab308'} style={{ marginBottom: '1rem' }} />
+                <span style={{ color: '#d1d5db', fontWeight: 'bold', fontSize: '0.9rem' }}>
+                  {fileName ? `Archivo cargado: ${fileName}` : 'Arrastra aquí tu CSV o haz clic para buscar'}
+                </span>
+                <span style={{ color: '#6b7280', fontSize: '0.75rem', marginTop: '0.25rem' }}>
+                  Solo se admiten archivos .csv de hasta 10MB
+                </span>
+                <input type="file" accept=".csv" style={{ display: 'none' }} onChange={handleFileChange} disabled={parsing} />
+              </>
+            )}
+          </label>
+
+          {/* PARSING SYSTEM ERRORS */}
+          {error && (
+            <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444', padding: '0.75rem 1rem', borderRadius: '6px', fontSize: '0.85rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <ShieldAlert size={16} /> {error}
+            </div>
+          )}
+
+          {/* DETAILED COLUMN OR FORMAT VALIDATION ERRORS */}
+          {validationErrors.length > 0 && (
+            <div style={{ background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.2)', padding: '1rem', borderRadius: '6px', maxHeight: '200px', overflowY: 'auto' }}>
+              <h4 style={{ color: '#ef4444', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', marginTop: 0 }}>
+                <ShieldAlert size={16} /> Errores detectados ({validationErrors.length})
+              </h4>
+              <ul style={{ margin: 0, paddingLeft: '1.2rem', color: '#fca5a5', fontSize: '0.8rem', lineHeight: '1.5' }}>
+                {validationErrors.map((err, idx) => (
+                  <li key={idx}>{err}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* VERIFIED SUCCESS CARD */}
+          {parsedServices.length > 0 && validationErrors.length === 0 && (
+            <div style={{ background: 'rgba(16, 185, 129, 0.05)', border: '1px solid rgba(16, 185, 129, 0.2)', padding: '1rem', borderRadius: '6px', display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+              <CheckCircle size={18} style={{ color: '#10b981', flexShrink: 0, marginTop: '2px' }} />
+              <div>
+                <strong style={{ color: '#10b981', fontSize: '0.85rem', display: 'block', marginBottom: '0.25rem' }}>CSV 100% Verificado</strong>
+                <span style={{ color: '#a7f3d0', fontSize: '0.8rem', lineHeight: '1.4', display: 'block' }}>
+                  El archivo es totalmente válido y contiene <strong>{parsedServices.length} servicios</strong> listos para ser persistidos.
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* DANGEROUS OVERWRITE CHECKBOX */}
+          <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '6px', border: '1px solid #374151' }}>
+            <label style={{ display: 'flex', gap: '0.75rem', cursor: 'pointer', alignItems: 'flex-start' }}>
+              <input 
+                type="checkbox" 
+                checked={shouldDeleteExisting} 
+                onChange={(e) => setShouldDeleteExisting(e.target.checked)}
+                style={{ marginTop: '3px', cursor: 'pointer', accentColor: '#eab308' }}
+              />
+              <div>
+                <span style={{ color: '#fff', fontSize: '0.85rem', fontWeight: '500', display: 'block' }}>
+                  Borrar previamente los servicios existentes
+                </span>
+                <span style={{ color: '#9ca3af', fontSize: '0.75rem', display: 'block', marginTop: '0.25rem' }}>
+                  {shouldDeleteExisting 
+                    ? "🔴 PELIGRO: Se vaciará la tabla de servicios en Firestore antes de subir los nuevos." 
+                    : "🟢 ANEXAR: Se añadirán como nuevos servicios sin alterar los que ya están creados."
+                  }
+                </span>
+              </div>
+            </label>
+          </div>
+
+          {/* SUBMIT BUTTON */}
+          <button 
+            onClick={handleImport} 
+            disabled={importing || parsedServices.length === 0 || validationErrors.length > 0} 
+            className="btn-primary" 
+            style={{ 
+              width: '100%', 
+              padding: '0.85rem', 
+              background: (parsedServices.length > 0 && validationErrors.length === 0) ? '#10b981' : '#4b5563', 
+              borderColor: (parsedServices.length > 0 && validationErrors.length === 0) ? '#10b981' : '#4b5563', 
+              color: '#fff', 
+              fontWeight: 'bold', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              gap: '0.5rem', 
+              cursor: (parsedServices.length > 0 && validationErrors.length === 0) ? 'pointer' : 'not-allowed',
+              borderRadius: '6px',
+              transition: 'all 0.2s',
+              fontSize: '0.9rem',
+              boxShadow: (parsedServices.length > 0 && validationErrors.length === 0) ? '0 4px 14px rgba(16, 185, 129, 0.2)' : 'none'
+            }}
+          >
+            {importing ? (
+              <>
+                <Loader2 className="animate-spin" size={18} />
+                <span>Importando {parsedServices.length} servicios...</span>
+              </>
+            ) : (
+              <>
+                <CheckCircle size={18} />
+                <span>Importar {parsedServices.length > 0 ? parsedServices.length : ''} servicios en DB</span>
+              </>
+            )}
+          </button>
+        </div>
+
+      </div>
+
+      {/* TOAST / FLOATING DIALOG ON SUCCESS IMPORT */}
+      {toast && (
+        <div className="animate-fade-in" style={{ position: 'fixed', bottom: '2rem', right: '2rem', background: '#10b981', color: 'white', padding: '1rem 2rem', borderRadius: '8px', boxShadow: '0 4px 20px rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', gap: '0.75rem', zIndex: 9999, fontWeight: 'bold', border: '1px solid rgba(255,255,255,0.2)' }}>
+          <CheckCircle size={22} /> 
+          <div>
+            <div>{toast}</div>
+            <span style={{ fontSize: '0.75rem', opacity: 0.9, fontWeight: 'normal' }}>Base de datos actualizada correctamente.</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+

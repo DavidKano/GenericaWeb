@@ -16,7 +16,7 @@ import { AdminDashboard } from './pages/AdminDashboard';
 import { AdminUsersPage } from './pages/AdminUsersPage';
 
 import { SuperAdminLayout } from './components/layouts/SuperAdminLayout';
-import { AdminCoreDatos, AdminCoreDiseno, AdminCorePoliticas, AdminCoreCss, AdminCoreAccesos, AdminCoreWelcomeEmail } from './pages/AdminCorePages';
+import { AdminCoreDatos, AdminCoreDiseno, AdminCorePoliticas, AdminCoreCss, AdminCoreAccesos, AdminCoreWelcomeEmail, AdminCoreImportServices } from './pages/AdminCorePages';
 import { AdminPromotePage } from './pages/AdminPromotePage';
 import { AdminSchedulePage } from './pages/AdminSchedulePage';
 import { AdminOffersPage } from './pages/AdminOffersPage';
@@ -253,6 +253,7 @@ function App() {
             <Route path="accesos" element={<AdminCoreAccesos />} />
             <Route path="css" element={<AdminCoreCss />} />
             <Route path="email" element={<AdminCoreWelcomeEmail />} />
+            <Route path="importar" element={<AdminCoreImportServices />} />
           </Route>
 
           {/* ---------------- CUSTOMER PORTAL (ROOT) ---------------- */}
