@@ -4,17 +4,7 @@ import type { User, Appointment, BookingService, DaySchedule, BusinessConfig, Co
 import { INITIAL_SCHEDULES } from '../services/scheduleDefaults';
 import { INITIAL_BUSINESS_CONFIG } from '../services/configDefaults';
 import { generateTimeSlots } from '../utils/timeSlots';
-import { 
-  Plus, 
-  XCircle,
-  User as UserIcon,
-  ChevronLeft,
-  ChevronRight,
-  Columns,
-  Minus,
-  MessageCircle
-} from 'lucide-react';
-
+import { Plus, XCircle, User as UserIcon, ChevronLeft, ChevronRight, Columns, Minus, MessageCircle, Bell, Clock, Briefcase, Calendar as LucideCalendar, Phone, Mail, Tag } from 'lucide-react';
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -798,8 +788,11 @@ export const AdminDashboard: React.FC = () => {
       {showPendingModal && (
         <div className="modal-overlay" onClick={() => setShowPendingModal(false)}>
           <div className="modal-content animate-pop-in" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', width: '90%' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                <h2 style={{ margin: 0, color: '#eab308' }}>⏳ Citas Pendientes</h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <Bell size={22} strokeWidth={1.5} style={{ color: 'var(--primary-color)' }} />
+                  <h2 style={{ margin: 0, color: 'var(--primary-color)', fontSize: '1.3rem', fontWeight: 600 }}>Citas Pendientes</h2>
+                </div>
                 <button className="btn-icon" onClick={() => setShowPendingModal(false)}><XCircle /></button>
             </div>
             
@@ -810,28 +803,57 @@ export const AdminDashboard: React.FC = () => {
                 pendingAppts.map(appt => {
                   const customer = users.find(u => u.id === appt.customerId);
                   const service = services.find(s => s.id === appt.serviceId);
+                  const apptDate = new Date(appt.dateTimeStart);
+                  const formattedDate = `${apptDate.getDate()}/${apptDate.getMonth() + 1}/${apptDate.getFullYear().toString().slice(-2)} - ${apptDate.getHours()}:${apptDate.getMinutes().toString().padStart(2, '0')} h`;
+                  
                   return (
                     <div key={appt.id} style={{ 
-                      padding: '1rem', 
-                      background: 'var(--bg-color)', 
-                      borderRadius: '8px', 
-                      border: '1px solid var(--glass-border)',
+                      padding: '14px 16px', 
+                      background: '#F8FAFC', 
+                      borderRadius: '10px', 
+                      border: '1px solid #E2E8F0',
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
-                      gap: '1rem',
-                      flexWrap: 'wrap'
+                      gap: '1.25rem',
+                      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.01)',
+                      transition: 'all 0.2s ease'
                     }}>
-                      <div>
-                        <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{customer?.name || 'Cliente Desconocido'}</div>
-                        <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                          {service?.name || 'Servicio'} - {new Date(appt.dateTimeStart).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', flex: 1, minWidth: 0 }}>
+                        {/* Línea 1: Cliente */}
+                        <div style={{ display: 'flex', alignItems: 'center', fontSize: '0.95rem', fontWeight: 600, color: '#0F172A' }}>
+                          <UserIcon size={15} strokeWidth={2} style={{ color: 'var(--primary-color)', marginRight: '8px', opacity: 0.8 }} />
+                          <span>{customer?.name || 'Cliente Desconocido'}</span>
+                        </div>
+                        {/* Línea 2: Servicio */}
+                        <div style={{ display: 'flex', alignItems: 'center', fontSize: '13px', fontWeight: 400, color: '#475569' }}>
+                          <Briefcase size={15} strokeWidth={1.5} style={{ color: '#64748B', marginRight: '8px' }} />
+                          <span>{service?.name || 'Servicio'}</span>
+                        </div>
+                        {/* Línea 3: Fecha y Hora */}
+                        <div style={{ display: 'flex', alignItems: 'center', fontSize: '13px', fontWeight: 400, color: '#64748B' }}>
+                          <Clock size={15} strokeWidth={1.5} style={{ color: '#64748B', marginRight: '8px' }} />
+                          <span>{formattedDate}</span>
                         </div>
                       </div>
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', flexShrink: 0 }}>
                         <button 
                           className="btn-primary" 
-                          style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}
+                          style={{ 
+                            padding: '8px 16px', 
+                            fontSize: '0.85rem', 
+                            fontWeight: 600, 
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)',
+                            border: 'none',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            backgroundColor: 'var(--primary-color)',
+                            color: '#FFFFFF'
+                          }}
                           onClick={async () => {
                             try {
                               await repo.saveAppointment({ ...appt, status: 'CONFIRMED' });
@@ -979,153 +1001,444 @@ export const AdminDashboard: React.FC = () => {
 
       {/* Modal Nueva Cita Manual */}
       {showNewApptModal && (
-        <div className="modal-overlay" onClick={() => setShowNewApptModal(false)}>
-          <div className="modal-content animate-pop-in" onClick={e => e.stopPropagation()} style={{ maxWidth: '500px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                <h2 style={{ margin: 0 }}>➕ Nueva Cita Manual</h2>
-                <button className="btn-icon" onClick={() => setShowNewApptModal(false)}><XCircle /></button>
+        <div className="modal-overlay" onClick={() => setShowNewApptModal(false)} style={{ zIndex: 1000 }}>
+          <div className="modal-content animate-pop-in" onClick={e => e.stopPropagation()} style={{ maxWidth: '500px', width: '100%', background: '#FFFFFF', borderRadius: '12px', border: '1px solid #E2E8F0', padding: '0.9rem 1.25rem', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}>
+            
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <LucideCalendar size={18} strokeWidth={1.5} style={{ color: 'var(--primary-color)' }} />
+                <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: '600', letterSpacing: '-0.02em', color: '#0F172A', textTransform: 'uppercase' }}>NUEVA CITA MANUAL</h2>
+              </div>
+              <button 
+                onClick={() => setShowNewApptModal(false)}
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8', transition: 'color 0.2s' }}
+                onMouseEnter={e => e.currentTarget.style.color = '#F43F5E'}
+                onMouseLeave={e => e.currentTarget.style.color = '#94A3B8'}
+              >
+                <XCircle size={18} strokeWidth={1.5} />
+              </button>
             </div>
             
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
+            <p style={{ color: '#64748B', fontSize: '0.78rem', marginBottom: '0.8rem', lineHeight: '1.3' }}>
               Agrega una cita recibida por teléfono, WhatsApp o presencialmente.
             </p>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-              <div className="form-group" style={{ position: 'relative', gridColumn: '1 / -1' }}>
-                <label>Nombre del Cliente</label>
-                <input 
-                  value={mName} 
-                  onChange={e => setMName(e.target.value)} 
-                  placeholder="Ej: Juan Pérez"
-                  autoComplete="off"
-                  style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', background: 'var(--surface-color)', border: '1px solid var(--glass-border)', color: 'var(--text-primary)' }}
-                />
-                {mName && mName.length >= 2 && (
-                  <ul style={{
-                    position: 'absolute',
-                    top: '100%',
-                    left: 0,
-                    right: 0,
-                    background: 'var(--surface-color)',
-                    border: '1px solid var(--glass-border)',
-                    borderRadius: '8px',
-                    maxHeight: '200px',
-                    overflowY: 'auto',
-                    zIndex: 50,
-                    margin: '4px 0 0 0',
-                    padding: 0,
-                    listStyle: 'none',
-                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)'
-                  }}>
-                    {users.filter(u => u.name.toLowerCase().includes(mName.toLowerCase()) && u.role === 'CUSTOMER' && !(u.name === mName && u.phone === mPhone)).sort((a,b) => a.name.localeCompare(b.name)).map(user => (
-                      <li 
-                        key={user.id}
-                        onClick={() => {
-                          setMName(user.name);
-                          setMPhone(user.phone || '');
-                          setMEmail(user.email || '');
+            <form onSubmit={e => e.preventDefault()}>
+              {/* Sección 1: DATOS DEL CLIENTE */}
+              <div style={{ 
+                background: '#F8FAFC', 
+                border: '1px solid #E2E8F0', 
+                borderRadius: '8px', 
+                padding: '0.6rem 0.8rem', 
+                marginBottom: '0.6rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.6rem'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', borderBottom: '1px solid #E2E8F0', paddingBottom: '0.3rem', marginBottom: '0.1rem' }}>
+                  <UserIcon size={13} strokeWidth={2} style={{ color: 'var(--primary-color)' }} />
+                  <span style={{ fontSize: '0.7rem', fontWeight: '700', letterSpacing: '0.05em', color: '#475569' }}>DATOS DEL CLIENTE</span>
+                </div>
+
+                {/* Campo: Nombre */}
+                <div className="form-group" style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: '0.2rem', width: '100%' }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: '500', color: '#475569' }}>Nombre del Cliente</label>
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <span style={{ position: 'absolute', left: '10px', color: '#94A3B8', pointerEvents: 'none', display: 'flex', alignItems: 'center' }}>
+                      <UserIcon size={14} strokeWidth={1.5} />
+                    </span>
+                    <input 
+                      value={mName} 
+                      onChange={e => setMName(e.target.value)} 
+                      placeholder="Introducir nombre"
+                      autoComplete="off"
+                      style={{ 
+                        width: '100%', 
+                        padding: '0.45rem 0.8rem 0.45rem 2.2rem', 
+                        borderRadius: '6px', 
+                        background: '#FFFFFF', 
+                        border: '1px solid #CBD5E1', 
+                        color: '#1E293B',
+                        fontSize: '0.85rem',
+                        outline: 'none',
+                        transition: 'border-color 0.2s, box-shadow 0.2s'
+                      }}
+                      onFocus={e => {
+                        e.currentTarget.style.borderColor = 'var(--primary-color)';
+                        e.currentTarget.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.1)';
+                      }}
+                      onBlur={e => {
+                        e.currentTarget.style.borderColor = '#CBD5E1';
+                        e.currentTarget.style.boxShadow = 'none';
+                      }}
+                    />
+                  </div>
+                  {mName && mName.length >= 2 && (
+                    <ul style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: 0,
+                      right: 0,
+                      background: '#FFFFFF',
+                      border: '1px solid #E2E8F0',
+                      borderRadius: '8px',
+                      maxHeight: '140px',
+                      overflowY: 'auto',
+                      zIndex: 100,
+                      margin: '2px 0 0 0',
+                      padding: 0,
+                      listStyle: 'none',
+                      boxShadow: '0 8px 12px -3px rgba(0, 0, 0, 0.05), 0 3px 4px -2px rgba(0, 0, 0, 0.03)'
+                    }}>
+                      {users.filter(u => u.name.toLowerCase().includes(mName.toLowerCase()) && u.role === 'CUSTOMER' && !(u.name === mName && u.phone === mPhone)).sort((a,b) => a.name.localeCompare(b.name)).map(user => (
+                        <li 
+                          key={user.id}
+                          onClick={() => {
+                            setMName(user.name);
+                            setMPhone(user.phone || '');
+                            setMEmail(user.email || '');
+                          }}
+                          style={{
+                            padding: '0.5rem 0.8rem',
+                            cursor: 'pointer',
+                            borderBottom: '1px solid #F1F5F9',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            color: '#1E293B'
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F8FAFC'}
+                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                        >
+                          <span style={{ fontWeight: '500', fontSize: '0.8rem' }}>{user.name}</span>
+                          {user.phone && <span style={{ fontSize: '0.7rem', color: '#64748B' }}>{user.phone}</span>}
+                        </li>
+                      ))}
+                      {!users.some(u => u.name.toLowerCase() === mName.toLowerCase() && u.role === 'CUSTOMER') && (
+                         <li style={{ padding: '0.5rem 0.8rem', color: '#10b981', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.3rem', borderBottom: 'none' }}>
+                           <Plus size={12} /> Nuevo cliente (se creará ficha)
+                         </li>
+                      )}
+                    </ul>
+                  )}
+                </div>
+
+                {/* Teléfono & Email en 2 columnas en PC, 1 columna en móvil */}
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '0.75rem', width: '100%' }}>
+                  {/* Campo: Teléfono */}
+                  <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', width: '100%' }}>
+                    <label style={{ fontSize: '0.75rem', fontWeight: '500', color: '#475569' }}>Teléfono</label>
+                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                      <span style={{ position: 'absolute', left: '10px', color: '#94A3B8', pointerEvents: 'none', display: 'flex', alignItems: 'center' }}>
+                        <Phone size={14} strokeWidth={1.5} />
+                      </span>
+                      <input 
+                        value={mPhone} 
+                        onChange={e => setMPhone(e.target.value)} 
+                        placeholder="Número de teléfono"
+                        style={{ 
+                          width: '100%', 
+                          padding: '0.45rem 0.8rem 0.45rem 2.2rem', 
+                          borderRadius: '6px', 
+                          background: '#FFFFFF', 
+                          border: '1px solid #CBD5E1', 
+                          color: '#1E293B',
+                          fontSize: '0.85rem',
+                          outline: 'none',
+                          transition: 'border-color 0.2s, box-shadow 0.2s'
                         }}
-                        style={{
-                          padding: '0.8rem',
-                          cursor: 'pointer',
-                          borderBottom: '1px solid var(--glass-border)',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          color: 'var(--text-primary)'
+                        onFocus={e => {
+                          e.currentTarget.style.borderColor = 'var(--primary-color)';
+                          e.currentTarget.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.1)';
                         }}
-                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'}
-                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                        onBlur={e => {
+                          e.currentTarget.style.borderColor = '#CBD5E1';
+                          e.currentTarget.style.boxShadow = 'none';
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Campo: Email */}
+                  <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', width: '100%' }}>
+                    <label style={{ fontSize: '0.75rem', fontWeight: '500', color: '#475569' }}>Email <span style={{ color: '#94A3B8', fontWeight: 'normal', fontSize: '0.7rem' }}>(opcional)</span></label>
+                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                      <span style={{ position: 'absolute', left: '10px', color: '#94A3B8', pointerEvents: 'none', display: 'flex', alignItems: 'center' }}>
+                        <Mail size={14} strokeWidth={1.5} />
+                      </span>
+                      <input 
+                        type="email"
+                        value={mEmail} 
+                        onChange={e => setMEmail(e.target.value)} 
+                        placeholder="ejemplo@correo.com"
+                        style={{ 
+                          width: '100%', 
+                          padding: '0.45rem 0.8rem 0.45rem 2.2rem', 
+                          borderRadius: '6px', 
+                          background: '#FFFFFF', 
+                          border: '1px solid #CBD5E1', 
+                          color: '#1E293B',
+                          fontSize: '0.85rem',
+                          outline: 'none',
+                          transition: 'border-color 0.2s, box-shadow 0.2s'
+                        }}
+                        onFocus={e => {
+                          e.currentTarget.style.borderColor = 'var(--primary-color)';
+                          e.currentTarget.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.1)';
+                        }}
+                        onBlur={e => {
+                          e.currentTarget.style.borderColor = '#CBD5E1';
+                          e.currentTarget.style.boxShadow = 'none';
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Sección 2: DETALLES DE LA CITA */}
+              <div style={{ 
+                background: '#F8FAFC', 
+                border: '1px solid #E2E8F0', 
+                borderRadius: '8px', 
+                padding: '0.6rem 0.8rem', 
+                marginBottom: '0.8rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.6rem'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', borderBottom: '1px solid #E2E8F0', paddingBottom: '0.3rem', marginBottom: '0.1rem' }}>
+                  <LucideCalendar size={13} strokeWidth={2} style={{ color: 'var(--primary-color)' }} />
+                  <span style={{ fontSize: '0.7rem', fontWeight: '700', letterSpacing: '0.05em', color: '#475569' }}>DETALLES DE LA CITA</span>
+                </div>
+
+                {/* Campo: Servicio */}
+                <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', width: '100%' }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: '500', color: '#475569' }}>Servicio Solicitado</label>
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <span style={{ position: 'absolute', left: '10px', color: '#94A3B8', pointerEvents: 'none', display: 'flex', alignItems: 'center' }}>
+                      <Tag size={14} strokeWidth={1.5} />
+                    </span>
+                    <select 
+                      value={mServiceId} 
+                      onChange={e => setMServiceId(e.target.value)}
+                      style={{ 
+                        width: '100%', 
+                        padding: '0.45rem 2rem 0.45rem 2.2rem', 
+                        borderRadius: '6px', 
+                        background: '#FFFFFF', 
+                        border: '1px solid #CBD5E1', 
+                        color: '#1E293B',
+                        fontSize: '0.85rem',
+                        outline: 'none',
+                        appearance: 'none',
+                        backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                        backgroundRepeat: 'no-repeat',
+                        backgroundPosition: 'right 10px center',
+                        backgroundSize: '14px',
+                        transition: 'border-color 0.2s, box-shadow 0.2s'
+                      }}
+                      onFocus={e => {
+                        e.currentTarget.style.borderColor = 'var(--primary-color)';
+                        e.currentTarget.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.1)';
+                      }}
+                      onBlur={e => {
+                        e.currentTarget.style.borderColor = '#CBD5E1';
+                        e.currentTarget.style.boxShadow = 'none';
+                      }}
+                    >
+                      <option value="">Seleccionar un servicio</option>
+                      {services.filter(s => s.isActive !== false).map(s => (
+                        <option key={s.id} value={s.id}>{s.name} ({s.durationMin} min)</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Fecha & Hora en 2 columnas en PC, 1 columna en móvil */}
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '0.75rem', width: '100%' }}>
+                  {/* Campo: Fecha */}
+                  <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', width: '100%' }}>
+                    <label style={{ fontSize: '0.75rem', fontWeight: '500', color: '#475569' }}>Fecha</label>
+                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                      <span style={{ position: 'absolute', left: '10px', color: '#94A3B8', pointerEvents: 'none', display: 'flex', alignItems: 'center' }}>
+                        <LucideCalendar size={14} strokeWidth={1.5} />
+                      </span>
+                      <input 
+                        type="date" 
+                        value={mDate} 
+                        onChange={e => setMDate(e.target.value)} 
+                        style={{ 
+                          width: '100%', 
+                          padding: '0.45rem 0.8rem 0.45rem 2.2rem', 
+                          borderRadius: '6px', 
+                          background: '#FFFFFF', 
+                          border: '1px solid #CBD5E1', 
+                          color: '#1E293B',
+                          fontSize: '0.85rem',
+                          outline: 'none',
+                          fontFamily: 'inherit',
+                          transition: 'border-color 0.2s, box-shadow 0.2s'
+                        }}
+                        onFocus={e => {
+                          e.currentTarget.style.borderColor = 'var(--primary-color)';
+                          e.currentTarget.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.1)';
+                        }}
+                        onBlur={e => {
+                          e.currentTarget.style.borderColor = '#CBD5E1';
+                          e.currentTarget.style.boxShadow = 'none';
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Campo: Hora */}
+                  <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', width: '100%' }}>
+                    <label style={{ fontSize: '0.75rem', fontWeight: '500', color: '#475569' }}>Hora</label>
+                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                      <span style={{ position: 'absolute', left: '10px', color: '#94A3B8', pointerEvents: 'none', display: 'flex', alignItems: 'center' }}>
+                        <Clock size={14} strokeWidth={1.5} />
+                      </span>
+                      <select 
+                        value={mTime} 
+                        onChange={e => setMTime(e.target.value)} 
+                        disabled={!mServiceId || manualAvailableSlots.length === 0}
+                        style={{ 
+                          width: '100%', 
+                          padding: '0.45rem 2rem 0.45rem 2.2rem', 
+                          borderRadius: '6px', 
+                          background: '#FFFFFF', 
+                          border: '1px solid #CBD5E1', 
+                          color: '#1E293B',
+                          fontSize: '0.85rem',
+                          outline: 'none',
+                          fontFamily: 'inherit',
+                          appearance: 'none',
+                          backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                          backgroundRepeat: 'no-repeat',
+                          backgroundPosition: 'right 10px center',
+                          backgroundSize: '14px',
+                          transition: 'border-color 0.2s, box-shadow 0.2s'
+                        }}
+                        onFocus={e => {
+                          e.currentTarget.style.borderColor = 'var(--primary-color)';
+                          e.currentTarget.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.1)';
+                        }}
+                        onBlur={e => {
+                          e.currentTarget.style.borderColor = '#CBD5E1';
+                          e.currentTarget.style.boxShadow = 'none';
+                        }}
                       >
-                        <span style={{ fontWeight: '600' }}>{user.name}</span>
-                        {user.phone && <span style={{ fontSize: '0.8rem', opacity: 0.8 }}>{user.phone}</span>}
-                      </li>
-                    ))}
-                    {!users.some(u => u.name.toLowerCase() === mName.toLowerCase() && u.role === 'CUSTOMER') && (
-                       <li style={{ padding: '0.8rem', color: '#10b981', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                         <Plus size={14} /> Cliente no registrado (se creará ficha nueva)
-                       </li>
-                    )}
-                  </ul>
-                )}
-              </div>
-              <div className="form-group">
-                <label>Teléfono</label>
-                <input 
-                  value={mPhone} 
-                  onChange={e => setMPhone(e.target.value)} 
-                  placeholder="Ej: 600123456"
-                  style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', background: 'var(--surface-color)', border: '1px solid var(--glass-border)', color: 'var(--text-primary)' }}
-                />
-              </div>
-              <div className="form-group">
-                <label>Email <small>(opcional)</small></label>
-                <input 
-                  type="email"
-                  value={mEmail} 
-                  onChange={e => setMEmail(e.target.value)} 
-                  placeholder="Ej: correo@ejemplo.com"
-                  style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', background: 'var(--surface-color)', border: '1px solid var(--glass-border)', color: 'var(--text-primary)' }}
-                />
-              </div>
-            </div>
+                        <option value="" disabled>
+                          {!mServiceId ? 'Selecciona servicio' : (manualAvailableSlots.length === 0 ? 'Sin huecos libres' : 'Selecciona hora')}
+                        </option>
+                        {manualAvailableSlots.map(time => (
+                          <option key={time} value={time}>{time}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
 
-            <div className="form-group" style={{ marginTop: '1rem' }}>
-              <label>Servicio Solicitado</label>
-              <select 
-                value={mServiceId} 
-                onChange={e => setMServiceId(e.target.value)}
-                style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', background: 'var(--surface-color)', border: '1px solid var(--glass-border)', color: 'var(--text-primary)' }}
-              >
-                <option value="">Selecciona un servicio...</option>
-                {services.filter(s => s.isActive !== false).map(s => (
-                  <option key={s.id} value={s.id}>{s.name} ({s.durationMin} min)</option>
-                ))}
-              </select>
-            </div>
-
-            <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-              <div className="form-group" style={{ flex: 1 }}>
-                <label>Fecha</label>
-                <input 
-                  type="date" 
-                  value={mDate} 
-                  onChange={e => setMDate(e.target.value)} 
-                  style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'var(--surface-color)', color: 'var(--text-primary)', fontFamily: 'inherit' }} 
-                />
+                {/* Campo: Notas Privadas */}
+                <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', width: '100%' }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: '500', color: '#475569' }}>Notas Privadas</label>
+                  <textarea 
+                    value={mNotes} 
+                    onChange={e => setMNotes(e.target.value)} 
+                    rows={1}
+                    placeholder="Observaciones o notas adicionales"
+                    style={{ 
+                      width: '100%', 
+                      padding: '0.45rem 0.8rem', 
+                      borderRadius: '6px', 
+                      background: '#FFFFFF', 
+                      border: '1px solid #CBD5E1', 
+                      color: '#1E293B',
+                      fontSize: '0.85rem',
+                      outline: 'none',
+                      fontFamily: 'inherit',
+                      resize: 'none',
+                      height: '34px',
+                      transition: 'border-color 0.2s, box-shadow 0.2s'
+                    }}
+                    onFocus={e => {
+                      e.currentTarget.style.borderColor = 'var(--primary-color)';
+                      e.currentTarget.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.1)';
+                    }}
+                    onBlur={e => {
+                      e.currentTarget.style.borderColor = '#CBD5E1';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  />
+                </div>
               </div>
-              <div className="form-group" style={{ flex: 1 }}>
-                <label>Hora</label>
-                <select 
-                  value={mTime} 
-                  onChange={e => setMTime(e.target.value)} 
-                  disabled={!mServiceId || manualAvailableSlots.length === 0}
-                  style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'var(--surface-color)', color: 'var(--text-primary)', fontFamily: 'inherit' }} 
+
+              {/* Botones de acción SaaS */}
+              <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+                <button 
+                  type="button" 
+                  onClick={() => setShowNewApptModal(false)}
+                  style={{
+                    height: '35px',
+                    padding: '0 1.25rem',
+                    borderRadius: '8px',
+                    border: '1px solid #CBD5E1',
+                    background: '#FFFFFF',
+                    color: '#475569',
+                    fontWeight: '600',
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.background = '#F8FAFC';
+                    e.currentTarget.style.borderColor = '#94A3B8';
+                    e.currentTarget.style.color = '#1E293B';
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.background = '#FFFFFF';
+                    e.currentTarget.style.borderColor = '#CBD5E1';
+                    e.currentTarget.style.color = '#475569';
+                  }}
                 >
-                  <option value="" disabled>
-                    {!mServiceId ? 'Selecciona un servicio...' : (manualAvailableSlots.length === 0 ? 'Sin huecos libres' : 'Selecciona hora...')}
-                  </option>
-                  {manualAvailableSlots.map(time => (
-                    <option key={time} value={time}>{time}</option>
-                  ))}
-                </select>
+                  Cancelar
+                </button>
+                <button 
+                  type="button" 
+                  onClick={handleSaveManualAppt}
+                  style={{
+                    height: '35px',
+                    padding: '0 1.25rem',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: 'var(--primary-color)',
+                    color: '#FFFFFF',
+                    fontWeight: '600',
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.2), 0 2px 4px -1px rgba(59, 130, 246, 0.1)',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.filter = 'brightness(1.05)';
+                    e.currentTarget.style.boxShadow = '0 6px 12px -2px rgba(59, 130, 246, 0.3), 0 3px 6px -2px rgba(59, 130, 246, 0.15)';
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.filter = 'none';
+                    e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(59, 130, 246, 0.2), 0 2px 4px -1px rgba(59, 130, 246, 0.1)';
+                  }}
+                >
+                  Agendar Cita
+                </button>
               </div>
-            </div>
-
-            <div className="form-group" style={{ marginTop: '1rem' }}>
-              <label>Notas Privadas</label>
-              <textarea 
-                value={mNotes} 
-                onChange={e => setMNotes(e.target.value)} 
-                rows={2}
-                placeholder="Ej: Viene por recomendación de Paco..."
-                style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', background: 'var(--surface-color)', border: '1px solid var(--glass-border)', color: 'var(--text-primary)', fontFamily: 'inherit' }}
-              />
-            </div>
-            
-            <div className="modal-actions" style={{ marginTop: '2rem' }}>
-              <button className="btn-secondary" onClick={() => setShowNewApptModal(false)}>Cancelar</button>
-              <button className="btn-primary" onClick={handleSaveManualAppt}>Agendar Cita</button>
-            </div>
+            </form>
           </div>
         </div>
       )}
