@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useData } from '../context/DataContext';
 import type { BookingService, BusinessConfig } from '../services/models';
 import { INITIAL_BUSINESS_CONFIG } from '../services/configDefaults';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Clock, Euro, Edit3 } from 'lucide-react';
 
 export const AdminServicesPage: React.FC = () => {
   const { repo } = useData();
@@ -164,6 +164,26 @@ export const AdminServicesPage: React.FC = () => {
 
   return (
     <div className="animate-fade-in">
+      <style>{`
+        /* Service Cards styling overrides for premium layout */
+        .service-card {
+          transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        }
+        .service-card:hover {
+          transform: translateY(-3px) !important;
+          box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05), 0 4px 6px -2px rgba(0,0,0,0.025) !important;
+          border-color: var(--primary-color, #3b82f6) !important;
+        }
+        .service-card .service-edit-btn {
+          background: rgba(0, 0, 0, 0.03);
+          color: var(--text-secondary, #718096);
+          transition: all 0.2s ease;
+        }
+        .service-card:hover .service-edit-btn {
+          background: var(--primary-color, #3b82f6) !important;
+          color: white !important;
+        }
+      `}</style>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem', alignItems: 'center' }}>
         <h2 style={{ margin: 0 }}>🛠️ Servicios Disponibles</h2>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -210,21 +230,102 @@ export const AdminServicesPage: React.FC = () => {
                 ) : (
                   <div className="services-grid">
                     {folderServices.map(svc => (
-                      <div key={svc.id} className="service-card hover-glow" onClick={() => openEditService(svc)} style={{ cursor: 'pointer', transition: 'border 0.2s', border: '1px solid var(--glass-border)' }} onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--primary-color)'} onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--glass-border)'}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <h3 style={{ margin: 0 }}>{svc.name}</h3>
-                          <span style={{ fontSize: '0.75rem', background: 'rgba(255,255,255,0.1)', padding: '2px 8px', borderRadius: '12px' }}>Editar</span>
+                      <div 
+                        key={svc.id} 
+                        className="service-card hover-glow" 
+                        onClick={() => openEditService(svc)} 
+                        style={{ 
+                          position: 'relative',
+                          cursor: 'pointer', 
+                          border: '1px solid #EDF2F7', 
+                          borderTop: '1px solid #EDF2F7',
+                          borderRadius: '12px',
+                          padding: '1.25rem',
+                          background: 'var(--surface-color, #ffffff)',
+                          boxShadow: '0 4px 6px -1px rgba(0,0,0,0.03), 0 2px 4px -1px rgba(0,0,0,0.02)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'space-between',
+                          minHeight: '125px',
+                          boxSizing: 'border-box'
+                        }} 
+                      >
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '1rem', alignItems: 'flex-start' }}>
+                          <div>
+                            <h3 style={{ 
+                              margin: 0, 
+                              fontSize: '1.05rem', 
+                              fontWeight: '600', 
+                              color: 'var(--text-primary, #1A202C)',
+                              lineHeight: '1.4'
+                            }}>
+                              {svc.name}
+                            </h3>
+                            {svc.isActive === false && (
+                              <span style={{ 
+                                display: 'inline-block',
+                                background: 'rgba(239, 68, 68, 0.08)', 
+                                color: '#ef4444', 
+                                fontSize: '11px', 
+                                padding: '2px 8px', 
+                                borderRadius: '4px', 
+                                fontWeight: 'bold',
+                                marginTop: '6px',
+                                letterSpacing: '0.5px'
+                              }}>
+                                DESACTIVADO
+                              </span>
+                            )}
+                          </div>
+                          <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: '28px',
+                            height: '28px',
+                            borderRadius: '50%',
+                            background: 'rgba(0, 0, 0, 0.03)',
+                            color: 'var(--text-secondary, #718096)',
+                            transition: 'background 0.2s',
+                          }}
+                          className="service-edit-btn"
+                          >
+                            <Edit3 size={13} />
+                          </div>
                         </div>
-                        <div className="service-meta" style={{ marginTop: '0.5rem' }}>
-                          <span>⏱ {svc.durationMin} min</span>
-                          {svc.price !== undefined && <span>💰 {svc.price}€</span>}
-                        </div>
-                        <div className="service-meta" style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ width: '16px', height: '16px', backgroundColor: svc.color || '#3174ad', borderRadius: '50%', display: 'inline-block' }}></span>
-                          <span style={{ fontSize: '0.8rem' }}>Color</span>
-                          {svc.isActive === false && (
-                            <span style={{ marginLeft: 'auto', background: '#ef4444', color: 'white', fontSize: '0.7rem', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold' }}>DESACTIVADO</span>
+                        
+                        <div style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          flexWrap: 'wrap', 
+                          gap: '12px', 
+                          marginTop: 'auto',
+                          paddingTop: '0.75rem',
+                          borderTop: '1px solid rgba(0,0,0,0.03)'
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px', color: '#718096' }}>
+                            <Clock size={14} style={{ color: '#A0AEC0' }} />
+                            <span>{svc.durationMin} min</span>
+                          </div>
+                          
+                          {svc.price !== undefined && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px', color: '#718096' }}>
+                              <Euro size={14} style={{ color: '#A0AEC0' }} />
+                              <span>{svc.price}€</span>
+                            </div>
                           )}
+                          
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#718096' }}>
+                            <span style={{ 
+                              width: '10px', 
+                              height: '10px', 
+                              backgroundColor: svc.color || '#3174ad', 
+                              borderRadius: '50%', 
+                              display: 'inline-block',
+                              boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.05)'
+                            }}></span>
+                            <span>Color</span>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -238,21 +339,102 @@ export const AdminServicesPage: React.FC = () => {
             {(config?.serviceFolders?.length || 0) > 0 && <h4 style={{ marginBottom: '1rem', color: 'var(--text-secondary)' }}>Sin Carpeta</h4>}
             <div className="services-grid">
               {services.filter(s => !s.folderName || !(config?.serviceFolders || []).includes(s.folderName)).map(svc => (
-                <div key={svc.id} className="service-card hover-glow" onClick={() => openEditService(svc)} style={{ cursor: 'pointer', transition: 'border 0.2s', border: '1px solid var(--glass-border)' }} onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--primary-color)'} onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--glass-border)'}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h3 style={{ margin: 0 }}>{svc.name}</h3>
-                    <span style={{ fontSize: '0.75rem', background: 'rgba(255,255,255,0.1)', padding: '2px 8px', borderRadius: '12px' }}>Editar</span>
+                <div 
+                  key={svc.id} 
+                  className="service-card hover-glow" 
+                  onClick={() => openEditService(svc)} 
+                  style={{ 
+                    position: 'relative',
+                    cursor: 'pointer', 
+                    border: '1px solid #EDF2F7', 
+                    borderTop: '1px solid #EDF2F7',
+                    borderRadius: '12px',
+                    padding: '1.25rem',
+                    background: 'var(--surface-color, #ffffff)',
+                    boxShadow: '0 4px 6px -1px rgba(0,0,0,0.03), 0 2px 4px -1px rgba(0,0,0,0.02)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    minHeight: '125px',
+                    boxSizing: 'border-box'
+                  }} 
+                >
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '1rem', alignItems: 'flex-start' }}>
+                    <div>
+                      <h3 style={{ 
+                        margin: 0, 
+                        fontSize: '1.05rem', 
+                        fontWeight: '600', 
+                        color: 'var(--text-primary, #1A202C)',
+                        lineHeight: '1.4'
+                      }}>
+                        {svc.name}
+                      </h3>
+                      {svc.isActive === false && (
+                        <span style={{ 
+                          display: 'inline-block',
+                          background: 'rgba(239, 68, 68, 0.08)', 
+                          color: '#ef4444', 
+                          fontSize: '11px', 
+                          padding: '2px 8px', 
+                          borderRadius: '4px', 
+                          fontWeight: 'bold',
+                          marginTop: '6px',
+                          letterSpacing: '0.5px'
+                        }}>
+                          DESACTIVADO
+                        </span>
+                      )}
+                    </div>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '50%',
+                      background: 'rgba(0, 0, 0, 0.03)',
+                      color: 'var(--text-secondary, #718096)',
+                      transition: 'background 0.2s',
+                    }}
+                    className="service-edit-btn"
+                    >
+                      <Edit3 size={13} />
+                    </div>
                   </div>
-                  <div className="service-meta" style={{ marginTop: '0.5rem' }}>
-                    <span>⏱ {svc.durationMin} min</span>
-                    {svc.price !== undefined && <span>💰 {svc.price}€</span>}
-                  </div>
-                  <div className="service-meta" style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ width: '16px', height: '16px', backgroundColor: svc.color || '#3174ad', borderRadius: '50%', display: 'inline-block' }}></span>
-                    <span style={{ fontSize: '0.8rem' }}>Color</span>
-                    {svc.isActive === false && (
-                      <span style={{ marginLeft: 'auto', background: '#ef4444', color: 'white', fontSize: '0.7rem', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold' }}>DESACTIVADO</span>
+                  
+                  <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    flexWrap: 'wrap', 
+                    gap: '12px', 
+                    marginTop: 'auto',
+                    paddingTop: '0.75rem',
+                    borderTop: '1px solid rgba(0,0,0,0.03)'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px', color: '#718096' }}>
+                      <Clock size={14} style={{ color: '#A0AEC0' }} />
+                      <span>{svc.durationMin} min</span>
+                    </div>
+                    
+                    {svc.price !== undefined && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px', color: '#718096' }}>
+                        <Euro size={14} style={{ color: '#A0AEC0' }} />
+                        <span>{svc.price}€</span>
+                      </div>
                     )}
+                    
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#718096' }}>
+                      <span style={{ 
+                        width: '10px', 
+                        height: '10px', 
+                        backgroundColor: svc.color || '#3174ad', 
+                        borderRadius: '50%', 
+                        display: 'inline-block',
+                        boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.05)'
+                      }}></span>
+                      <span>Color</span>
+                    </div>
                   </div>
                 </div>
               ))}

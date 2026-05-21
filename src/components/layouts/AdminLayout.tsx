@@ -7,6 +7,36 @@ import type { DesignConfig, CompanyData } from '../../services/models';
 import { ConnessiaFooter } from '../ui/ConnessiaFooter';
 import { format } from 'date-fns';
 
+const getDaysRemaining = (renovacionStr: string) => {
+  try {
+    const renDate = new Date(renovacionStr);
+    const today = new Date();
+    const diffTime = renDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays > 0 ? diffDays : 0;
+  } catch (e) {
+    return 0;
+  }
+};
+
+const getSubscriptionProgress = (startStr?: string, endStr?: string) => {
+  try {
+    if (!endStr) return 0;
+    const end = new Date(endStr).getTime();
+    const today = new Date().getTime();
+    if (today >= end) return 0;
+    
+    const start = startStr ? new Date(startStr).getTime() : (end - 365 * 24 * 60 * 60 * 1000);
+    const total = end - start;
+    if (total <= 0) return 100;
+    const elapsed = today - start;
+    const percentage = Math.max(0, Math.min(100, 100 - (elapsed / total) * 100));
+    return Math.round(percentage);
+  } catch (e) {
+    return 50;
+  }
+};
+
 export const AdminLayout: React.FC = () => {
   const { user, logout } = useAuth();
   const { repo } = useData();
@@ -38,13 +68,13 @@ export const AdminLayout: React.FC = () => {
   };
 
   const navItems = [
-    { to: "/admin", icon: <LayoutDashboard size={18} />, label: "Panel Control", end: true },
-    { to: "/admin/services", icon: <Sliders size={18} />, label: "Gestión Servicios" },
-    { to: "/admin/users", icon: <Users size={18} />, label: "Gestión Clientes" },
-    { to: "/admin/schedule", icon: <Clock size={18} />, label: "Horarios y Bloqueos" },
-    { to: "/admin/offers", icon: <Megaphone size={18} />, label: "Ofertas y Promos" },
-    { to: "/admin/promote", icon: <QrCode size={18} />, label: "Promocionar App" },
-    { to: "/admin/settings", icon: <Settings size={18} />, label: "Ajustes" },
+    { to: "/admin", icon: <LayoutDashboard size={20} strokeWidth={2} />, label: "Panel Control", end: true },
+    { to: "/admin/services", icon: <Sliders size={20} strokeWidth={2} />, label: "Gestión Servicios" },
+    { to: "/admin/users", icon: <Users size={20} strokeWidth={2} />, label: "Gestión Clientes" },
+    { to: "/admin/schedule", icon: <Clock size={20} strokeWidth={2} />, label: "Horarios y Bloqueos" },
+    { to: "/admin/offers", icon: <Megaphone size={20} strokeWidth={2} />, label: "Ofertas y Promos" },
+    { to: "/admin/promote", icon: <QrCode size={20} strokeWidth={2} />, label: "Promocionar App" },
+    { to: "/admin/settings", icon: <Settings size={20} strokeWidth={2} />, label: "Ajustes" },
   ];
 
   return (
@@ -65,21 +95,6 @@ export const AdminLayout: React.FC = () => {
           <div className="app-topbar__brand" onClick={() => navigate('/admin')} style={{ cursor: 'pointer' }}>
             {isMobile ? 'Admin' : 'Workspace Admin'}
           </div>
-          {!isMobile && companyData?.fechaRenovacion && (
-            <div style={{ 
-              background: 'rgba(234, 179, 8, 0.1)', 
-              border: '1px solid #eab308', 
-              padding: '0.25rem 0.75rem', 
-              borderRadius: '8px', 
-              color: '#eab308', 
-              fontSize: '0.75rem',
-              fontWeight: '600',
-              marginLeft: '1rem',
-              display: 'inline-block'
-            }}>
-              Tu suscripción caduca el <strong>{format(new Date(companyData.fechaRenovacion), 'dd/MM/yyyy')}</strong>
-            </div>
-          )}
         </div>
 
         <div className="app-topbar__actions">
@@ -119,7 +134,7 @@ export const AdminLayout: React.FC = () => {
 
         {/* Sidebar (Desktop or Mobile Drawer) */}
         <nav 
-          className={`admin-sidebar glass-panel ${isMobile ? 'mobile-drawer' : ''}`}
+          className={`admin-sidebar ${isMobile ? 'mobile-drawer' : ''}`}
           style={{ 
             display: (isMobile && !isMenuOpen) ? 'none' : 'flex',
             position: isMobile ? 'absolute' : 'relative',
@@ -128,28 +143,157 @@ export const AdminLayout: React.FC = () => {
             bottom: 0,
             zIndex: 101,
             width: '260px',
-            boxShadow: isMobile ? '10px 0 30px rgba(0,0,0,0.1)' : 'none',
+            boxShadow: isMobile ? '10px 0 30px rgba(0,0,0,0.08)' : 'none',
             background: 'var(--surface-color)',
+            border: 'none',
+            borderRight: '1px solid #E2E8F0', // subtle sutil right border
+            borderRadius: isMobile ? '0 16px 16px 0' : '0px',
+            flexDirection: 'column',
+            gap: '0.25rem',
+            paddingTop: '0px',
             animation: isMobile ? 'slideRight 0.3s ease' : 'none'
           }}
         >
-          {navItems.map(item => (
-            <NavLink 
-              key={item.to} 
-              to={item.to} 
-              className={({ isActive }) => isActive ? 'active' : ''} 
-              onClick={() => isMobile && setIsMenuOpen(false)}
-              end={item.end}
-            >
-              {item.icon} {item.label}
-            </NavLink>
-          ))}
+          {/* Logo / Brand Header */}
+          <div style={{
+            padding: '24px 28px 24px 28px', // Generous padding perfectly aligned with menu items
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            marginBottom: '0.5rem',
+            background: 'transparent' // Clean background with no border
+          }}>
+            {design?.sourceLogoUrl ? (
+              <img 
+                src={design.sourceLogoUrl} 
+                alt="Logo" 
+                style={{ 
+                  width: '24px', 
+                  height: '24px', 
+                  borderRadius: '6px', 
+                  objectFit: 'cover',
+                  flexShrink: 0
+                }} 
+              />
+            ) : (
+              <div style={{
+                background: `color-mix(in srgb, ${design?.primaryColor || 'var(--primary-color)'} 8%, transparent)`,
+                color: design?.primaryColor || 'var(--primary-color)',
+                padding: '4px',
+                borderRadius: '6px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '24px',
+                height: '24px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+                flexShrink: 0
+              }}>
+                <LayoutDashboard size={15} strokeWidth={2.2} />
+              </div>
+            )}
+            <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+              <span style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-color)', letterSpacing: '0.3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '140px' }}>
+                {companyData?.nombreEmpresa || 'Workspace Admin'}
+              </span>
+              <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Administración
+              </span>
+            </div>
+          </div>
+
+          {/* Navigation Links */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+            {navItems.map(item => (
+              <NavLink 
+                key={item.to} 
+                to={item.to} 
+                className={({ isActive }) => `admin-sidebar-link ${isActive ? 'active' : ''}`}
+                style={({ isActive }) => ({
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',                      // fixed 12px padding between icon and text
+                  padding: '12px 16px',             // vertical padding of minimum 12px
+                  margin: '2px 12px',               // floats inside the sidebar as a pill
+                  borderRadius: '8px',              // pill container with rounded corners
+                  textDecoration: 'none',
+                  fontSize: '0.9rem',
+                  fontWeight: isActive ? 600 : 500, // active is semi-bold
+                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                  color: isActive 
+                    ? (design?.primaryColor || 'var(--primary-color)') 
+                    : 'var(--text-secondary)',
+                  background: isActive 
+                    ? `color-mix(in srgb, ${design?.primaryColor || 'var(--primary-color)'} 10%, transparent)` 
+                    : 'transparent',
+                  border: 'none',
+                  borderLeft: 'none'
+                })}
+                onClick={() => isMobile && setIsMenuOpen(false)}
+                end={item.end}
+              >
+                <span style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  width: '20px',
+                  height: '20px',
+                  color: 'inherit',
+                  flexShrink: 0
+                }}>
+                  {item.icon}
+                </span>
+                <span>{item.label}</span>
+              </NavLink>
+            ))}
+          </div>
           
+          {/* Subscription Card (Encapsulated at the bottom of the sidebar) */}
+          {companyData?.fechaRenovacion && (
+             <div style={{
+               marginTop: 'auto',
+               margin: '16px 12px',
+               padding: '12px 14px',
+               background: `color-mix(in srgb, ${design?.primaryColor || 'var(--primary-color)'} 4%, transparent)`,
+               border: `1px solid color-mix(in srgb, ${design?.primaryColor || 'var(--primary-color)'} 10%, transparent)`,
+               borderRadius: '8px',
+               display: 'flex',
+               flexDirection: 'column',
+               gap: '8px',
+               boxShadow: '0 2px 10px rgba(0,0,0,0.01)'
+             }}>
+               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem' }}>
+                 <span style={{ color: 'var(--text-secondary)', fontWeight: '600' }}>Suscripción</span>
+                 <span style={{ color: design?.primaryColor || 'var(--primary-color)', fontWeight: 700 }}>
+                   {getDaysRemaining(companyData.fechaRenovacion)} días
+                 </span>
+               </div>
+               
+               <div style={{ fontSize: '0.7rem', color: 'var(--text-color)', opacity: 0.85, display: 'flex', justifyContent: 'space-between' }}>
+                 <span>Expira el:</span>
+                 <strong>{format(new Date(companyData.fechaRenovacion), 'dd/MM/yyyy')}</strong>
+               </div>
+               
+               {/* Progress bar */}
+               <div style={{ height: '4px', width: '100%', background: 'rgba(0, 0, 0, 0.04)', borderRadius: '100px', overflow: 'hidden', marginTop: '2px' }}>
+                 <div style={{
+                   height: '100%',
+                   width: `${getSubscriptionProgress(companyData.fechaPuestaMarcha, companyData.fechaRenovacion)}%`,
+                   background: getSubscriptionProgress(companyData.fechaPuestaMarcha, companyData.fechaRenovacion) <= 15 
+                     ? '#ef4444' 
+                     : (design?.primaryColor || 'var(--primary-color)'),
+                   borderRadius: '100px',
+                   transition: 'width 0.8s ease-out'
+                 }} />
+               </div>
+             </div>
+          )}
+
           {isMobile && (
-             <div style={{ marginTop: 'auto', padding: '1.5rem', borderTop: '1px solid var(--glass-border)' }}>
+             <div style={{ padding: '1.5rem', borderTop: '1px solid var(--glass-border)', marginTop: companyData?.fechaRenovacion ? '0px' : 'auto' }}>
                 <button 
                   onClick={() => setShowSupportModal(true)}
-                  style={{ color: 'var(--primary-color)', fontSize: '0.9rem', textDecoration: 'none', fontWeight: 600, background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+                  style={{ color: design?.primaryColor || 'var(--primary-color)', fontSize: '0.9rem', textDecoration: 'none', fontWeight: 600, background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
                 >
                   Contactar Soporte Técnico
                 </button>
@@ -244,6 +388,30 @@ export const AdminLayout: React.FC = () => {
         @keyframes slideRight {
           from { transform: translateX(-100%); }
           to { transform: translateX(0); }
+        }
+
+        /* Premium sidebar active and hover styles override */
+        .admin-sidebar {
+          background: var(--surface-color) !important;
+          border-right: 1px solid #E2E8F0 !important;
+        }
+
+        .admin-sidebar-link {
+          border-left: none !important;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        }
+
+        .admin-sidebar-link:hover {
+          color: ${design?.primaryColor || 'var(--primary-color)'} !important;
+          background: color-mix(in srgb, ${design?.primaryColor || 'var(--primary-color)'} 4%, transparent) !important;
+          transform: translateX(4px);
+        }
+
+        .admin-sidebar-link.active {
+          font-weight: 600 !important;
+          color: ${design?.primaryColor || 'var(--primary-color)'} !important;
+          background: color-mix(in srgb, ${design?.primaryColor || 'var(--primary-color)'} 10%, transparent) !important;
+          border-left: none !important;
         }
       `}</style>
     </div>

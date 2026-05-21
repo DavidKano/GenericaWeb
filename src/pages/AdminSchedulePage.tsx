@@ -197,155 +197,503 @@ export const AdminSchedulePage: React.FC = () => {
   const sortedBlocked = [...blockedDays].sort((a,b) => a.date.localeCompare(b.date)).filter(b => b.date >= format(new Date(), 'yyyy-MM-dd'));
 
   return (
-    <div className="animate-fade-in" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+    <div className="admin-schedule-container animate-fade-in">
+      <style>{`
+        .admin-schedule-container {
+          width: 100%;
+          padding: 2rem 1.5rem;
+          display: flex;
+          flex-direction: column;
+          gap: 2rem;
+          box-sizing: border-box;
+        }
+        @media (max-width: 768px) {
+          .admin-schedule-container {
+            padding: 1rem 16px;
+          }
+        }
+        
+        .schedule-card {
+          background: #ffffff;
+          border-radius: 12px;
+          border: 1px solid #E2E8F0;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
+          padding: 2rem;
+        }
+        @media (max-width: 768px) {
+          .schedule-card {
+            padding: 1.5rem 1rem;
+          }
+        }
+
+        /* Day row */
+        .day-row {
+          display: flex;
+          align-items: center;
+          gap: 1.5rem;
+          padding: 1.25rem 0;
+          border-bottom: 1px solid #F1F5F9;
+          transition: opacity 0.2s ease;
+        }
+        .day-row:last-child {
+          border-bottom: none;
+        }
+        
+        .day-info {
+          width: 130px;
+          flex-shrink: 0;
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+        }
+
+        .time-ranges-container {
+          flex: 1;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 1rem;
+          align-items: center;
+        }
+
+        .time-range-block {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          background: #FFFFFF;
+          padding: 0.5rem 0.75rem;
+          border-radius: 8px;
+          border: 1px solid #E2E8F0;
+          transition: all 0.2s ease;
+          min-width: 220px;
+          flex-shrink: 0;
+          box-sizing: border-box;
+        }
+        .time-range-block:focus-within {
+          border-color: var(--primary-color, #3b82f6);
+          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+        }
+        
+        .time-input {
+          border: none;
+          outline: none;
+          background: transparent;
+          width: 80px;
+          font-size: 0.95rem;
+          color: #1E293B;
+          font-weight: 500;
+          cursor: pointer;
+        }
+
+        .btn-delete-range {
+          background: transparent;
+          border: none;
+          cursor: pointer;
+          color: #EF4444;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0.25rem;
+          border-radius: 4px;
+          transition: background 0.2s;
+        }
+        .btn-delete-range:hover {
+          background: #FEE2E2;
+        }
+
+        .btn-add-range-link {
+          font-size: 0.875rem;
+          color: var(--primary-color, #3b82f6);
+          background: transparent;
+          border: none;
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.25rem;
+          font-weight: 600;
+          padding: 0.25rem 0.5rem;
+          transition: all 0.2s ease;
+          text-decoration: none;
+        }
+        .btn-add-range-link:hover {
+          color: color-mix(in srgb, var(--primary-color, #3b82f6) 80%, black);
+          text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+          .day-row {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.75rem;
+            padding: 1.25rem 0;
+          }
+          .day-info {
+            width: 100%;
+          }
+          .time-ranges-container {
+            width: 100%;
+          }
+          .time-range-block {
+            width: 100%;
+            justify-content: space-between;
+          }
+          .time-input {
+            width: 45%;
+            text-align: center;
+          }
+        }
+
+        /* Form Group clean overrides */
+        .clean-form-group {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+          margin-bottom: 1.25rem;
+        }
+        .clean-form-group label {
+          font-size: 0.875rem;
+          font-weight: 600;
+          color: #475569;
+        }
+        .clean-input {
+          border: 1px solid #E2E8F0;
+          border-radius: 8px;
+          padding: 0.625rem 0.875rem;
+          font-size: 0.95rem;
+          outline: none;
+          transition: all 0.2s;
+          background: #FFFFFF;
+        }
+        .clean-input:focus {
+          border-color: var(--primary-color, #3b82f6);
+          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+        }
+
+        /* Exceptions list-items with vertical border */
+        .exception-item {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 1rem;
+          border-bottom: 1px solid #F1F5F9;
+          transition: background-color 0.2s;
+          background: #FFFFFF;
+          box-sizing: border-box;
+        }
+        .exception-item:last-child {
+          border-bottom: none;
+        }
+        .exception-item:hover {
+          background-color: #F8FAFC;
+        }
+        
+        .action-btn-container {
+          display: flex;
+          justify-content: flex-end;
+          gap: 0.75rem;
+        }
+        @media (max-width: 768px) {
+          .action-btn-container {
+            width: 100%;
+          }
+          .action-btn-container button {
+            width: 100%;
+          }
+        }
+        
+        .hover-action {
+          transition: all 0.2s ease;
+          border-radius: 6px;
+        }
+        .hover-action:hover {
+          background-color: #F1F5F9 !important;
+        }
+      `}</style>
       
-      <section className="card glass-panel" style={{ padding: isMobile ? '1.5rem 1rem' : '2rem' }}>
-        <h2 style={{ fontSize: '1.4rem', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-primary)' }}>
+      <section className="schedule-card">
+        <h2 style={{ fontSize: '1.4rem', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-primary)', fontWeight: 600 }}>
           <Clock size={22} color="var(--primary-color)" /> Horario Estándar Semanal
         </h2>
         <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem', fontSize: '0.9rem' }}>
-          Define qué días abres y tus turnos u horas de apertura. Los cambios aplicarán a todas las citas futuras.
+          Define qué días abres y tus turnos u horas de apertura. Los cambios aplicarán a todas las citas futures.
         </p>
 
-        <div style={{ display: 'grid', gap: '1rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
           {sortedSchedules.map((sch) => {
             const originalIndex = schedules.findIndex(s => s.dayOfWeek === sch.dayOfWeek);
+            const rangesToRender = sch.ranges;
             return (
-              <div key={sch.dayOfWeek} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '1rem', padding: isMobile ? '1rem 0.5rem' : '1rem', background: sch.isOpen ? 'var(--bg-color)' : 'rgba(0,0,0,0.02)', border: '1px solid var(--border-color)', borderRadius: '8px', opacity: sch.isOpen ? 1 : 0.6 }}>
-                
-                <div style={{ width: isMobile ? '90px' : '120px', flexShrink: 0, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <input type="checkbox" checked={sch.isOpen} onChange={() => toggleDayStatus(originalIndex)} style={{ cursor: 'pointer', transform: 'scale(1.1)' }} />
-                  <strong style={{ color: 'var(--text-primary)', fontSize: isMobile ? '0.85rem' : '1rem' }}>{DAYS_OF_WEEK[sch.dayOfWeek].slice(0, isMobile ? 3 : undefined)}</strong>
+              <div key={sch.dayOfWeek} className="day-row" style={{ opacity: sch.isOpen ? 1 : 0.4 }}>
+                <div className="day-info">
+                  <input 
+                    type="checkbox" 
+                    id={`checkbox-${sch.dayOfWeek}`}
+                    checked={sch.isOpen} 
+                    onChange={() => toggleDayStatus(originalIndex)} 
+                    style={{ cursor: 'pointer', width: '18px', height: '18px', accentColor: 'var(--primary-color)' }} 
+                  />
+                  <label 
+                    htmlFor={`checkbox-${sch.dayOfWeek}`}
+                    style={{ 
+                      color: sch.isOpen ? 'var(--text-primary)' : 'var(--text-secondary)', 
+                      fontSize: '0.95rem', 
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      userSelect: 'none'
+                    }}
+                  >
+                    {DAYS_OF_WEEK[sch.dayOfWeek]}
+                  </label>
                 </div>
 
-                {sch.isOpen ? (
-                  <div style={{ flex: 1, display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center' }}>
-                    {sch.ranges.map((range, rIdx) => (
-                      <div key={rIdx} style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.25rem' : '0.5rem', background: '#fff', padding: isMobile ? '0.3rem 0.4rem' : '0.4rem 0.8rem', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
-                        <input type="time" value={range.start} onChange={e => handleUpdateScheduleRange(originalIndex, rIdx, 'start', e.target.value)} style={{ border:'none', outline:'none', background:'transparent', width: isMobile ? '80px' : '90px', fontSize: isMobile ? '0.85rem' : '1rem' }} />
-                        <span style={{ opacity: 0.5 }}>-</span>
-                        <input type="time" value={range.end} onChange={e => handleUpdateScheduleRange(originalIndex, rIdx, 'end', e.target.value)} style={{ border:'none', outline:'none', background:'transparent', width: isMobile ? '80px' : '90px', fontSize: isMobile ? '0.85rem' : '1rem' }} />
-                        <button onClick={() => handleRemoveScheduleRange(originalIndex, rIdx)} style={{ background:'transparent', border:'none', cursor:'pointer', color:'#ef4444', marginLeft: isMobile ? '0.2rem' : '0.5rem', padding:0 }}><Trash2 size={14}/></button>
-                      </div>
-                    ))}
-                    <button onClick={() => handleAddScheduleRange(originalIndex)} className="btn-text" style={{ fontSize: '0.85rem', color: 'var(--primary-color)', display:'flex', alignItems:'center', gap:'0.25rem' }}>
-                      <Plus size={16}/> Turno
-                    </button>
-                  </div>
-                ) : (
-                  <div style={{ flex: 1, color: 'var(--text-secondary)', fontStyle: 'italic', fontSize: '0.9rem' }}>
-                    Cerrado
-                  </div>
-                )}
+                <div className="time-ranges-container">
+                  {sch.isOpen ? (
+                    <>
+                      {rangesToRender.map((range, rIdx) => (
+                        <div key={rIdx} className="time-range-block">
+                          <Clock size={15} style={{ color: '#94A3B8', flexShrink: 0 }} />
+                          <input 
+                            type="time" 
+                            value={range.start} 
+                            onChange={e => handleUpdateScheduleRange(originalIndex, rIdx, 'start', e.target.value)} 
+                            className="time-input" 
+                          />
+                          <span style={{ color: '#94A3B8' }}>-</span>
+                          <input 
+                            type="time" 
+                            value={range.end} 
+                            onChange={e => handleUpdateScheduleRange(originalIndex, rIdx, 'end', e.target.value)} 
+                            className="time-input" 
+                          />
+                          <button 
+                            type="button"
+                            onClick={() => handleRemoveScheduleRange(originalIndex, rIdx)} 
+                            className="btn-delete-range"
+                            title="Eliminar turno"
+                          >
+                            <Trash2 size={14}/>
+                          </button>
+                        </div>
+                      ))}
+                      <button 
+                        type="button"
+                        onClick={() => handleAddScheduleRange(originalIndex)} 
+                        className="btn-add-range-link"
+                      >
+                        <Plus size={16}/> Turno
+                      </button>
+                    </>
+                  ) : (
+                    <span style={{ color: '#94A3B8', fontSize: '0.95rem', fontStyle: 'italic', fontWeight: 500 }}>
+                      Cerrado
+                    </span>
+                  )}
+                </div>
               </div>
             );
           })}
         </div>
         
-        <div style={{ marginTop: '2rem', display: 'flex', justifyContent: 'flex-end' }}>
-          <button onClick={handleSaveSchedules} disabled={savingSchedules} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div className="action-btn-container" style={{ marginTop: '2rem' }}>
+          <button 
+            onClick={handleSaveSchedules} 
+            disabled={savingSchedules} 
+            className="btn-primary" 
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              gap: '0.5rem',
+              padding: '12px 24px',
+              borderRadius: '8px',
+              fontWeight: 600,
+              fontSize: '0.95rem'
+            }}
+          >
             {savingSchedules ? <Loader2 className="animate-spin" size={18}/> : <Save size={18}/>}
             Guardar Horario Base
           </button>
         </div>
       </section>
 
-      <section className="card glass-panel" style={{ padding: isMobile ? '1.5rem 1rem' : '2rem' }}>
-        <h2 style={{ fontSize: '1.4rem', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-primary)' }}>
+      <section className="schedule-card">
+        <h2 style={{ fontSize: '1.4rem', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-primary)', fontWeight: 600 }}>
           <CalendarOff size={22} color="#ef4444" /> Vacaciones y Excepciones
         </h2>
         <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem', fontSize: '0.9rem' }}>
           Bloquea días completos por vacaciones, o anula ciertas horas de un día específico (ej. "Esta tarde cerrado por curso").
         </p>
 
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1.2fr', gap: '2.5rem', alignItems: 'start' }}>
           
-          {/* Formulario de añadir */}
-          <form onSubmit={handleSaveBlockedDay} style={{ background: 'var(--bg-color)', padding: '1.5rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-            <h3 style={{ fontSize: '1.1rem', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          {/* Columna Izquierda: Añadir Excepción */}
+          <form onSubmit={handleSaveBlockedDay} style={{ background: 'transparent', padding: '0', border: 'none' }}>
+            <h3 style={{ fontSize: '1.1rem', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 600, color: 'var(--text-primary)' }}>
               <span>{editingBlockId ? 'Editar Excepción' : 'Añadir Excepción'}</span>
               {editingBlockId && (
-                <button type="button" onClick={handleCancelEdit} style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.2rem', fontSize: '0.85rem' }}>
+                <button type="button" onClick={handleCancelEdit} style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.85rem' }}>
                   <X size={16} /> Cancelar
                 </button>
               )}
             </h3>
             
-            <div className="form-group" style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '1rem', marginTop: '1.5rem', marginBottom: '1rem' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'normal', cursor: 'pointer' }}>
-                <input type="radio" checked={isFullDay} onChange={() => setIsFullDay(true)} />
+            <div style={{ display: 'flex', gap: '1.5rem', marginBottom: '1.5rem', padding: '0.25rem 0' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', fontWeight: 500, color: '#334155', cursor: 'pointer' }}>
+                <input type="radio" checked={isFullDay} onChange={() => setIsFullDay(true)} style={{ accentColor: 'var(--primary-color)' }} />
                 Día completo cerrado
               </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'normal', cursor: 'pointer' }}>
-                <input type="radio" checked={!isFullDay} onChange={() => setIsFullDay(false)} />
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', fontWeight: 500, color: '#334155', cursor: 'pointer' }}>
+                <input type="radio" checked={!isFullDay} onChange={() => setIsFullDay(false)} style={{ accentColor: 'var(--primary-color)' }} />
                 Bloquear solo unas horas
               </label>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '1rem' }}>
-              <div className="form-group" style={{ flex: 1 }}>
-                <label>{isFullDay ? 'Desde Fecha' : 'Fecha a bloquear'}</label>
-                <input type="date" value={blockDate} onChange={e => setBlockDate(e.target.value)} required min={format(new Date(), 'yyyy-MM-dd')} />
+            <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '1rem', marginBottom: '1.25rem' }}>
+              <div className="clean-form-group" style={{ flex: 1, marginBottom: 0 }}>
+                <label style={{ fontWeight: 600, fontSize: '0.875rem', color: '#475569', marginBottom: '0.375rem', display: 'block' }}>{isFullDay ? 'Desde Fecha' : 'Fecha a bloquear'}</label>
+                <input 
+                  type="date" 
+                  value={blockDate} 
+                  onChange={e => setBlockDate(e.target.value)} 
+                  required 
+                  min={format(new Date(), 'yyyy-MM-dd')} 
+                  className="clean-input"
+                  style={{ width: '100%', boxSizing: 'border-box' }}
+                />
               </div>
               
               {isFullDay && !editingBlockId && (
-                <div className="form-group" style={{ flex: 1 }}>
-                  <label>Hasta Fecha (Opcional)</label>
-                  <input type="date" value={blockEndDate} onChange={e => setBlockEndDate(e.target.value)} min={blockDate || format(new Date(), 'yyyy-MM-dd')} />
+                <div className="clean-form-group" style={{ flex: 1, marginBottom: 0 }}>
+                  <label style={{ fontWeight: 600, fontSize: '0.875rem', color: '#475569', marginBottom: '0.375rem', display: 'block' }}>Hasta Fecha (Opcional)</label>
+                  <input 
+                    type="date" 
+                    value={blockEndDate} 
+                    onChange={e => setBlockEndDate(e.target.value)} 
+                    min={blockDate || format(new Date(), 'yyyy-MM-dd')} 
+                    className="clean-input"
+                    style={{ width: '100%', boxSizing: 'border-box' }}
+                  />
                 </div>
               )}
             </div>
 
-            <div className="form-group">
-              <label>Motivo (opcional, solo para ti)</label>
-              <input type="text" value={blockReason} onChange={e => setBlockReason(e.target.value)} placeholder="Ej: Vacaciones de verano" />
+            <div className="clean-form-group">
+              <label style={{ fontWeight: 600, fontSize: '0.875rem', color: '#475569', marginBottom: '0.375rem', display: 'block' }}>Motivo (opcional, solo para ti)</label>
+              <input 
+                type="text" 
+                value={blockReason} 
+                onChange={e => setBlockReason(e.target.value)} 
+                placeholder="Ej: Vacaciones de verano" 
+                className="clean-input"
+                style={{ width: '100%', boxSizing: 'border-box' }}
+              />
             </div>
 
             {!isFullDay && (
-              <div style={{ padding: '1rem', background: '#fff', borderRadius: '6px', border: '1px dashed #cbd5e1', marginBottom: '1.5rem' }}>
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>Añade y especifica las franjas horarias que NO estarán disponibles (ej. tarde libre).</p>
+              <div style={{ padding: '1.25rem 0', background: 'transparent', borderTop: '1px dashed #E2E8F0', borderBottom: '1px dashed #E2E8F0', marginBottom: '1.5rem' }}>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1rem', fontWeight: 500 }}>
+                  Añade y especifica las franjas horarias que NO estarán disponibles (ej. tarde libre).
+                </p>
                 {blockRanges.map((br, idx) => (
-                  <div key={idx} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                     <input type="time" required value={br.start} onChange={e => handleUpdateBlockRange(idx, 'start', e.target.value)} />
-                     <span>-</span>
-                     <input type="time" required value={br.end} onChange={e => handleUpdateBlockRange(idx, 'end', e.target.value)} />
-                     <button type="button" onClick={() => handleRemoveBlockRange(idx)} style={{ color: '#ef4444', background: 'transparent', border:'none', cursor:'pointer' }}><Trash2 size={18}/></button>
+                  <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                     <input 
+                       type="time" 
+                       required 
+                       value={br.start} 
+                       onChange={e => handleUpdateBlockRange(idx, 'start', e.target.value)} 
+                       className="clean-input"
+                       style={{ padding: '0.5rem', width: '120px' }}
+                     />
+                     <span style={{ color: '#94A3B8' }}>-</span>
+                     <input 
+                       type="time" 
+                       required 
+                       value={br.end} 
+                       onChange={e => handleUpdateBlockRange(idx, 'end', e.target.value)} 
+                       className="clean-input"
+                       style={{ padding: '0.5rem', width: '120px' }}
+                     />
+                     <button 
+                       type="button" 
+                       onClick={() => handleRemoveBlockRange(idx)} 
+                       className="btn-delete-range" 
+                       style={{ padding: '0.5rem' }}
+                     >
+                       <Trash2 size={16}/>
+                     </button>
                   </div>
                 ))}
-                <button type="button" onClick={handleAddBlockRange} className="btn-text" style={{ color: 'var(--primary-color)', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                <button 
+                  type="button" 
+                  onClick={handleAddBlockRange} 
+                  className="btn-add-range-link"
+                  style={{ marginTop: '0.5rem' }}
+                >
                    <Plus size={16}/> Otra franja
                 </button>
               </div>
             )}
 
-            <button type="submit" disabled={savingBlock} className="btn-primary" style={{ width: '100%', display: 'flex', justifyContent: 'center', gap: '0.5rem' }}>
-               {savingBlock ? <Loader2 className="animate-spin" size={18}/> : <Save size={18}/>} 
-               {editingBlockId ? 'Guardar Cambios' : 'Añadir Bloqueo'}
-            </button>
+            <div className="action-btn-container" style={{ marginTop: '1.5rem' }}>
+              <button 
+                type="submit" 
+                disabled={savingBlock} 
+                className="btn-primary" 
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  gap: '0.5rem', 
+                  padding: '12px 24px', 
+                  borderRadius: '8px',
+                  fontSize: '0.95rem',
+                  fontWeight: 600
+                }}
+              >
+                 {savingBlock ? <Loader2 className="animate-spin" size={18}/> : <Save size={18}/>} 
+                 {editingBlockId ? 'Guardar Cambios' : 'Añadir Bloqueo'}
+              </button>
+            </div>
           </form>
 
-          {/* Lista de bloqueos actuales */}
+          {/* Columna Derecha: Próximas Excepciones */}
           <div>
-            <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem' }}>Próximas Excepciones ({sortedBlocked.length})</h3>
+            <h3 style={{ fontSize: '1.1rem', marginBottom: '1.5rem', fontWeight: 600, color: 'var(--text-primary)' }}>Próximas Excepciones ({sortedBlocked.length})</h3>
             {sortedBlocked.length === 0 ? (
-              <p style={{ color: 'var(--text-secondary)' }}>No hay bloqueos configurados.</p>
+              <p style={{ color: 'var(--text-secondary)', fontStyle: 'italic' }}>No hay bloqueos configurados.</p>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', border: '1px solid #E2E8F0', borderRadius: '12px', overflow: 'hidden' }}>
                 {sortedBlocked.map(b => (
-                  <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', background: '#fff', border: '1px solid #e2e8f0', borderLeft: b.isFullDay !== false ? '4px solid #ef4444' : '4px solid #f59e0b', borderRadius: '8px' }}>
-                    <div>
-                      <strong style={{ fontSize: '1.05rem', display: 'block' }}>
-                        {format(parseISO(b.date), 'EEEE, d MMMM yyyy', { locale: es })}
-                      </strong>
-                      <span style={{ fontSize: '0.85rem', color: '#64748b' }}>
-                        {b.reason || 'Sin motivo'} • {b.isFullDay !== false ? 'Todo el día cerrado' : `Cierre parcial: ${b.blockedRanges?.map(r => `${r.start}-${r.end}`).join(' y ')}`}
-                      </span>
+                  <div 
+                    key={b.id} 
+                    className="exception-item" 
+                    style={{ borderLeft: b.isFullDay !== false ? '3px solid #ef4444' : '3px solid #f59e0b' }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1 }}>
+                      <CalendarOff size={18} style={{ color: b.isFullDay !== false ? '#EF4444' : '#F59E0B', minWidth: '18px' }} />
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <strong style={{ fontSize: '0.95rem', color: '#1E293B', fontWeight: 600 }}>
+                          {format(parseISO(b.date), 'EEEE, d MMMM yyyy', { locale: es })}
+                        </strong>
+                        <span style={{ fontSize: '0.85rem', color: '#64748B' }}>
+                          {b.reason ? `${b.reason} • ` : ''}{b.isFullDay !== false ? 'Todo el día cerrado' : `Cierre parcial: ${b.blockedRanges?.map(r => `${r.start}-${r.end}`).join(' y ')}`}
+                        </span>
+                      </div>
                     </div>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <button onClick={() => handleEditBlockedDay(b)} title="Editar bloqueo" style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', border: 'none', padding: '0.5rem', borderRadius: '6px', cursor: 'pointer' }}>
+                    <div style={{ display: 'flex', gap: '0.25rem', marginLeft: '1rem' }}>
+                      <button 
+                        onClick={() => handleEditBlockedDay(b)} 
+                        title="Editar bloqueo" 
+                        style={{ background: 'transparent', color: '#3B82F6', border: 'none', padding: '0.5rem', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        className="hover-action"
+                      >
                         <Edit2 size={16}/>
                       </button>
-                      <button onClick={() => handleDeleteBlockedDay(b.id)} title="Eliminar bloqueo" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: 'none', padding: '0.5rem', borderRadius: '6px', cursor: 'pointer' }}>
+                      <button 
+                        onClick={() => handleDeleteBlockedDay(b.id)} 
+                        title="Eliminar bloqueo" 
+                        style={{ background: 'transparent', color: '#EF4444', border: 'none', padding: '0.5rem', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        className="hover-action"
+                      >
                         <Trash2 size={16}/>
                       </button>
                     </div>
@@ -353,7 +701,7 @@ export const AdminSchedulePage: React.FC = () => {
                 ))}
               </div>
             )}
-            <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '1rem' }}>Solo se muestran las excepciones desde el día de hoy en adelante.</p>
+            <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '1.5rem' }}>Solo se muestran las excepciones desde el día de hoy en adelante.</p>
           </div>
 
         </div>

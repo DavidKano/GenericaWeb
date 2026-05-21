@@ -347,15 +347,14 @@ export const AdminDashboard: React.FC = () => {
     return {};
   };
 
-  const eventPropGetter = (event: any) => {
+  const eventPropGetter = () => {
     return { 
       style: { 
-        backgroundColor: event.color,
-        borderRadius: '4px',
+        backgroundColor: 'transparent',
         border: 'none',
-        color: 'white',
-        display: 'block',
-        fontSize: '0.85rem'
+        boxShadow: 'none',
+        padding: 0,
+        overflow: 'visible'
       } 
     };
   };
@@ -505,6 +504,7 @@ export const AdminDashboard: React.FC = () => {
 
   const EventComponent = ({ event }: any) => {
     const phone = event.customer?.phone;
+    const serviceColor = event.color || '#3b82f6';
     
     const handleWhatsAppClick = (e: React.MouseEvent) => {
       e.stopPropagation();
@@ -518,44 +518,52 @@ export const AdminDashboard: React.FC = () => {
     };
 
     return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center', 
-        width: '100%', 
-        height: '100%', 
+      <div style={{
+        backgroundColor: `color-mix(in srgb, ${serviceColor} 15%, transparent)`,
+        borderLeft: `4px solid ${serviceColor}`,
+        borderRadius: '6px',
+        padding: '6px 8px',
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.02)',
+        height: '100%',
+        width: '100%',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
         minWidth: 0,
-        padding: '0.15rem 0'
-      }}>
+        boxSizing: 'border-box',
+        overflow: 'hidden',
+        transition: 'all 0.2s ease'
+      }}
+      className="admin-calendar-event-card"
+      >
         <div style={{ 
           display: 'flex', 
           flexDirection: 'column', 
-          gap: '0.2rem', 
+          gap: '0.15rem', 
           flex: 1, 
           minWidth: 0, 
           overflow: 'hidden' 
         }}>
           {/* Nombre del cliente */}
           <div style={{ 
-            fontWeight: '700', 
+            fontWeight: '600', 
             fontSize: '0.85rem', 
             overflow: 'hidden', 
             textOverflow: 'ellipsis', 
             whiteSpace: 'nowrap',
-            color: 'white'
+            color: '#0f172a' // Very dark slate, almost black
           }}>
             {event.customer?.name || 'Cliente'}
           </div>
           
           {/* Nombre del servicio */}
           <div style={{ 
-            fontSize: '0.75rem', 
+            fontSize: '12px', 
             overflow: 'hidden', 
             textOverflow: 'ellipsis', 
             whiteSpace: 'nowrap',
-            opacity: 0.95,
-            color: 'white',
-            fontWeight: '500'
+            color: '#475569', // Slate-600 text (sufficient contrast neutral grey)
+            fontWeight: '400'
           }}>
             {event.service?.name || 'Servicio'}
           </div>
@@ -565,16 +573,19 @@ export const AdminDashboard: React.FC = () => {
             onClick={handleWhatsAppClick}
             title="Enviar WhatsApp"
             style={{ 
-              background: 'rgba(255,255,255,0.2)', 
+              background: 'rgba(0, 0, 0, 0.04)', 
               border: 'none', 
               borderRadius: '6px', 
-              color: 'white', 
+              color: '#475569', // Slate-600 WhatsApp button
               padding: '4px', 
               display: 'flex', 
               cursor: 'pointer',
               marginLeft: '6px',
-              flexShrink: 0
+              flexShrink: 0,
+              transition: 'background 0.2s'
             }}
+            onMouseOver={e => e.currentTarget.style.background = 'rgba(0, 0, 0, 0.08)'}
+            onMouseOut={e => e.currentTarget.style.background = 'rgba(0, 0, 0, 0.04)'}
           >
             <MessageCircle size={13} />
           </button>
@@ -593,6 +604,37 @@ export const AdminDashboard: React.FC = () => {
 
   return (
     <div className="animate-fade-in">
+      <style>{`
+        /* Overrides for React Big Calendar event containers to support premium floating cards */
+        .rbc-event {
+          background-color: transparent !important;
+          border: none !important;
+          box-shadow: none !important;
+          padding: 2px 3px !important; /* Spacing for month view */
+          overflow: visible !important;
+          box-sizing: border-box !important;
+        }
+        .rbc-time-view .rbc-day-slot {
+          padding-left: 2px !important;
+          padding-right: 2px !important;
+        }
+        .rbc-time-view .rbc-event {
+          padding: 3px 1px !important; /* 3px vertical, 1px horizontal for week/day views */
+        }
+        .rbc-event.rbc-selected {
+          background-color: transparent !important;
+        }
+        .rbc-event-content {
+          padding: 0 !important;
+          height: 100% !important;
+          width: 100% !important;
+        }
+        .admin-calendar-event-card:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+          filter: brightness(0.98);
+        }
+      `}</style>
       {/* Subscription Expiration Popup */}
       {showSubPopup && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
