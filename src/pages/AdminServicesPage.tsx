@@ -2,10 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { useData } from '../context/DataContext';
 import type { BookingService, BusinessConfig } from '../services/models';
 import { INITIAL_BUSINESS_CONFIG } from '../services/configDefaults';
-import { Trash2, Clock, Euro, Edit3 } from 'lucide-react';
+import { Trash2, Clock, Euro, Edit3, Briefcase, Folder, X } from 'lucide-react';
 
 export const AdminServicesPage: React.FC = () => {
   const { repo } = useData();
+
 
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -448,80 +449,387 @@ export const AdminServicesPage: React.FC = () => {
 
       {/* Modal Nuevo/Editar Servicio */}
       {showModal && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <h2>{editingServiceId ? 'Editar Servicio' : 'Nuevo Servicio'}</h2>
-            <div className="form-group">
-              <label>Nombre del servicio</label>
-              <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Ej: Corte de pelo" />
-            </div>
-            <div className="form-group">
-              <label>Duración del Servicio</label>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
-                <div>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Días</span>
-                  <input type="number" min="0" value={newDays} onChange={e => setNewDays(Math.max(0, Number(e.target.value)))} />
-                </div>
-                <div>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Horas</span>
-                  <input type="number" min="0" max="23" value={newHours} onChange={e => setNewHours(Math.max(0, Number(e.target.value)))} />
-                </div>
-                <div>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Minutos</span>
-                  <input type="number" min="0" max="59" value={newMinutes} onChange={e => setNewMinutes(Math.max(0, Number(e.target.value)))} />
-                </div>
+        <div className="modal-overlay" style={{ zIndex: 1000 }}>
+          <div className="modal-content animate-pop-in" style={{ maxWidth: '500px', width: '100%', background: '#FFFFFF', borderRadius: '12px', border: '1px solid #E2E8F0', padding: '1.25rem', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}>
+            
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.8rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Briefcase size={18} strokeWidth={1.5} style={{ color: 'var(--primary-color)' }} />
+                <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '600', letterSpacing: '-0.02em', color: '#0F172A' }}>
+                  {editingServiceId ? 'Editar Servicio' : 'Nuevo Servicio'}
+                </h2>
               </div>
-            </div>
-            <div className="form-group">
-              <label>Precio (€, opcional)</label>
-              <input type="number" value={newPrice} onChange={e => setNewPrice(e.target.value === '' ? '' : Number(e.target.value))} />
-            </div>
-            <div className="form-group">
-              <label>Color en el Calendario</label>
-              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center'}}>
-                <input type="color" value={newColor} onChange={e => setNewColor(e.target.value)} style={{ width: '50px', height: '40px', padding: '0', cursor: 'pointer', border: 'none', background: 'transparent' }} />
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)'}}>Identificador visual en la agenda</span>
-              </div>
-            </div>
-            <div className="form-group" style={{ marginTop: '1.5rem' }}>
-              <label>Carpeta (Categoría)</label>
-              <select 
-                value={newFolderName} 
-                onChange={e => setNewFolderName(e.target.value)}
-                style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: 'var(--surface-color)', border: '1px solid var(--glass-border)', color: 'var(--text-color)' }}
+              <button 
+                onClick={() => setShowModal(false)}
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8', transition: 'color 0.2s' }}
+                onMouseEnter={e => e.currentTarget.style.color = '#F43F5E'}
+                onMouseLeave={e => e.currentTarget.style.color = '#94A3B8'}
               >
-                <option value="">Sin carpeta</option>
-                {(config?.serviceFolders || []).map(f => (
-                  <option key={f} value={f}>{f}</option>
-                ))}
-              </select>
+                <X size={18} strokeWidth={1.5} />
+              </button>
             </div>
-            <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '1.5rem', padding: '1rem', background: 'rgba(255,255,255,0.05)', borderRadius: '8px' }}>
-              <input 
-                type="checkbox" 
-                id="svc-active" 
-                checked={newIsActive} 
-                onChange={e => setNewIsActive(e.target.checked)} 
-                style={{ width: 'auto', margin: 0 }}
-              />
-              <label htmlFor="svc-active" style={{ margin: 0, cursor: 'pointer' }}>
-                <strong>Servicio Activo</strong>
-                <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Si se desactiva, los clientes no podrán verlo ni reservarlo.</p>
-              </label>
-            </div>
-            <div className="modal-actions" style={{ marginTop: '2rem', display: 'flex', justifyContent: 'space-between' }}>
-              <div>
-                {editingServiceId && (
-                  <button className="btn-secondary" onClick={deleteService} style={{ color: '#ef4444', borderColor: '#ef4444', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <Trash2 size={16} /> Eliminar
+
+            {/* Form */}
+            <form onSubmit={e => e.preventDefault()}>
+              {/* Campo: Nombre */}
+              <div className="form-group" style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: '0.3rem', marginBottom: '0.8rem' }}>
+                <label style={{ fontSize: '0.78rem', fontWeight: '500', color: '#475569' }}>Nombre del servicio</label>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <span style={{ position: 'absolute', left: '10px', color: '#94A3B8', pointerEvents: 'none', display: 'flex', alignItems: 'center' }}>
+                    <Briefcase size={14} strokeWidth={1.5} />
+                  </span>
+                  <input 
+                    value={newName} 
+                    onChange={e => setNewName(e.target.value)} 
+                    placeholder="Ej: Corte de pelo" 
+                    style={{ 
+                      width: '100%', 
+                      padding: '0.45rem 0.8rem 0.45rem 2.2rem', 
+                      borderRadius: '8px', 
+                      background: '#FFFFFF', 
+                      border: '1px solid #E2E8F0', 
+                      color: '#1E293B',
+                      fontSize: '0.85rem',
+                      outline: 'none',
+                      transition: 'border-color 0.2s, box-shadow 0.2s'
+                    }}
+                    onFocus={e => {
+                      e.currentTarget.style.borderColor = 'var(--primary-color)';
+                      e.currentTarget.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.1)';
+                    }}
+                    onBlur={e => {
+                      e.currentTarget.style.borderColor = '#E2E8F0';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Duración del Servicio */}
+              <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', marginBottom: '0.8rem' }}>
+                <label style={{ fontSize: '0.78rem', fontWeight: '500', color: '#475569' }}>Duración del Servicio</label>
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center', justifyContent: 'flex-start' }}>
+                  {/* Días */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <input 
+                      type="number" 
+                      min="0" 
+                      value={newDays} 
+                      onChange={e => setNewDays(Math.max(0, Number(e.target.value)))} 
+                      style={{ 
+                        width: '70px', 
+                        padding: '0.45rem 0.6rem', 
+                        borderRadius: '8px', 
+                        background: '#FFFFFF', 
+                        border: '1px solid #E2E8F0', 
+                        color: '#1E293B',
+                        fontSize: '0.85rem',
+                        textAlign: 'right',
+                        outline: 'none',
+                        transition: 'border-color 0.2s, box-shadow 0.2s'
+                      }}
+                      onFocus={e => {
+                        e.currentTarget.style.borderColor = 'var(--primary-color)';
+                        e.currentTarget.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.1)';
+                      }}
+                      onBlur={e => {
+                        e.currentTarget.style.borderColor = '#E2E8F0';
+                        e.currentTarget.style.boxShadow = 'none';
+                      }}
+                    />
+                    <span style={{ fontSize: '0.75rem', color: '#64748B' }}>días</span>
+                  </div>
+                  {/* Horas */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <input 
+                      type="number" 
+                      min="0" 
+                      max="23" 
+                      value={newHours} 
+                      onChange={e => setNewHours(Math.max(0, Number(e.target.value)))} 
+                      style={{ 
+                        width: '70px', 
+                        padding: '0.45rem 0.6rem', 
+                        borderRadius: '8px', 
+                        background: '#FFFFFF', 
+                        border: '1px solid #E2E8F0', 
+                        color: '#1E293B',
+                        fontSize: '0.85rem',
+                        textAlign: 'right',
+                        outline: 'none',
+                        transition: 'border-color 0.2s, box-shadow 0.2s'
+                      }}
+                      onFocus={e => {
+                        e.currentTarget.style.borderColor = 'var(--primary-color)';
+                        e.currentTarget.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.1)';
+                      }}
+                      onBlur={e => {
+                        e.currentTarget.style.borderColor = '#E2E8F0';
+                        e.currentTarget.style.boxShadow = 'none';
+                      }}
+                    />
+                    <span style={{ fontSize: '0.75rem', color: '#64748B' }}>h</span>
+                  </div>
+                  {/* Minutos */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <input 
+                      type="number" 
+                      min="0" 
+                      max="59" 
+                      value={newMinutes} 
+                      onChange={e => setNewMinutes(Math.max(0, Number(e.target.value)))} 
+                      style={{ 
+                        width: '70px', 
+                        padding: '0.45rem 0.6rem', 
+                        borderRadius: '8px', 
+                        background: '#FFFFFF', 
+                        border: '1px solid #E2E8F0', 
+                        color: '#1E293B',
+                        fontSize: '0.85rem',
+                        textAlign: 'right',
+                        outline: 'none',
+                        transition: 'border-color 0.2s, box-shadow 0.2s'
+                      }}
+                      onFocus={e => {
+                        e.currentTarget.style.borderColor = 'var(--primary-color)';
+                        e.currentTarget.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.1)';
+                      }}
+                      onBlur={e => {
+                        e.currentTarget.style.borderColor = '#E2E8F0';
+                        e.currentTarget.style.boxShadow = 'none';
+                      }}
+                    />
+                    <span style={{ fontSize: '0.75rem', color: '#64748B' }}>min</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Campo: Precio */}
+              <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', marginBottom: '0.8rem' }}>
+                <label style={{ fontSize: '0.78rem', fontWeight: '500', color: '#475569' }}>Precio (€, opcional)</label>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center', maxWidth: '150px', width: '100%' }}>
+                  <span style={{ position: 'absolute', left: '10px', color: '#94A3B8', pointerEvents: 'none', display: 'flex', alignItems: 'center' }}>
+                    <Euro size={14} strokeWidth={1.5} />
+                  </span>
+                  <input 
+                    type="number" 
+                    value={newPrice} 
+                    onChange={e => setNewPrice(e.target.value === '' ? '' : Number(e.target.value))} 
+                    placeholder="Ej: 25"
+                    style={{ 
+                      width: '100%', 
+                      padding: '0.45rem 0.8rem 0.45rem 2.2rem', 
+                      borderRadius: '8px', 
+                      background: '#FFFFFF', 
+                      border: '1px solid #E2E8F0', 
+                      color: '#1E293B',
+                      fontSize: '0.85rem',
+                      textAlign: 'right',
+                      outline: 'none',
+                      transition: 'border-color 0.2s, box-shadow 0.2s'
+                    }}
+                    onFocus={e => {
+                      e.currentTarget.style.borderColor = 'var(--primary-color)';
+                      e.currentTarget.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.1)';
+                    }}
+                    onBlur={e => {
+                      e.currentTarget.style.borderColor = '#E2E8F0';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Campo: Color en el Calendario */}
+              <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', marginBottom: '0.8rem' }}>
+                <label style={{ fontSize: '0.78rem', fontWeight: '500', color: '#475569' }}>Color en el Calendario</label>
+                <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+                  <div style={{ position: 'relative', width: '24px', height: '24px', borderRadius: '50%', overflow: 'hidden', border: '1px solid #CBD5E1', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+                    <input 
+                      type="color" 
+                      value={newColor} 
+                      onChange={e => setNewColor(e.target.value)} 
+                      style={{ 
+                        position: 'absolute',
+                        width: '150%',
+                        height: '150%',
+                        padding: 0,
+                        margin: 0,
+                        border: 'none',
+                        cursor: 'pointer',
+                        background: 'none',
+                        appearance: 'none',
+                        WebkitAppearance: 'none'
+                      }} 
+                    />
+                  </div>
+                  <span style={{ fontSize: '0.8rem', color: '#64748B' }}>Identificador visual en la agenda</span>
+                </div>
+              </div>
+
+              {/* Campo: Carpeta */}
+              <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', marginBottom: '0.8rem' }}>
+                <label style={{ fontSize: '0.78rem', fontWeight: '500', color: '#475569' }}>Carpeta (Categoría)</label>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center', maxWidth: '320px', width: '100%' }}>
+                  <span style={{ position: 'absolute', left: '10px', color: '#94A3B8', pointerEvents: 'none', display: 'flex', alignItems: 'center' }}>
+                    <Folder size={14} strokeWidth={1.5} />
+                  </span>
+                  <select 
+                    value={newFolderName} 
+                    onChange={e => setNewFolderName(e.target.value)}
+                    style={{ 
+                      width: '100%', 
+                      padding: '0.45rem 2rem 0.45rem 2.2rem', 
+                      borderRadius: '8px', 
+                      background: '#FFFFFF', 
+                      border: '1px solid #E2E8F0', 
+                      color: '#1E293B',
+                      fontSize: '0.85rem',
+                      outline: 'none',
+                      appearance: 'none',
+                      backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                      backgroundRepeat: 'no-repeat',
+                      backgroundPosition: 'right 10px center',
+                      backgroundSize: '14px',
+                      transition: 'border-color 0.2s, box-shadow 0.2s'
+                    }}
+                    onFocus={e => {
+                      e.currentTarget.style.borderColor = 'var(--primary-color)';
+                      e.currentTarget.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.1)';
+                    }}
+                    onBlur={e => {
+                      e.currentTarget.style.borderColor = '#E2E8F0';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  >
+                    <option value="">Sin carpeta</option>
+                    {(config?.serviceFolders || []).map(f => (
+                      <option key={f} value={f}>{f}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Checkbox: Servicio Activo */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.8rem', padding: '0.6rem 0.8rem', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '8px', marginBottom: '1.2rem' }}>
+                <input 
+                  type="checkbox" 
+                  id="svc-active" 
+                  checked={newIsActive} 
+                  onChange={e => setNewIsActive(e.target.checked)} 
+                  style={{ 
+                    width: '15px', 
+                    height: '15px', 
+                    cursor: 'pointer',
+                    accentColor: 'var(--primary-color)',
+                    margin: 0
+                  }}
+                />
+                <label htmlFor="svc-active" style={{ margin: 0, cursor: 'pointer', fontSize: '0.8rem', color: '#475569', fontWeight: '500' }}>
+                  Servicio Activo <span style={{ color: '#94A3B8', fontWeight: 'normal', fontSize: '0.75rem' }}>(Los clientes pueden reservarlo online)</span>
+                </label>
+              </div>
+
+              {/* Acciones */}
+              <div className="modal-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  {editingServiceId && (
+                    <button 
+                      type="button"
+                      className="btn-secondary" 
+                      onClick={deleteService} 
+                      style={{ 
+                        height: '38px',
+                        padding: '0 1rem',
+                        borderRadius: '8px',
+                        color: '#ef4444', 
+                        borderColor: '#ef4444', 
+                        background: 'transparent',
+                        display: 'inline-flex', 
+                        alignItems: 'center', 
+                        gap: '0.4rem',
+                        fontSize: '0.85rem',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                      }}
+                      onMouseEnter={e => {
+                        e.currentTarget.style.background = '#fef2f2';
+                      }}
+                      onMouseLeave={e => {
+                        e.currentTarget.style.background = 'transparent';
+                      }}
+                    >
+                      <Trash2 size={15} /> Eliminar
+                    </button>
+                  )}
+                </div>
+                <div style={{ display: 'flex', gap: '0.6rem' }}>
+                  <button 
+                    type="button" 
+                    onClick={() => setShowModal(false)}
+                    style={{
+                      height: '38px',
+                      padding: '0 1.25rem',
+                      borderRadius: '8px',
+                      border: '1px solid #CBD5E1',
+                      background: '#FFFFFF',
+                      color: '#475569',
+                      fontWeight: '600',
+                      fontSize: '0.85rem',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'all 0.2s ease',
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.background = '#F8FAFC';
+                      e.currentTarget.style.borderColor = '#94A3B8';
+                      e.currentTarget.style.color = '#1E293B';
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.background = '#FFFFFF';
+                      e.currentTarget.style.borderColor = '#CBD5E1';
+                      e.currentTarget.style.color = '#475569';
+                    }}
+                  >
+                    Cancelar
                   </button>
-                )}
+                  <button 
+                    type="button" 
+                    onClick={addOrUpdateService}
+                    style={{
+                      height: '38px',
+                      padding: '0 1.25rem',
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: 'var(--primary-color)',
+                      color: '#FFFFFF',
+                      fontWeight: '600',
+                      fontSize: '0.85rem',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.2), 0 2px 4px -1px rgba(59, 130, 246, 0.1)',
+                      transition: 'all 0.2s ease',
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.filter = 'brightness(1.05)';
+                      e.currentTarget.style.boxShadow = '0 6px 12px -2px rgba(59, 130, 246, 0.3), 0 3px 6px -2px rgba(59, 130, 246, 0.15)';
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.filter = 'none';
+                      e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(59, 130, 246, 0.2), 0 2px 4px -1px rgba(59, 130, 246, 0.1)';
+                    }}
+                  >
+                    Guardar
+                  </button>
+                </div>
               </div>
-              <div style={{ display: 'flex', gap: '0.75rem' }}>
-                <button className="btn-secondary" onClick={() => setShowModal(false)}>Cancelar</button>
-                <button className="btn-primary" onClick={addOrUpdateService}>Guardar</button>
-              </div>
-            </div>
+            </form>
           </div>
         </div>
       )}
