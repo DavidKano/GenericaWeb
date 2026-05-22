@@ -95,15 +95,16 @@ export const PromoOfferModal: React.FC = () => {
           z-index: 99999;
           display: flex;
           align-items: center;
-          justifyContent: center;
+          justify-content: center;
           padding: 2rem;
           animation: fadeIn 0.3s ease-out;
         }
 
         .promo-modal-card {
           position: relative;
-          max-width: 500px;
+          max-width: 600px;
           width: 100%;
+          margin: auto;
           background: #fff;
           border-radius: 16px;
           box-shadow: 0 20px 40px rgba(0,0,0,0.3);
@@ -120,7 +121,7 @@ export const PromoOfferModal: React.FC = () => {
           color: #475569;
           display: flex;
           align-items: center;
-          justifyContent: center;
+          justify-content: center;
           cursor: pointer;
           z-index: 100;
           padding: 6px;
@@ -143,11 +144,13 @@ export const PromoOfferModal: React.FC = () => {
           to { opacity: 1; transform: translateY(0) scale(1); }
         }
 
-        @media (max-width: 640px) {
+        @media (max-width: 768px) {
           .promo-modal-overlay {
-            padding: 0.75rem;
+            padding: 16px;
           }
           .promo-modal-card {
+            width: 90%;
+            max-width: none;
             border-radius: 12px;
           }
           .promo-close-btn-minimal {

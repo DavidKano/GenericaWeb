@@ -131,7 +131,7 @@ export const PromoOfferTextDesign: React.FC<Props> = ({ offer, className, style,
           border-radius: 16px;
           padding: 2.5rem 1.5rem;
           color: #1E293B;
-          text-align: center;
+          text-align: left;
           display: flex;
           flex-direction: column;
           justify-content: center;
@@ -153,12 +153,12 @@ export const PromoOfferTextDesign: React.FC<Props> = ({ offer, className, style,
           padding: 32px 24px;
           box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
           color: #1E293B;
-          text-align: center;
+          text-align: left;
           z-index: 2;
           position: relative;
           display: flex;
           flex-direction: column;
-          align-items: center;
+          align-items: flex-start;
         }
 
         .offer-card-badge {
@@ -175,12 +175,12 @@ export const PromoOfferTextDesign: React.FC<Props> = ({ offer, className, style,
 
         .offer-card-title {
           font-size: 24px;
-          font-weight: 700;
+          font-weight: 600;
           color: #1E293B;
           margin: 0 0 14px 0;
           line-height: 1.3;
           letter-spacing: -0.5px;
-          text-align: center;
+          text-align: left;
         }
 
         .offer-card-body {
@@ -191,7 +191,7 @@ export const PromoOfferTextDesign: React.FC<Props> = ({ offer, className, style,
           max-width: 100%;
           font-family: 'Inter', sans-serif;
           white-space: pre-line;
-          text-align: center;
+          text-align: left;
         }
 
         .offer-card-legal-container {
@@ -209,7 +209,7 @@ export const PromoOfferTextDesign: React.FC<Props> = ({ offer, className, style,
           font-family: 'Inter', sans-serif;
           line-height: 1.4;
           white-space: pre-line;
-          text-align: center;
+          text-align: left;
         }
 
         .promo-close-icon-btn {
@@ -237,38 +237,30 @@ export const PromoOfferTextDesign: React.FC<Props> = ({ offer, className, style,
           transform: scale(0.9);
         }
 
-        @media (max-width: 640px) {
+        @media (max-width: 768px) {
           .promo-text-design {
-            padding: 1.25rem 0.5rem;
+            padding: 1.25rem 0.25rem;
           }
 
           .offer-card-content {
             width: 92%;
-            padding: 16px 12px;
-            text-align: left;
-            align-items: flex-start;
+            padding: 12px;
           }
 
           .offer-card-title {
             font-size: 20px;
             font-weight: 600;
-            text-align: left;
             margin: 0 0 10px 0;
           }
 
           .offer-card-body {
             font-size: 13.5px;
             line-height: 1.5;
-            text-align: left;
-          }
-
-          .offer-card-legal-text {
-            text-align: left;
           }
 
           .promo-close-icon-btn {
-            top: 8px;
-            right: 8px;
+            top: 10px;
+            right: 10px;
           }
         }
       `}</style>
