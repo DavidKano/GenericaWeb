@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useData } from '../context/DataContext';
 import type { DaySchedule, BlockedDay, TimeRange } from '../services/models';
-import { Clock, CalendarOff, Plus, Trash2, Save, Loader2, Edit2, X } from 'lucide-react';
+import { Clock, CalendarOff, Plus, Trash2, Save, Loader2, Edit2, X, Calendar, FileText } from 'lucide-react';
 import { INITIAL_SCHEDULES } from '../services/scheduleDefaults';
 import { format, parseISO, addDays } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -407,6 +407,128 @@ export const AdminSchedulePage: React.FC = () => {
         .hover-action:hover {
           background-color: #F1F5F9 !important;
         }
+
+        /* Desktop specific enhancements */
+        @media (min-width: 769px) {
+          input[type="time"] {
+            min-width: 120px !important;
+            padding: 8px 12px !important;
+            box-sizing: border-box;
+          }
+          .time-range-block {
+            min-width: 330px !important;
+            padding: 4px 8px !important;
+          }
+          .btn-delete-range {
+            color: #94A3B8 !important;
+            transition: color 0.2s, background-color 0.2s;
+          }
+          .btn-delete-range:hover {
+            color: #EF4444 !important;
+            background: #FEE2E2 !important;
+          }
+          .btn-add-range-link {
+            border: 1px dashed var(--primary-color, #3b82f6) !important;
+            border-radius: 8px !important;
+            padding: 8px 16px !important;
+            font-weight: 500 !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            background: transparent !important;
+            color: var(--primary-color, #3b82f6) !important;
+            transition: all 0.2s ease !important;
+            height: 42px !important;
+            box-sizing: border-box !important;
+            text-decoration: none !important;
+          }
+          .btn-add-range-link:hover {
+            background: color-mix(in srgb, var(--primary-color, #3b82f6) 8%, transparent) !important;
+            border-style: solid !important;
+            text-decoration: none !important;
+          }
+          
+          /* Segmented control on desktop */
+          .segmented-control-container {
+            display: flex !important;
+            background: #F1F5F9 !important;
+            padding: 4px !important;
+            border-radius: 8px !important;
+            gap: 2px !important;
+            width: fit-content !important;
+            margin-bottom: 1.5rem !important;
+          }
+          .segmented-option {
+            padding: 8px 16px !important;
+            border-radius: 6px !important;
+            cursor: pointer !important;
+            font-size: 0.9rem !important;
+            font-weight: 500 !important;
+            color: #64748B !important;
+            transition: all 0.2s ease !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            user-select: none !important;
+          }
+          .segmented-option.active {
+            background: #FFFFFF !important;
+            color: #1E293B !important;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06) !important;
+            font-weight: 600 !important;
+          }
+          .segmented-radio {
+            position: absolute !important;
+            opacity: 0 !important;
+            width: 0 !important;
+            height: 0 !important;
+            margin: 0 !important;
+            pointer-events: none !important;
+          }
+        }
+
+        /* Mobile specific rules to preserve original styling */
+        @media (max-width: 768px) {
+          .segmented-control-container {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+            padding: 0.25rem 0;
+          }
+          .segmented-option {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #334155;
+            cursor: pointer;
+          }
+          .segmented-radio {
+            accent-color: var(--primary-color);
+            cursor: pointer;
+          }
+        }
+
+        /* Envoltura de input con icono genérico */
+        .input-with-icon-wrapper {
+          position: relative;
+          display: flex;
+          align-items: center;
+          width: 100%;
+        }
+        .input-icon {
+          position: absolute;
+          left: 12px;
+          color: #94A3B8;
+          pointer-events: none;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .clean-input.with-icon {
+          padding-left: 38px !important;
+        }
       `}</style>
       
       <section className="schedule-card">
@@ -536,13 +658,23 @@ export const AdminSchedulePage: React.FC = () => {
               )}
             </h3>
             
-            <div style={{ display: 'flex', gap: '1.5rem', marginBottom: '1.5rem', padding: '0.25rem 0' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', fontWeight: 500, color: '#334155', cursor: 'pointer' }}>
-                <input type="radio" checked={isFullDay} onChange={() => setIsFullDay(true)} style={{ accentColor: 'var(--primary-color)' }} />
+            <div className="segmented-control-container">
+              <label className={`segmented-option ${isFullDay ? 'active' : ''}`}>
+                <input 
+                  type="radio" 
+                  checked={isFullDay} 
+                  onChange={() => setIsFullDay(true)} 
+                  className="segmented-radio" 
+                />
                 Día completo cerrado
               </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', fontWeight: 500, color: '#334155', cursor: 'pointer' }}>
-                <input type="radio" checked={!isFullDay} onChange={() => setIsFullDay(false)} style={{ accentColor: 'var(--primary-color)' }} />
+              <label className={`segmented-option ${!isFullDay ? 'active' : ''}`}>
+                <input 
+                  type="radio" 
+                  checked={!isFullDay} 
+                  onChange={() => setIsFullDay(false)} 
+                  className="segmented-radio" 
+                />
                 Bloquear solo unas horas
               </label>
             </div>
@@ -550,42 +682,51 @@ export const AdminSchedulePage: React.FC = () => {
             <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '1rem', marginBottom: '1.25rem' }}>
               <div className="clean-form-group" style={{ flex: 1, marginBottom: 0 }}>
                 <label style={{ fontWeight: 600, fontSize: '0.875rem', color: '#475569', marginBottom: '0.375rem', display: 'block' }}>{isFullDay ? 'Desde Fecha' : 'Fecha a bloquear'}</label>
-                <input 
-                  type="date" 
-                  value={blockDate} 
-                  onChange={e => setBlockDate(e.target.value)} 
-                  required 
-                  min={format(new Date(), 'yyyy-MM-dd')} 
-                  className="clean-input"
-                  style={{ width: '100%', boxSizing: 'border-box' }}
-                />
+                <div className="input-with-icon-wrapper">
+                  <Calendar size={18} className="input-icon" />
+                  <input 
+                    type="date" 
+                    value={blockDate} 
+                    onChange={e => setBlockDate(e.target.value)} 
+                    required 
+                    min={format(new Date(), 'yyyy-MM-dd')} 
+                    className="clean-input with-icon"
+                    style={{ width: '100%', boxSizing: 'border-box' }}
+                  />
+                </div>
               </div>
               
               {isFullDay && !editingBlockId && (
                 <div className="clean-form-group" style={{ flex: 1, marginBottom: 0 }}>
                   <label style={{ fontWeight: 600, fontSize: '0.875rem', color: '#475569', marginBottom: '0.375rem', display: 'block' }}>Hasta Fecha (Opcional)</label>
-                  <input 
-                    type="date" 
-                    value={blockEndDate} 
-                    onChange={e => setBlockEndDate(e.target.value)} 
-                    min={blockDate || format(new Date(), 'yyyy-MM-dd')} 
-                    className="clean-input"
-                    style={{ width: '100%', boxSizing: 'border-box' }}
-                  />
+                  <div className="input-with-icon-wrapper">
+                    <Calendar size={18} className="input-icon" />
+                    <input 
+                      type="date" 
+                      value={blockEndDate} 
+                      onChange={e => setBlockEndDate(e.target.value)} 
+                      min={blockDate || format(new Date(), 'yyyy-MM-dd')} 
+                      className="clean-input with-icon"
+                      style={{ width: '100%', boxSizing: 'border-box' }}
+                    />
+                  </div>
                 </div>
               )}
             </div>
 
             <div className="clean-form-group">
               <label style={{ fontWeight: 600, fontSize: '0.875rem', color: '#475569', marginBottom: '0.375rem', display: 'block' }}>Motivo (opcional, solo para ti)</label>
-              <input 
-                type="text" 
-                value={blockReason} 
-                onChange={e => setBlockReason(e.target.value)} 
-                placeholder="Ej: Vacaciones de verano" 
-                className="clean-input"
-                style={{ width: '100%', boxSizing: 'border-box' }}
-              />
+              <div className="input-with-icon-wrapper">
+                <FileText size={18} className="input-icon" />
+                <input 
+                  type="text" 
+                  value={blockReason} 
+                  onChange={e => setBlockReason(e.target.value)} 
+                  placeholder="Ej: Vacaciones de verano" 
+                  className="clean-input with-icon"
+                  style={{ width: '100%', boxSizing: 'border-box' }}
+                />
+              </div>
             </div>
 
             {!isFullDay && (
