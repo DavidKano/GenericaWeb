@@ -77,18 +77,21 @@ export const PromoOfferModal: React.FC = () => {
           animation: 'slideUp 0.4s ease-out'
         }}
       >
-        <button 
-          onClick={handleClose}
-          className="promo-close-btn"
-          title="Cerrar oferta"
-        >
-          <X size={18} />
-        </button>
+        {/* We only render the close button here if it is an image type. For text type, it is rendered inside PromoOfferTextDesign */}
+        {offer.type === 'image' && (
+          <button 
+            onClick={handleClose}
+            className="promo-close-btn-minimal"
+            title="Cerrar oferta"
+          >
+            <X size={20} />
+          </button>
+        )}
         
         {/* Imagen Promocional o Texto Dinámico */}
         <div style={{ width: '100%', display: 'block', minHeight: '300px', background: '#f8fafc' }}>
           {offer.type === 'text' ? (
-            <PromoOfferTextDesign offer={offer} style={{ borderRadius: '0', minHeight: '350px' }} />
+            <PromoOfferTextDesign offer={offer} onClose={handleClose} style={{ borderRadius: '0', minHeight: '350px' }} />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               <img 
@@ -108,34 +111,27 @@ export const PromoOfferModal: React.FC = () => {
         </div>
       </div>
       <style>{`
-        .promo-close-btn {
+        .promo-close-btn-minimal {
           position: absolute;
-          top: 14px;
-          right: 14px;
-          width: 34px;
-          height: 34px;
-          border-radius: 50%;
-          background: rgba(255, 255, 255, 0.85);
-          backdrop-filter: blur(8px);
-          -webkit-backdrop-filter: blur(8px);
-          border: 1px solid rgba(255, 255, 255, 0.4);
+          top: 12px;
+          right: 12px;
+          background: transparent;
+          border: none;
           color: #475569;
           display: flex;
           align-items: center;
           justifyContent: center;
           cursor: pointer;
           z-index: 100;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-          transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+          padding: 6px;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .promo-close-btn:hover {
-          background: #ffffff;
+        .promo-close-btn-minimal:hover {
           color: #0f172a;
-          transform: scale(1.08);
-          box-shadow: 0 6px 18px rgba(0, 0, 0, 0.16);
+          transform: scale(1.15);
         }
-        .promo-close-btn:active {
-          transform: scale(0.95);
+        .promo-close-btn-minimal:active {
+          transform: scale(0.9);
         }
         @keyframes fadeIn {
           from { opacity: 0; }

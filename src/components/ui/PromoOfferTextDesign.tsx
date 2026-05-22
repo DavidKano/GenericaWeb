@@ -1,10 +1,12 @@
 import React, { useMemo } from 'react';
 import type { PromoOffer } from '../../services/models';
+import { X } from 'lucide-react';
 
 interface Props {
   offer: PromoOffer;
   className?: string;
   style?: React.CSSProperties;
+  onClose?: () => void;
 }
 
 const FONTS = [
@@ -15,30 +17,22 @@ const FONTS = [
   "'Gochi Hand', cursive"
 ];
 
-export const PromoOfferTextDesign: React.FC<Props> = ({ offer, className, style }) => {
+export const PromoOfferTextDesign: React.FC<Props> = ({ offer, className, style, onClose }) => {
   const seed = offer.designSeed || 0;
   
   const bgGradient = useMemo(() => {
-    // Generate beautiful complementary HSL colors using the seed
+    // Generate beautiful harmonious HSL analogous colors (close in the color wheel) using the seed
     const hue1 = (seed * 137) % 360;
-    const hue2 = (hue1 + 120 + (seed % 60)) % 360; // 120 deg apart for nice contrast
-    const hue3 = (hue1 + 240 - (seed % 40)) % 360;
+    // Generate analogous colors: hue2 is +30 to +45 deg, hue3 is -30 to -45 deg
+    const hue2 = (hue1 + 30 + (seed % 16)) % 360;
+    const hue3 = (hue1 - 30 - (seed % 16) + 360) % 360;
     
-    // Saturation: 60-80%
-    const sat1 = 60 + ((seed * 7) % 21);
-    const sat2 = 60 + ((seed * 13) % 21);
-    const sat3 = 60 + ((seed * 17) % 21);
+    // Saturation locked strictly to 60%, Lightness locked strictly to 85% for elegant pastels
+    const color1 = `hsl(${hue1}, 60%, 85%)`;
+    const color2 = `hsl(${hue2}, 60%, 85%)`;
+    const color3 = `hsl(${hue3}, 60%, 85%)`;
     
-    // Lightness: 75-85%
-    const lgt1 = 75 + ((seed * 3) % 11);
-    const lgt2 = 75 + ((seed * 11) % 11);
-    const lgt3 = 75 + ((seed * 19) % 11);
-    
-    const color1 = `hsl(${hue1}, ${sat1}%, ${lgt1}%)`;
-    const color2 = `hsl(${hue2}, ${sat2}%, ${lgt2}%)`;
-    const color3 = `hsl(${hue3}, ${sat3}%, ${lgt3}%)`;
-    
-    // Smooth mesh gradient using three radial points plus a solid-looking linear-gradient base
+    // Smooth aurora mesh gradient using radial gradients blending smoothly
     return `radial-gradient(at 0% 0%, ${color1} 0px, transparent 65%),
             radial-gradient(at 100% 0%, ${color2} 0px, transparent 65%),
             radial-gradient(at 50% 100%, ${color3} 0px, transparent 65%),
@@ -61,7 +55,7 @@ export const PromoOfferTextDesign: React.FC<Props> = ({ offer, className, style 
         justifyContent: 'center',
         alignItems: 'center',
         minHeight: '200px',
-        boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
+        boxShadow: '0 8px 30px rgba(0,0,0,0.08)',
         position: 'relative',
         overflow: 'hidden',
         height: '100%',
@@ -86,13 +80,13 @@ export const PromoOfferTextDesign: React.FC<Props> = ({ offer, className, style 
         className="offer-card-content"
         style={{
           width: '85%',
-          background: 'rgba(255, 255, 255, 0.85)',
-          backdropFilter: 'blur(16px)',
-          WebkitBackdropFilter: 'blur(16px)', // Safari support
-          border: '1px solid rgba(255, 255, 255, 0.5)',
+          background: 'rgba(255, 255, 255, 0.35)', // 35% opacity as strictly requested
+          backdropFilter: 'blur(24px)', // 24px blur as strictly requested
+          WebkitBackdropFilter: 'blur(24px)', // Safari support
+          border: '1px solid rgba(255, 255, 255, 0.6)', // White fine border as strictly requested
           borderRadius: '16px',
           padding: '32px 24px',
-          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.08)',
+          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.05)', // Soft shadow
           color: '#1E293B',
           textAlign: 'center',
           zIndex: 2,
@@ -102,6 +96,32 @@ export const PromoOfferTextDesign: React.FC<Props> = ({ offer, className, style 
           alignItems: 'center'
         }}
       >
+        {/* Minimal Transparent Close Button */}
+        {onClose && (
+          <button 
+            onClick={onClose}
+            style={{
+              position: 'absolute',
+              top: '12px',
+              right: '12px',
+              background: 'transparent',
+              border: 'none',
+              color: '#475569',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              padding: '6px',
+              zIndex: 10,
+              transition: 'all 0.2s ease-in-out'
+            }}
+            className="promo-close-icon-btn"
+            title="Cerrar oferta"
+          >
+            <X size={20} />
+          </button>
+        )}
+
         {/* Badge Superior */}
         <span 
           style={{
@@ -109,7 +129,7 @@ export const PromoOfferTextDesign: React.FC<Props> = ({ offer, className, style 
             fontWeight: 700,
             textTransform: 'uppercase',
             letterSpacing: '0.05em',
-            color: '#4F46E5', // Premium Indigo
+            color: '#64748B', // Neutral gray as strictly requested
             marginBottom: '10px',
             display: 'inline-flex',
             alignItems: 'center',
@@ -197,6 +217,20 @@ export const PromoOfferTextDesign: React.FC<Props> = ({ offer, className, style 
         zIndex: 1,
         pointerEvents: 'none'
       }} />
+
+      <style>{`
+        .promo-close-icon-btn {
+          color: #475569 !important;
+          transition: all 0.2s ease-in-out;
+        }
+        .promo-close-icon-btn:hover {
+          color: #0f172a !important;
+          transform: scale(1.15);
+        }
+        .promo-close-icon-btn:active {
+          transform: scale(0.9);
+        }
+      `}</style>
     </div>
   );
 };
