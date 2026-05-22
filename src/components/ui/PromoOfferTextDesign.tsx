@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import type { PromoOffer } from '../../services/models';
-import { X } from 'lucide-react';
+import { X, Tag } from 'lucide-react';
 
 interface Props {
   offer: PromoOffer;
@@ -46,19 +46,6 @@ export const PromoOfferTextDesign: React.FC<Props> = ({ offer, className, style,
       className={`promo-text-design ${className || ''}`}
       style={{
         background: bgGradient,
-        borderRadius: '16px',
-        padding: '2.5rem 1.5rem',
-        color: '#1E293B',
-        textAlign: 'center',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '200px',
-        boxShadow: '0 8px 30px rgba(0,0,0,0.08)',
-        position: 'relative',
-        overflow: 'hidden',
-        height: '100%',
         ...style
       }}
     >
@@ -76,45 +63,11 @@ export const PromoOfferTextDesign: React.FC<Props> = ({ offer, className, style,
       />
 
       {/* Glassmorphism Inner Card */}
-      <div 
-        className="offer-card-content"
-        style={{
-          width: '85%',
-          background: 'rgba(255, 255, 255, 0.35)', // 35% opacity as strictly requested
-          backdropFilter: 'blur(24px)', // 24px blur as strictly requested
-          WebkitBackdropFilter: 'blur(24px)', // Safari support
-          border: '1px solid rgba(255, 255, 255, 0.6)', // White fine border as strictly requested
-          borderRadius: '16px',
-          padding: '32px 24px',
-          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.05)', // Soft shadow
-          color: '#1E293B',
-          textAlign: 'center',
-          zIndex: 2,
-          position: 'relative',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center'
-        }}
-      >
+      <div className="offer-card-content">
         {/* Minimal Transparent Close Button */}
         {onClose && (
           <button 
             onClick={onClose}
-            style={{
-              position: 'absolute',
-              top: '12px',
-              right: '12px',
-              background: 'transparent',
-              border: 'none',
-              color: '#475569',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              padding: '6px',
-              zIndex: 10,
-              transition: 'all 0.2s ease-in-out'
-            }}
             className="promo-close-icon-btn"
             title="Cerrar oferta"
           >
@@ -123,75 +76,30 @@ export const PromoOfferTextDesign: React.FC<Props> = ({ offer, className, style,
         )}
 
         {/* Badge Superior */}
-        <span 
-          style={{
-            fontSize: '11px',
-            fontWeight: 700,
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-            color: '#64748B', // Neutral gray as strictly requested
-            marginBottom: '10px',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '4px'
-          }}
-        >
-          🏷️ Promoción Especial
+        <span className="offer-card-badge">
+          <Tag size={12} style={{ color: '#64748B' }} />
+          PROMOCIÓN ESPECIAL
         </span>
 
         {/* Título */}
         <h3 
-          style={{ 
-            fontFamily, 
-            fontSize: '24px', 
-            fontWeight: 700, 
-            color: '#1E293B',
-            margin: '0 0 14px 0',
-            lineHeight: '1.3',
-            letterSpacing: '-0.5px'
-          }}
+          className="offer-card-title"
+          style={{ fontFamily }}
         >
           {offer.textHeader}
         </h3>
 
         {/* Cuerpo */}
         {offer.textBody && (
-          <p 
-            style={{ 
-              fontSize: '15px', 
-              color: '#475569',
-              lineHeight: '1.6',
-              margin: '0 0 4px 0',
-              maxWidth: '100%',
-              fontFamily: "'Inter', sans-serif",
-              whiteSpace: 'pre-line'
-            }}
-          >
+          <p className="offer-card-body">
             {offer.textBody}
           </p>
         )}
         
         {/* Divisor y Condiciones Legales */}
         {offer.legalDisclaimer && (
-          <div 
-            style={{
-              width: '100%',
-              borderTop: '1px solid rgba(0,0,0,0.06)',
-              paddingTop: '14px',
-              marginTop: '14px'
-            }}
-          >
-            <p 
-              style={{ 
-                margin: 0,
-                fontSize: '11px', 
-                color: '#64748B', 
-                fontStyle: 'italic',
-                fontFamily: "'Inter', sans-serif",
-                lineHeight: '1.4',
-                whiteSpace: 'pre-line'
-              }}
-            >
+          <div className="offer-card-legal-container">
+            <p className="offer-card-legal-text">
               {offer.legalDisclaimer}
             </p>
           </div>
@@ -219,16 +127,149 @@ export const PromoOfferTextDesign: React.FC<Props> = ({ offer, className, style,
       }} />
 
       <style>{`
+        .promo-text-design {
+          border-radius: 16px;
+          padding: 2.5rem 1.5rem;
+          color: #1E293B;
+          text-align: center;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+          min-height: 200px;
+          box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+          position: relative;
+          overflow: hidden;
+          height: 100%;
+        }
+
+        .offer-card-content {
+          width: 85%;
+          background: rgba(255, 255, 255, 0.35);
+          backdrop-filter: blur(24px);
+          -webkit-backdrop-filter: blur(24px);
+          border: 1px solid rgba(255, 255, 255, 0.6);
+          border-radius: 16px;
+          padding: 32px 24px;
+          box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+          color: #1E293B;
+          text-align: center;
+          z-index: 2;
+          position: relative;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+
+        .offer-card-badge {
+          font-size: 11px;
+          font-weight: 500;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          color: #64748B;
+          margin-bottom: 12px;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+        }
+
+        .offer-card-title {
+          font-size: 24px;
+          font-weight: 700;
+          color: #1E293B;
+          margin: 0 0 14px 0;
+          line-height: 1.3;
+          letter-spacing: -0.5px;
+          text-align: center;
+        }
+
+        .offer-card-body {
+          font-size: 15px;
+          color: #475569;
+          line-height: 1.6;
+          margin: 0 0 4px 0;
+          max-width: 100%;
+          font-family: 'Inter', sans-serif;
+          white-space: pre-line;
+          text-align: center;
+        }
+
+        .offer-card-legal-container {
+          width: 100%;
+          border-top: 1px solid rgba(0, 0, 0, 0.05);
+          padding-top: 14px;
+          margin-top: 14px;
+        }
+
+        .offer-card-legal-text {
+          margin: 0;
+          font-size: 11px;
+          color: #64748B;
+          font-style: italic;
+          font-family: 'Inter', sans-serif;
+          line-height: 1.4;
+          white-space: pre-line;
+          text-align: center;
+        }
+
         .promo-close-icon-btn {
+          position: absolute;
+          top: 12px;
+          right: 12px;
+          background: transparent;
+          border: none;
           color: #475569 !important;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          padding: 6px;
+          z-index: 10;
           transition: all 0.2s ease-in-out;
         }
+
         .promo-close-icon-btn:hover {
           color: #0f172a !important;
           transform: scale(1.15);
         }
+
         .promo-close-icon-btn:active {
           transform: scale(0.9);
+        }
+
+        @media (max-width: 640px) {
+          .promo-text-design {
+            padding: 1.25rem 0.5rem;
+          }
+
+          .offer-card-content {
+            width: 92%;
+            padding: 16px 12px;
+            text-align: left;
+            align-items: flex-start;
+          }
+
+          .offer-card-title {
+            font-size: 20px;
+            font-weight: 600;
+            text-align: left;
+            margin: 0 0 10px 0;
+          }
+
+          .offer-card-body {
+            font-size: 13.5px;
+            line-height: 1.5;
+            text-align: left;
+          }
+
+          .offer-card-legal-text {
+            text-align: left;
+          }
+
+          .promo-close-icon-btn {
+            top: 8px;
+            right: 8px;
+          }
         }
       `}</style>
     </div>
