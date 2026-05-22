@@ -79,25 +79,10 @@ export const PromoOfferModal: React.FC = () => {
       >
         <button 
           onClick={handleClose}
-          style={{
-            position: 'absolute',
-            top: '1rem',
-            right: '1rem',
-            width: '36px',
-            height: '36px',
-            borderRadius: '50%',
-            backgroundColor: 'rgba(0,0,0,0.5)',
-            border: 'none',
-            color: '#fff',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            zIndex: 10
-          }}
+          className="promo-close-btn"
           title="Cerrar oferta"
         >
-          <X size={20} />
+          <X size={18} />
         </button>
         
         {/* Imagen Promocional o Texto Dinámico */}
@@ -123,6 +108,35 @@ export const PromoOfferModal: React.FC = () => {
         </div>
       </div>
       <style>{`
+        .promo-close-btn {
+          position: absolute;
+          top: 14px;
+          right: 14px;
+          width: 34px;
+          height: 34px;
+          border-radius: 50%;
+          background: rgba(255, 255, 255, 0.85);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+          border: 1px solid rgba(255, 255, 255, 0.4);
+          color: #475569;
+          display: flex;
+          align-items: center;
+          justifyContent: center;
+          cursor: pointer;
+          z-index: 100;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+          transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .promo-close-btn:hover {
+          background: #ffffff;
+          color: #0f172a;
+          transform: scale(1.08);
+          box-shadow: 0 6px 18px rgba(0, 0, 0, 0.16);
+        }
+        .promo-close-btn:active {
+          transform: scale(0.95);
+        }
         @keyframes fadeIn {
           from { opacity: 0; }
           to { opacity: 1; }
