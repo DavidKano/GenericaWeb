@@ -836,22 +836,126 @@ export const AdminServicesPage: React.FC = () => {
 
       {/* Modal Nueva Carpeta */}
       {showFolderModal && (
-        <div className="modal-overlay" onClick={() => setShowFolderModal(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px' }}>
-            <h2>Añadir Carpeta</h2>
-            <div className="form-group">
-              <label>Nombre de la carpeta</label>
-              <input 
-                autoFocus
-                value={newFolderInput} 
-                onChange={e => setNewFolderInput(e.target.value)} 
-                placeholder="Ej: Peluquería, Estética..." 
-                onKeyDown={(e) => { if(e.key === 'Enter') addFolder(); }}
-              />
+        <div className="modal-overlay" style={{ zIndex: 1000 }} onClick={() => setShowFolderModal(false)}>
+          <div className="modal-content animate-pop-in" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px', width: '100%', background: '#FFFFFF', borderRadius: '12px', border: '1px solid #E2E8F0', padding: '1.25rem', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}>
+            
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.8rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Folder size={18} strokeWidth={1.5} style={{ color: 'var(--primary-color)' }} />
+                <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '600', letterSpacing: '-0.02em', color: '#0F172A' }}>
+                  Añadir Carpeta
+                </h2>
+              </div>
+              <button 
+                onClick={() => setShowFolderModal(false)}
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8', transition: 'color 0.2s' }}
+                onMouseEnter={e => e.currentTarget.style.color = '#F43F5E'}
+                onMouseLeave={e => e.currentTarget.style.color = '#94A3B8'}
+              >
+                <X size={18} strokeWidth={1.5} />
+              </button>
             </div>
-            <div className="modal-actions" style={{ marginTop: '2rem', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
-              <button className="btn-secondary" onClick={() => setShowFolderModal(false)}>Cancelar</button>
-              <button className="btn-primary" onClick={addFolder}>Añadir</button>
+
+            {/* Input Group */}
+            <div className="form-group" style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: '0.3rem', marginBottom: '1.2rem' }}>
+              <label style={{ fontSize: '0.78rem', fontWeight: '500', color: '#475569' }}>Nombre de la carpeta</label>
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <span style={{ position: 'absolute', left: '10px', color: '#94A3B8', pointerEvents: 'none', display: 'flex', alignItems: 'center' }}>
+                  <Folder size={14} strokeWidth={1.5} />
+                </span>
+                <input 
+                  autoFocus
+                  value={newFolderInput} 
+                  onChange={e => setNewFolderInput(e.target.value)} 
+                  placeholder="Nombre grupo servicios" 
+                  onKeyDown={(e) => { if(e.key === 'Enter') addFolder(); }}
+                  style={{ 
+                    width: '100%', 
+                    padding: '0.45rem 0.8rem 0.45rem 2.2rem', 
+                    borderRadius: '8px', 
+                    background: '#FFFFFF', 
+                    border: '1px solid #E2E8F0', 
+                    color: '#1E293B',
+                    fontSize: '0.85rem',
+                    outline: 'none',
+                    transition: 'border-color 0.2s, box-shadow 0.2s'
+                  }}
+                  onFocus={e => {
+                    e.currentTarget.style.borderColor = 'var(--primary-color)';
+                    e.currentTarget.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.1)';
+                  }}
+                  onBlur={e => {
+                    e.currentTarget.style.borderColor = '#E2E8F0';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="modal-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.6rem' }}>
+              <button 
+                type="button" 
+                onClick={() => setShowFolderModal(false)}
+                style={{
+                  height: '38px',
+                  padding: '0 1.25rem',
+                  borderRadius: '8px',
+                  border: '1px solid #CBD5E1',
+                  background: '#FFFFFF',
+                  color: '#475569',
+                  fontWeight: '600',
+                  fontSize: '0.85rem',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.2s ease',
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = '#F8FAFC';
+                  e.currentTarget.style.borderColor = '#94A3B8';
+                  e.currentTarget.style.color = '#1E293B';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = '#FFFFFF';
+                  e.currentTarget.style.borderColor = '#CBD5E1';
+                  e.currentTarget.style.color = '#475569';
+                }}
+              >
+                Cancelar
+              </button>
+              <button 
+                type="button" 
+                onClick={addFolder}
+                style={{
+                  height: '38px',
+                  padding: '0 1.25rem',
+                  borderRadius: '8px',
+                  border: 'none',
+                  background: 'var(--primary-color)',
+                  color: '#FFFFFF',
+                  fontWeight: '600',
+                  fontSize: '0.85rem',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.2), 0 2px 4px -1px rgba(59, 130, 246, 0.1)',
+                  transition: 'all 0.2s ease',
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.filter = 'brightness(1.05)';
+                  e.currentTarget.style.boxShadow = '0 6px 12px -2px rgba(59, 130, 246, 0.3), 0 3px 6px -2px rgba(59, 130, 246, 0.15)';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.filter = 'none';
+                  e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(59, 130, 246, 0.2), 0 2px 4px -1px rgba(59, 130, 246, 0.1)';
+                }}
+              >
+                Añadir
+              </button>
             </div>
           </div>
         </div>
