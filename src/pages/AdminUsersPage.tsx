@@ -1,7 +1,24 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import type { User, Appointment, BookingService } from '../services/models';
-import { Search, User as UserIcon, Calendar, FileText, Phone, Mail, MapPin, Edit, X, Info, Trash2, ArrowLeft } from 'lucide-react';
+import { Search, User as UserIcon, Calendar, FileText, Phone, Mail, MapPin, Edit, X, Info, Trash2, ArrowLeft, Tag } from 'lucide-react';
+
+const getInitials = (name: string) => {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 0) return '';
+  if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+};
+
+const formatDateShort = (timestamp: number) => {
+  const d = new Date(timestamp);
+  const day = d.getDate();
+  const month = d.getMonth() + 1;
+  const year = d.getFullYear().toString().slice(-2);
+  const hours = d.getHours().toString().padStart(2, '0');
+  const minutes = d.getMinutes().toString().padStart(2, '0');
+  return `${day}/${month}/${year} - ${hours}:${minutes}`;
+};
 
 export const AdminUsersPage: React.FC = () => {
   const { repo } = useData();
@@ -11,10 +28,10 @@ export const AdminUsersPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [adminNotes, setAdminNotes] = useState('');
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 1024);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth <= 1024);
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
@@ -159,7 +176,7 @@ export const AdminUsersPage: React.FC = () => {
   };
 
   return (
-    <div className="admin-users-layout animate-fade-in" style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '350px 1fr', gap: '1.5rem', height: isMobile ? 'auto' : 'calc(100vh - 120px)', overflow: isMobile ? 'visible' : 'hidden' }}>
+    <div className="admin-users-layout animate-fade-in" style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'clamp(280px, 30%, 350px) 1fr', gap: '1.5rem', height: isMobile ? 'auto' : 'calc(100vh - 120px)', overflow: isMobile ? 'visible' : 'hidden' }}>
       <style>{`
         .premium-input-search {
           background: #FFFFFF !important;
@@ -191,9 +208,10 @@ export const AdminUsersPage: React.FC = () => {
         }
         
         .btn-send-message:hover {
-          background: #F8FAFC !important;
-          border-color: #CBD5E1 !important;
-          color: var(--text-color, #1e293b) !important;
+          background: var(--secondary-color, #2563eb) !important;
+          opacity: 0.92 !important;
+          color: #FFFFFF !important;
+          transform: translateY(-1px);
         }
         
         .clean-textarea {
@@ -230,7 +248,15 @@ export const AdminUsersPage: React.FC = () => {
 
       {/* Sidebar de Usuarios */}
       {(!isMobile || !selectedUserId) && (
-        <div className="card glass-panel" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '1rem' }}>
+        <div className="card glass-panel" style={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          overflow: 'hidden', 
+          padding: '1rem',
+          width: '100%',
+          boxSizing: 'border-box',
+          height: isMobile ? 'auto' : '100%'
+        }}>
           <div className="search-box" style={{ 
             position: 'relative', 
             marginBottom: '1.5rem',
@@ -311,72 +337,143 @@ export const AdminUsersPage: React.FC = () => {
       
       {/* Detalle del Usuario */}
       {(!isMobile || selectedUserId) && (
-        <div className="user-detail-content" style={{ overflowY: 'auto', overflowX: 'hidden' }}>
+        <div className="user-detail-content" style={{ 
+          overflowY: 'auto', 
+          overflowX: 'hidden', 
+          padding: isMobile ? '1rem' : '0', 
+          display: 'flex', 
+          flexDirection: 'column', 
+          gap: '1.5rem', 
+          width: '100%', 
+          boxSizing: 'border-box' 
+        }}>
           {selectedUser ? (
-            <div className="animate-fade-in" style={{ display: 'grid', gap: '1.5rem' }}>
+            <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%' }}>
               {/* Header / Info Básica */}
-              <div className="card glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '1.5rem' }}>
+              <div className="card glass-panel" style={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                gap: '1.25rem', 
+                padding: isMobile ? '1.25rem 1rem' : '1.5rem',
+                width: '100%',
+                boxSizing: 'border-box'
+              }}>
                 {isMobile && (
                   <button 
                     onClick={() => setSelectedUserId(null)}
-                    className="btn-secondary"
-                    style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginBottom: '0.5rem', alignSelf: 'flex-start' }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      padding: '8px 0',
+                      color: 'var(--primary-color, #3b82f6)',
+                      fontWeight: 600,
+                      fontSize: '0.95rem',
+                      transition: 'all 0.2s ease',
+                      marginBottom: '1rem',
+                      alignSelf: 'flex-start'
+                    }}
                   >
-                    <ArrowLeft size={16} /> Volver a la Lista
+                    <ArrowLeft size={18} strokeWidth={2.5} /> Volver a la Lista
                   </button>
                 )}
                 
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1.5rem', flexWrap: isMobile ? 'wrap' : 'nowrap', width: '100%' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flex: 1, minWidth: 0 }}>
-                    {/* Avatar */}
-                    <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'color-mix(in srgb, var(--primary-color) 8%, #F8FAFC)', color: 'var(--primary-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <UserIcon size={32} />
-                    </div>
-                    {/* Info */}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-                        <h2 style={{ margin: 0, fontSize: '24px', fontWeight: 600, color: 'var(--text-color, #1e293b)' }}>{selectedUser.name}</h2>
-                        <div style={{ display: 'flex', gap: '0.25rem' }}>
-                          <button 
-                            onClick={openEditModal}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '4px' }}
-                            className="hover-text-primary"
-                            title="Editar datos del cliente"
-                          >
-                            <Edit size={16} strokeWidth={2} />
-                          </button>
-                          <button 
-                            onClick={handleDeleteUser}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '4px' }}
-                            className="hover-text-danger"
-                            title="Eliminar cliente"
-                          >
-                            <Trash2 size={16} strokeWidth={2} />
-                          </button>
-                        </div>
-                      </div>
-                      
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.375rem' }}>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}><Mail size={13} /> {selectedUser.email}</span>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}><Phone size={13} /> {selectedUser.phone}</span>
-                          {selectedUser.dni && <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}><FileText size={13} /> {selectedUser.dni}</span>}
-                        </div>
-                        {(selectedUser.address || selectedUser.city) && (
-                          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                            <MapPin size={13} />
-                            <span>
-                              {selectedUser.address}
-                              {(selectedUser.cp || selectedUser.city) && ` - ${selectedUser.cp || ''} ${selectedUser.city || ''}`}
-                              {selectedUser.province && `, ${selectedUser.province}`}
-                            </span>
-                          </div>
-                        )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', width: '100%' }}>
+                  {/* Avatar circular con iniciales */}
+                  <div style={{ 
+                    width: '64px', 
+                    height: '64px', 
+                    borderRadius: '50%', 
+                    background: '#FAF5F0', 
+                    color: 'var(--primary-color, #3b82f6)', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    flexShrink: 0,
+                    fontSize: '1.25rem',
+                    fontWeight: 600,
+                    border: '1px solid rgba(226, 232, 240, 0.8)',
+                    boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)'
+                  }}>
+                    {getInitials(selectedUser.name)}
+                  </div>
+                  
+                  {/* Info: Name and Edit/Delete */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                      <h2 style={{ margin: 0, fontSize: '24px', fontWeight: 600, color: 'var(--text-color, #1e293b)' }}>
+                        {selectedUser.name}
+                      </h2>
+                      <div style={{ display: 'flex', gap: '0.25rem' }}>
+                        <button 
+                          onClick={openEditModal}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '4px' }}
+                          className="hover-text-primary"
+                          title="Editar datos del cliente"
+                        >
+                          <Edit size={16} strokeWidth={1.5} />
+                        </button>
+                        <button 
+                          onClick={handleDeleteUser}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '4px' }}
+                          className="hover-text-danger"
+                          title="Eliminar cliente"
+                        >
+                          <Trash2 size={16} strokeWidth={1.5} />
+                        </button>
                       </div>
                     </div>
                   </div>
+                </div>
+
+                {/* Tarjeta de Contacto Encapsulada */}
+                <div style={{ 
+                  background: '#FFFFFF',
+                  border: '1px solid #E2E8F0',
+                  borderRadius: '12px',
+                  padding: '1.25rem',
+                  display: 'flex',
+                  flexDirection: isMobile ? 'column' : 'row',
+                  justifyContent: 'space-between',
+                  alignItems: isMobile ? 'stretch' : 'center',
+                  gap: '1.25rem',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                  marginTop: '0.5rem',
+                  width: '100%',
+                  boxSizing: 'border-box'
+                }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem 1.5rem', fontSize: '0.9rem', color: '#475569' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 500, minWidth: 0, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                        <Mail size={15} strokeWidth={1.5} style={{ color: 'var(--primary-color, #3b82f6)', flexShrink: 0 }} /> 
+                        {selectedUser.email}
+                      </span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 500, flexShrink: 0 }}>
+                        <Phone size={15} strokeWidth={1.5} style={{ color: 'var(--primary-color, #3b82f6)', flexShrink: 0 }} /> 
+                        {selectedUser.phone}
+                      </span>
+                      {selectedUser.dni && (
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 500, flexShrink: 0 }}>
+                          <FileText size={15} strokeWidth={1.5} style={{ color: 'var(--primary-color, #3b82f6)', flexShrink: 0 }} /> 
+                          {selectedUser.dni}
+                        </span>
+                      )}
+                    </div>
+                    {(selectedUser.address || selectedUser.city) && (
+                      <div style={{ fontSize: '0.85rem', color: '#64748B', display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
+                        <MapPin size={15} strokeWidth={1.5} style={{ color: 'var(--primary-color, #3b82f6)', flexShrink: 0 }} />
+                        <span style={{ lineHeight: '1.4' }}>
+                          {selectedUser.address}
+                          {(selectedUser.cp || selectedUser.city) && ` - ${selectedUser.cp || ''} ${selectedUser.city || ''}`}
+                          {selectedUser.province && `, ${selectedUser.province}`}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                   
-                  {/* Action button "Enviar Mensaje" */}
                   <a 
                     href={`mailto:${selectedUser.email}`} 
                     className="btn-send-message" 
@@ -387,26 +484,27 @@ export const AdminUsersPage: React.FC = () => {
                       justifyContent: 'center', 
                       gap: '0.5rem', 
                       flexShrink: 0,
-                      background: '#FFFFFF',
-                      border: '1px solid #E2E8F0',
+                      background: 'var(--secondary-color, #2563eb)',
+                      border: 'none',
                       borderRadius: '8px',
                       padding: '10px 18px',
-                      color: '#475569',
+                      color: '#FFFFFF',
                       fontSize: '0.9rem',
                       fontWeight: 600,
                       cursor: 'pointer',
                       transition: 'all 0.2s ease',
-                      boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                      width: isMobile ? '100%' : 'auto'
+                      boxShadow: '0 2px 4px rgba(37, 99, 235, 0.1)',
+                      width: isMobile ? '100%' : 'auto',
+                      boxSizing: 'border-box'
                     }}
                   >
-                    <Mail size={16} /> Enviar Mensaje
+                    <Mail size={16} strokeWidth={1.5} /> Enviar Mensaje
                   </a>
                 </div>
               </div>
 
-              {/* Notas Administrativas - Ancho completo, respirando directamente */}
-              <div style={{ display: 'flex', flexDirection: 'column', background: 'transparent', border: 'none', boxShadow: 'none', padding: '0 0.5rem' }}>
+              {/* Notas Administrativas - Ancho completo */}
+              <div style={{ display: 'flex', flexDirection: 'column', background: 'transparent', border: 'none', boxShadow: 'none', padding: '0', width: '100%', boxSizing: 'border-box' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
                   <FileText size={20} color="var(--primary-color)" />
                   <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 600, color: 'var(--text-color, #1e293b)' }}>Notas Administrativas</h3>
@@ -435,7 +533,7 @@ export const AdminUsersPage: React.FC = () => {
                   className="btn-primary" 
                   onClick={handleSaveNotes} 
                   style={{ 
-                    width: 'fit-content', 
+                    width: isMobile ? '100%' : 'fit-content', 
                     alignSelf: 'flex-end', 
                     padding: '10px 20px', 
                     borderRadius: '8px',
@@ -443,6 +541,7 @@ export const AdminUsersPage: React.FC = () => {
                     fontWeight: 600,
                     display: 'inline-flex',
                     alignItems: 'center',
+                    justifyContent: 'center',
                     gap: '0.5rem'
                   }}
                 >
@@ -451,16 +550,23 @@ export const AdminUsersPage: React.FC = () => {
               </div>
 
               {/* Historial de Citas: Ancho completo */}
-              <div className="card glass-panel">
+              <div className="card glass-panel" style={{ 
+                width: '100%', 
+                boxSizing: 'border-box', 
+                padding: isMobile ? '1.25rem 1rem' : '1.5rem' 
+              }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem' }}>
                   <Calendar size={20} color="var(--primary-color)" />
                   <h3 style={{ margin: 0 }}>Historial Completo de Citas</h3>
                 </div>
                 
                 {userAppointments.length > 0 ? (
-                  <div style={{ display: 'grid', gap: '1rem' }}>
+                  <div style={{ display: 'grid', gap: '1rem', width: '100%' }}>
                     {userAppointments.map(appt => {
+                      const service = services.find(s => s.id === appt.serviceId);
+                      const serviceColor = service?.color || 'var(--primary-color, #3b82f6)';
                       const statusStyle = getStatusStyle(appt.status);
+                      
                       return (
                         <div 
                           key={appt.id} 
@@ -469,96 +575,112 @@ export const AdminUsersPage: React.FC = () => {
                             padding: '1.25rem', 
                             background: '#FFFFFF',
                             border: '1px solid #E2E8F0', 
-                            borderRadius: '10px', 
+                            borderLeft: `4px solid ${serviceColor}`,
+                            borderRadius: '8px', 
                             display: 'flex', 
+                            flexDirection: isMobile ? 'column' : 'row',
                             justifyContent: 'space-between', 
-                            alignItems: 'center',
-                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.01)',
+                            alignItems: isMobile ? 'flex-start' : 'center',
+                            boxShadow: '0 4px 6px -1px rgba(0,0,0,0.03), 0 2px 4px -1px rgba(0,0,0,0.02)',
                             transition: 'transform 0.2s, box-shadow 0.2s',
+                            width: '100%',
+                            boxSizing: 'border-box',
+                            gap: '1rem'
                           }}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flex: 1, minWidth: 0 }}>
-                            {/* Block 1: Izquierda */}
-                            <div style={{ 
-                              width: '45px', 
-                              height: '45px', 
-                              borderRadius: '8px', 
-                              background: 'color-mix(in srgb, var(--primary-color) 8%, #F8FAFC)', 
-                              display: 'flex', 
-                              alignItems: 'center', 
-                              justifyContent: 'center',
-                              color: 'var(--primary-color)',
-                              flexShrink: 0
-                            }}>
-                              <Calendar size={20} />
-                            </div>
-                            
-                            {/* Block 2: Centro */}
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', minWidth: 0 }}>
-                              <div style={{ fontWeight: 600, fontSize: '1rem', color: '#1E293B', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                                {services.find(s => s.id === appt.serviceId)?.name || 'Servicio'}
-                              </div>
-                              <div style={{ fontSize: '0.85rem', color: '#64748B', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                <span style={{ color: 'var(--primary-color)', fontWeight: 600 }}>
-                                  {new Date(appt.dateTimeStart).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}
-                                </span>
-                                <span>•</span>
-                                <span>{new Date(appt.dateTimeStart).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} h</span>
-                              </div>
-                            </div>
-                          </div>
-                          
-                          {/* Block 3: Derecha */}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexShrink: 0 }}>
-                            <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: 'center', gap: '12px' }}>
-                              <span 
-                                style={{ 
-                                  padding: '0.4rem 0.8rem', 
-                                  borderRadius: '100px', 
-                                  fontSize: '0.75rem', 
-                                  fontWeight: 700,
-                                  backgroundColor: statusStyle.bg,
-                                  color: statusStyle.color,
-                                  textTransform: 'uppercase',
-                                  letterSpacing: '0.5px'
+                          {/* Info Column (Left) */}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1, minWidth: 0 }}>
+                            {/* Fila 1: 👤 Elena + edit sutil */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontWeight: 600, fontSize: '1rem', color: '#1E293B' }}>
+                                <UserIcon size={14} strokeWidth={1.5} style={{ color: 'var(--primary-color, #3b82f6)' }} />
+                                {selectedUser.name}
+                              </span>
+                              <button 
+                                style={{ background: 'none', border: 'none', padding: '2px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', color: '#94A3B8', transition: 'color 0.2s' }}
+                                className="hover-text-primary"
+                                title="Editar cita"
+                                onClick={() => {
+                                  alert('Edición de citas disponible desde el panel principal de calendario.');
                                 }}
                               >
-                                {appt.status === 'PENDING' ? 'PENDIENTE' : 
-                                 appt.status === 'CONFIRMED' ? 'CONFIRMADA' : 
-                                 appt.status === 'COMPLETED' ? 'COMPLETADA' : 'CANCELADA'}
-                              </span>
-                              
-                              {appt.status === 'PENDING' && (
-                                <button 
-                                  className="btn-primary" 
-                                  style={{ 
-                                    padding: '0.4rem 0.8rem', 
-                                    fontSize: '0.75rem', 
-                                    fontWeight: 600, 
-                                    borderRadius: '6px',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    cursor: 'pointer'
-                                  }}
-                                  onClick={async () => {
-                                    try {
-                                      await repo.saveAppointment({ ...appt, status: 'CONFIRMED' });
-                                      loadData();
-                                    } catch (e) {
-                                      console.error(e);
-                                      alert('Error al confirmar la cita');
-                                    }
-                                  }}
-                                >
-                                  Aceptar Cita
-                                </button>
-                              )}
+                                <Edit size={14} strokeWidth={1.5} />
+                              </button>
                             </div>
                             
+                            {/* Fila 2: 🏷️ Medicina General / Familiar */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.875rem', color: '#64748B' }}>
+                              <Tag size={14} strokeWidth={1.5} style={{ color: '#94A3B8' }} />
+                              <span style={{ fontWeight: 500 }}>
+                                {service?.name || 'Servicio'}
+                              </span>
+                            </div>
+                            
+                            {/* Fila 3: 📅 18/5/26 - 9:30 */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', color: '#475569' }}>
+                              <Calendar size={14} strokeWidth={1.5} style={{ color: '#94A3B8' }} />
+                              <span>{formatDateShort(appt.dateTimeStart)}</span>
+                            </div>
+
+                            {/* Notas de la Cita */}
                             {appt.adminNotes && (
-                              <div style={{ fontSize: '0.75rem', color: '#64748B', fontStyle: 'italic', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={appt.adminNotes}>
-                                📌 {appt.adminNotes}
+                              <div style={{ fontSize: '0.8rem', color: '#64748B', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }} title={appt.adminNotes}>
+                                <span>📌</span> <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '300px' }}>{appt.adminNotes}</span>
                               </div>
+                            )}
+                          </div>
+                          
+                          {/* Status and Action Column (Right) */}
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: isMobile ? 'stretch' : 'flex-end', gap: '0.5rem', width: isMobile ? '100%' : 'auto', flexShrink: 0 }}>
+                            <span 
+                              style={{ 
+                                padding: '0.35rem 0.75rem', 
+                                borderRadius: '100px', 
+                                fontSize: '0.75rem', 
+                                fontWeight: 700,
+                                backgroundColor: statusStyle.bg,
+                                color: statusStyle.color,
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.5px',
+                                textAlign: 'center',
+                                alignSelf: isMobile ? 'flex-start' : 'flex-end'
+                              }}
+                            >
+                              {appt.status === 'PENDING' ? 'PENDIENTE' : 
+                               appt.status === 'CONFIRMED' ? 'CONFIRMADA' : 
+                               appt.status === 'COMPLETED' ? 'COMPLETADA' : 'CANCELADA'}
+                            </span>
+                            
+                            {appt.status === 'PENDING' && (
+                              <button 
+                                className="btn-primary" 
+                                style={{ 
+                                  padding: '8px 14px', 
+                                  fontSize: '0.8rem', 
+                                  fontWeight: 600, 
+                                  borderRadius: '8px',
+                                  background: 'var(--primary-color, #3b82f6)',
+                                  color: '#FFFFFF',
+                                  border: 'none',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.2s ease',
+                                  boxShadow: '0 2px 4px rgba(59, 130, 246, 0.1)',
+                                  marginTop: '4px',
+                                  textAlign: 'center',
+                                  width: isMobile ? '100%' : 'auto'
+                                }}
+                                onClick={async () => {
+                                  try {
+                                    await repo.saveAppointment({ ...appt, status: 'CONFIRMED' });
+                                    loadData();
+                                  } catch (e) {
+                                    console.error(e);
+                                    alert('Error al confirmar la cita');
+                                  }
+                                }}
+                              >
+                                Aceptar Cita
+                              </button>
                             )}
                           </div>
                         </div>
