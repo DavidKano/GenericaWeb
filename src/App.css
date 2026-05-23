@@ -928,3 +928,38 @@ input[type="time"] {
   }
 }
 
+/* ==================== CUSTOMER MANAGEMENT STICKY & SCROLLBAR ==================== */
+@media (min-width: 768px) {
+  .contenedor-lista-clientes {
+    position: sticky !important;
+    top: 24px !important;
+    max-height: calc(100vh - 130px) !important;
+    overflow-y: auto !important;
+  }
+}
+
+/* Webkit Scrollbar Styling for Customer List */
+.contenedor-lista-clientes::-webkit-scrollbar {
+  width: 6px;
+}
+.contenedor-lista-clientes::-webkit-scrollbar-track {
+  background: transparent;
+}
+.contenedor-lista-clientes::-webkit-scrollbar-thumb {
+  background-color: #CBD5E1; 
+  border-radius: 20px;
+}
+.contenedor-lista-clientes:hover::-webkit-scrollbar-thumb {
+  background-color: #94A3B8; 
+}
+
+/* Mobile resets for Customer List */
+@media (max-width: 768px) {
+  .contenedor-lista-clientes {
+    position: static !important;
+    max-height: none !important;
+    overflow-y: visible !important;
+  }
+}
+
+

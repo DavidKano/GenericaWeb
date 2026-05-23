@@ -177,10 +177,10 @@ export const AdminUsersPage: React.FC = () => {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: isMobile ? 'auto' : '100%', gap: '0.5rem', width: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
       <PageHeader icon={<Users size={24} />} title="Gestión de Clientes" />
       
-      <div className="admin-users-layout animate-fade-in" style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'clamp(280px, 30%, 350px) 1fr', gap: '1.5rem', height: isMobile ? 'auto' : 'calc(100vh - 180px)', overflow: isMobile ? 'visible' : 'hidden', width: '100%' }}>
+      <div className="admin-users-layout animate-fade-in" style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'clamp(280px, 30%, 350px) 1fr', gap: '1.5rem', width: '100%' }}>
         <style>{`
         .premium-input-search {
           background: #FFFFFF !important;
@@ -249,17 +249,15 @@ export const AdminUsersPage: React.FC = () => {
           color: #EF4444 !important;
         }
       `}</style>
-
+ 
       {/* Sidebar de Usuarios */}
       {(!isMobile || !selectedUserId) && (
-        <div className="card glass-panel" style={{ 
+        <div className="card glass-panel contenedor-lista-clientes" style={{ 
           display: 'flex', 
           flexDirection: 'column', 
-          overflow: 'hidden', 
           padding: '1rem',
           width: '100%',
-          boxSizing: 'border-box',
-          height: isMobile ? 'auto' : '100%'
+          boxSizing: 'border-box'
         }}>
           <div className="search-box" style={{ 
             position: 'relative', 
@@ -292,8 +290,8 @@ export const AdminUsersPage: React.FC = () => {
               }}
             />
           </div>
-
-          <div style={{ flex: 1, overflowY: 'auto', display: 'grid', gap: '0.5rem', alignContent: 'start' }}>
+ 
+          <div style={{ display: 'grid', gap: '0.5rem', alignContent: 'start' }}>
             {filteredUsers.map(u => (
               <div 
                 key={u.id}
@@ -342,8 +340,6 @@ export const AdminUsersPage: React.FC = () => {
       {/* Detalle del Usuario */}
       {(!isMobile || selectedUserId) && (
         <div className="user-detail-content" style={{ 
-          overflowY: 'auto', 
-          overflowX: 'hidden', 
           padding: isMobile ? '1rem' : '0', 
           display: 'flex', 
           flexDirection: 'column', 
