@@ -51,23 +51,59 @@ export const PromoOfferModal: React.FC = () => {
   };
 
   return (
-    <div className="promo-modal-overlay">
-      <div className="promo-modal-card">
-        {/* We only render the close button here if it is an image type. For text type, it is rendered inside PromoOfferTextDesign */}
-        {offer.type === 'image' && (
-          <button 
-            onClick={handleClose}
-            className="promo-close-btn-minimal"
-            title="Cerrar oferta"
-          >
-            <X size={20} />
-          </button>
-        )}
+    <div 
+      style={{
+        position: 'fixed',
+        top: 0, left: 0, right: 0, bottom: 0,
+        backgroundColor: 'rgba(0,0,0,0.7)',
+        backdropFilter: 'blur(4px)',
+        zIndex: 99999,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '2rem',
+        animation: 'fadeIn 0.3s ease-out'
+      }}
+    >
+      <div 
+        style={{
+          position: 'relative',
+          maxWidth: '500px',
+          width: '100%',
+          background: '#fff',
+          borderRadius: '16px',
+          boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
+          overflow: 'hidden',
+          animation: 'slideUp 0.4s ease-out'
+        }}
+      >
+        <button 
+          onClick={handleClose}
+          style={{
+            position: 'absolute',
+            top: '1rem',
+            right: '1rem',
+            width: '36px',
+            height: '36px',
+            borderRadius: '50%',
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            border: 'none',
+            color: '#fff',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            zIndex: 10
+          }}
+          title="Cerrar oferta"
+        >
+          <X size={20} />
+        </button>
         
         {/* Imagen Promocional o Texto Dinámico */}
         <div style={{ width: '100%', display: 'block', minHeight: '300px', background: '#f8fafc' }}>
           {offer.type === 'text' ? (
-            <PromoOfferTextDesign offer={offer} onClose={handleClose} style={{ borderRadius: '0', minHeight: '350px' }} />
+            <PromoOfferTextDesign offer={offer} style={{ borderRadius: '0', minHeight: '350px' }} />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               <img 
@@ -87,54 +123,6 @@ export const PromoOfferModal: React.FC = () => {
         </div>
       </div>
       <style>{`
-        .promo-modal-overlay {
-          position: fixed;
-          top: 0; left: 0; right: 0; bottom: 0;
-          background-color: rgba(0,0,0,0.7);
-          backdrop-filter: blur(4px);
-          z-index: 99999;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 2rem;
-          animation: fadeIn 0.3s ease-out;
-        }
-
-        .promo-modal-card {
-          position: relative;
-          max-width: 600px;
-          width: 100%;
-          margin: auto;
-          background: #fff;
-          border-radius: 16px;
-          box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-          overflow: hidden;
-          animation: slideUp 0.4s ease-out;
-        }
-
-        .promo-close-btn-minimal {
-          position: absolute;
-          top: 12px;
-          right: 12px;
-          background: transparent;
-          border: none;
-          color: #475569;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          z-index: 100;
-          padding: 6px;
-          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .promo-close-btn-minimal:hover {
-          color: #0f172a;
-          transform: scale(1.15);
-        }
-        .promo-close-btn-minimal:active {
-          transform: scale(0.9);
-        }
-
         @keyframes fadeIn {
           from { opacity: 0; }
           to { opacity: 1; }
@@ -142,21 +130,6 @@ export const PromoOfferModal: React.FC = () => {
         @keyframes slideUp {
           from { opacity: 0; transform: translateY(20px) scale(0.95); }
           to { opacity: 1; transform: translateY(0) scale(1); }
-        }
-
-        @media (max-width: 768px) {
-          .promo-modal-overlay {
-            padding: 16px;
-          }
-          .promo-modal-card {
-            width: 90%;
-            max-width: none;
-            border-radius: 12px;
-          }
-          .promo-close-btn-minimal {
-            top: 8px;
-            right: 8px;
-          }
         }
       `}</style>
     </div>
