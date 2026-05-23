@@ -674,15 +674,14 @@ export const AdminDashboard: React.FC = () => {
           <div className="card glass-panel" style={{ display: 'flex', flexDirection: 'column', padding: isMobile ? '1rem 0.5rem' : '1.5rem' }}>
             <div style={{ 
               display: 'flex', 
-              justifyContent: 'space-between', 
+              justifyContent: 'flex-end', 
               alignItems: 'center', 
               marginBottom: '1.25rem', 
               paddingLeft: isMobile ? '0.5rem' : 0,
               gap: '1rem',
-              flexWrap: 'wrap'
+              flexWrap: 'wrap',
+              width: '100%'
             }}>
-              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 600, color: 'var(--text-primary)' }}>Calendario de Reservas</h3>
-              
               <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
                 {/* Pending Appts Indicator */}
                 <div 

@@ -42,7 +42,7 @@ export const AdminSettingsPage: React.FC = () => {
 
   return (
     <div className="animate-fade-in">
-      <PageHeader icon={<Settings size={24} />} title="Ajustes Generales" />
+      <PageHeader icon={<Settings size={24} />} title="Ajustes Generales" description="Configuración global del comportamiento de tu plataforma." />
       
       {isLoading && (
         <div style={{ padding: '5rem', textAlign: 'center' }}>
@@ -62,7 +62,6 @@ export const AdminSettingsPage: React.FC = () => {
 
       {!isLoading && !errorMessage && config && (
         <div className="card glass-panel" style={{ maxWidth: '600px', display: 'flex', flexDirection: 'column' }}>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: '0 0 1rem 0' }}>Configuración global del comportamiento de tu plataforma.</p>
           
           {/* Row 1: Capacidad */}
           <div className="form-group settings-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1.5rem', padding: '16px 0', borderBottom: '1px solid #F1F5F9' }}>

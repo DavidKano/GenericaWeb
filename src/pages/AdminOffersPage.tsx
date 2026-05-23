@@ -432,13 +432,13 @@ export const AdminOffersPage: React.FC = () => {
         }
       `}</style>
 
-      <PageHeader icon={<Megaphone size={24} />} title="Ofertas y Promociones" />
+      <PageHeader 
+        icon={<Megaphone size={24} />} 
+        title="Ofertas y Promociones" 
+        description="Sube una imagen promocional que aparecerá frente a los clientes cuando entren a la web. Al pasar la 'Fecha de Fin', las ofertas desaparecerán por completo y se borrarán automáticamente del sistema."
+      />
 
       <section className="card glass-panel" style={{ padding: isMobile ? '1.5rem 1rem' : '2rem' }}>
-        <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem', fontSize: '0.9rem' }}>
-          Sube una imagen promocional que aparecerá frente a los clientes cuando entren a la web. 
-          Al pasar la "Fecha de Fin", las ofertas desaparecerán por completo y se borrarán automáticamente del sistema.
-        </p>
 
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(350px, 1fr))', gap: '2rem' }}>
           

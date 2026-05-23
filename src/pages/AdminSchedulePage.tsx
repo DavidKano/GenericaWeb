@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useData } from '../context/DataContext';
 import type { DaySchedule, BlockedDay, TimeRange } from '../services/models';
 import { Clock, CalendarOff, Plus, Trash2, Save, Loader2, Edit2, X, Calendar, FileText } from 'lucide-react';
+import { PageHeader } from '../components/ui/PageHeader';
 import { INITIAL_SCHEDULES } from '../services/scheduleDefaults';
 import { format, parseISO, addDays } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -531,13 +532,16 @@ export const AdminSchedulePage: React.FC = () => {
         }
       `}</style>
       
+      <PageHeader 
+        icon={<Clock size={24} />} 
+        title="Horarios y Bloqueos" 
+        description="Define qué días abres y tus turnos u horas de apertura. Los cambios aplicarán a todas las citas futuras." 
+      />
+
       <section className="schedule-card">
-        <h2 style={{ fontSize: '1.4rem', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-          <Clock size={22} color="var(--primary-color)" /> Horario Estándar Semanal
-        </h2>
-        <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem', fontSize: '0.9rem' }}>
-          Define qué días abres y tus turnos u horas de apertura. Los cambios aplicarán a todas las citas futures.
-        </p>
+        <h3 style={{ fontSize: '1.1rem', marginBottom: '1.5rem', color: 'var(--text-primary)', fontWeight: 600 }}>
+          Horario Estándar Semanal
+        </h3>
 
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           {sortedSchedules.map((sch) => {
