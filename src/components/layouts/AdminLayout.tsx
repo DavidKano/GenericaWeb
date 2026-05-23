@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { LayoutDashboard, Users, User as UserIcon, LogOut, QrCode, Clock, Megaphone, Menu, X, Sliders, Settings } from 'lucide-react';
+import { LayoutDashboard, Users, User as UserIcon, LogOut, QrCode, Clock, Megaphone, Menu, X, Sliders, Settings, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import type { DesignConfig, CompanyData } from '../../services/models';
 import { ConnessiaFooter } from '../ui/ConnessiaFooter';
@@ -48,6 +48,18 @@ export const AdminLayout: React.FC = () => {
   const [showSupportModal, setShowSupportModal] = React.useState(false);
 
   const [isMobile, setIsMobile] = React.useState(window.innerWidth <= 768);
+
+  const [isCollapsed, setIsCollapsed] = React.useState(() => {
+    return localStorage.getItem('admin_sidebar_collapsed') === 'true';
+  });
+
+  const toggleCollapse = () => {
+    setIsCollapsed(prev => {
+      const next = !prev;
+      localStorage.setItem('admin_sidebar_collapsed', String(next));
+      return next;
+    });
+  };
 
   React.useEffect(() => {
     const handleResize = () => {
@@ -119,10 +131,8 @@ export const AdminLayout: React.FC = () => {
             </div>
           )}
         </div>
-      </header>
-
-      {/* Body: Sidebar + Content */}
-      <div className="app-container" style={{ display: 'flex', flex: 1, overflow: 'hidden', position: 'relative' }}>
+      </header>      {/* Body: Sidebar + Content */}
+      <div className={`app-container ${!isMobile && isCollapsed ? 'sidebar-collapsed' : ''}`} style={{ display: 'flex', flex: 1, overflow: 'hidden', position: 'relative' }}>
         
         {/* Mobile Sidebar Overlay */}
         {isMobile && isMenuOpen && (
@@ -133,8 +143,8 @@ export const AdminLayout: React.FC = () => {
         )}
 
         {/* Sidebar (Desktop or Mobile Drawer) */}
-        <nav 
-          className={`admin-sidebar ${isMobile ? 'mobile-drawer' : ''}`}
+        <aside 
+          className={`admin-sidebar sidebar ${isMobile ? 'mobile-drawer' : ''}`}
           style={{ 
             display: (isMobile && !isMenuOpen) ? 'none' : 'flex',
             position: isMobile ? 'absolute' : 'relative',
@@ -142,11 +152,12 @@ export const AdminLayout: React.FC = () => {
             top: 0,
             bottom: 0,
             zIndex: 101,
-            width: '260px',
+            width: isMobile ? '260px' : (isCollapsed ? '72px' : '260px'),
+            transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s ease, border-color 0.3s ease',
             boxShadow: isMobile ? '10px 0 30px rgba(0,0,0,0.08)' : 'none',
             background: 'var(--surface-color)',
             border: 'none',
-            borderRight: '1px solid #E2E8F0', // subtle sutil right border
+            borderRight: '1px solid #E2E8F0', // subtle right border
             borderRadius: isMobile ? '0 16px 16px 0' : '0px',
             flexDirection: 'column',
             gap: '0.25rem',
@@ -155,7 +166,7 @@ export const AdminLayout: React.FC = () => {
           }}
         >
           {/* Logo / Brand Header */}
-          <div style={{
+          <div className="brand-header-container" style={{
             padding: '24px 28px 24px 28px', // Generous padding perfectly aligned with menu items
             display: 'flex',
             alignItems: 'center',
@@ -192,7 +203,7 @@ export const AdminLayout: React.FC = () => {
                 <LayoutDashboard size={15} strokeWidth={2.2} />
               </div>
             )}
-            <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <div className="brand-text-container" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
               <span style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-color)', letterSpacing: '0.3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '140px' }}>
                 {companyData?.nombreEmpresa || 'Workspace Admin'}
               </span>
@@ -209,12 +220,14 @@ export const AdminLayout: React.FC = () => {
                 key={item.to} 
                 to={item.to} 
                 className={({ isActive }) => `admin-sidebar-link ${isActive ? 'active' : ''}`}
+                data-tooltip={item.label}
                 style={({ isActive }) => ({
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '12px',                      // fixed 12px padding between icon and text
-                  padding: '12px 16px',             // vertical padding of minimum 12px
-                  margin: '2px 12px',               // floats inside the sidebar as a pill
+                  gap: isCollapsed && !isMobile ? '0px' : '12px',                      // fixed 12px padding between icon and text
+                  padding: isCollapsed && !isMobile ? '12px 0' : '12px 16px',             // vertical padding of minimum 12px
+                  margin: isCollapsed && !isMobile ? '2px 8px' : '2px 12px',               // floats inside the sidebar as a pill
+                  justifyContent: isCollapsed && !isMobile ? 'center' : 'flex-start',
                   borderRadius: '8px',              // pill container with rounded corners
                   textDecoration: 'none',
                   fontSize: '0.9rem',
@@ -232,7 +245,7 @@ export const AdminLayout: React.FC = () => {
                 onClick={() => isMobile && setIsMenuOpen(false)}
                 end={item.end}
               >
-                <span style={{ 
+                <span className="sidebar-link-icon" style={{ 
                   display: 'flex', 
                   alignItems: 'center', 
                   justifyContent: 'center',
@@ -243,14 +256,14 @@ export const AdminLayout: React.FC = () => {
                 }}>
                   {item.icon}
                 </span>
-                <span>{item.label}</span>
+                <span className="sidebar-link-text">{item.label}</span>
               </NavLink>
             ))}
           </div>
           
           {/* Subscription Card (Encapsulated at the bottom of the sidebar) */}
           {companyData?.fechaRenovacion && (
-             <div style={{
+             <div className="sub-card-container" style={{
                marginTop: 'auto',
                margin: '16px 12px',
                padding: '12px 14px',
@@ -289,19 +302,33 @@ export const AdminLayout: React.FC = () => {
              </div>
           )}
 
+          {/* Bottom Collapse Button for Desktop */}
+          {!isMobile && (
+            <div className="sidebar-footer" style={{ marginTop: companyData?.fechaRenovacion ? '0px' : 'auto', padding: '16px 12px', display: 'flex', justifyContent: 'center' }}>
+              <button 
+                type="button"
+                onClick={toggleCollapse}
+                className="sidebar-collapse-btn"
+                title={isCollapsed ? "Expandir menú" : "Contraer menú"}
+              >
+                {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+              </button>
+            </div>
+          )}
+
           {isMobile && (
              <div style={{ padding: '1.5rem', borderTop: '1px solid var(--glass-border)', marginTop: companyData?.fechaRenovacion ? '0px' : 'auto' }}>
                 <button 
-                  onClick={() => setShowSupportModal(true)}
-                  style={{ color: design?.primaryColor || 'var(--primary-color)', fontSize: '0.9rem', textDecoration: 'none', fontWeight: 600, background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+                   onClick={() => setShowSupportModal(true)}
+                   style={{ color: design?.primaryColor || 'var(--primary-color)', fontSize: '0.9rem', textDecoration: 'none', fontWeight: 600, background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
                 >
-                  Contactar Soporte Técnico
+                   Contactar Soporte Técnico
                 </button>
              </div>
           )}
-        </nav>
+        </aside>
         
-        <main className="app-content" style={{ flex: 1, padding: isMobile ? '1rem' : '1.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+        <main className="app-content main-content" style={{ flex: 1, padding: isMobile ? '1rem' : '1.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
           <div style={{ maxWidth: '100%', margin: '0 auto', flex: 1, width: '100%' }}>
             <Outlet />
           </div>
