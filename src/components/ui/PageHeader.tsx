@@ -12,18 +12,22 @@ export const PageHeader: React.FC<Props> = ({ icon, title, description, style })
     <div className="page-header" style={{
       display: 'flex',
       flexDirection: 'column',
-      gap: '0.375rem',
-      marginBottom: '1.5rem', // 24px margin-bottom
+      gap: '4px', // Reduced gap between title and description to strict 4px/8px
+      marginBottom: '16px', // Reduced margin-bottom separating header from cards to strict 16px
       textAlign: 'left',
       width: '100%',
       boxSizing: 'border-box',
+      padding: 0,
+      margin: 0,
       ...style
     }}>
       <div className="page-header__title-row" style={{
         display: 'flex',
         alignItems: 'center',
         gap: '0.75rem',
-        justifyContent: 'flex-start'
+        justifyContent: 'flex-start',
+        margin: 0,
+        padding: 0
       }}>
         <div className="page-header__icon" style={{
           display: 'flex',
@@ -35,7 +39,8 @@ export const PageHeader: React.FC<Props> = ({ icon, title, description, style })
           {icon}
         </div>
         <h1 className="page-header__title" style={{
-          margin: 0,
+          margin: 0, // Zero default margins
+          padding: 0,
           fontSize: '1.5rem',
           fontWeight: 600,
           color: 'var(--text-color, #0F172A)',
@@ -47,7 +52,8 @@ export const PageHeader: React.FC<Props> = ({ icon, title, description, style })
       </div>
       {description && (
         <p className="page-description" style={{
-          margin: '0.25rem 0 0 0',
+          margin: 0, // Zero default margins
+          padding: 0,
           fontSize: '0.875rem', // 14px
           color: '#64748B',
           lineHeight: '1.5',

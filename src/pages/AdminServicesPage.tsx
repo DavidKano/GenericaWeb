@@ -186,7 +186,7 @@ export const AdminServicesPage: React.FC = () => {
           color: white !important;
         }
       `}</style>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem', alignItems: 'center' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '1rem', alignItems: 'center' }}>
         <PageHeader icon={<Sliders size={24} />} title="Gestión de Servicios" style={{ marginBottom: 0 }} />
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button className="btn-secondary" onClick={() => setShowFolderModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', borderRadius: '8px', fontSize: '0.85rem' }}>

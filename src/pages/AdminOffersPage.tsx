@@ -167,10 +167,10 @@ export const AdminOffersPage: React.FC = () => {
     <div className="admin-offers-container animate-fade-in">
       <style>{`
         .admin-offers-container {
-          padding: ${isMobile ? '0' : '1rem'};
+          padding: 0;
           display: flex;
           flex-direction: column;
-          gap: 2rem;
+          gap: 16px;
           box-sizing: border-box;
           width: 100%;
         }

@@ -202,16 +202,11 @@ export const AdminSchedulePage: React.FC = () => {
       <style>{`
         .admin-schedule-container {
           width: 100%;
-          padding: 2rem 1.5rem;
+          padding: 0;
           display: flex;
           flex-direction: column;
-          gap: 2rem;
+          gap: 16px;
           box-sizing: border-box;
-        }
-        @media (max-width: 768px) {
-          .admin-schedule-container {
-            padding: 1rem 16px;
-          }
         }
         
         .schedule-card {

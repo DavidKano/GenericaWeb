@@ -106,9 +106,15 @@
 
 .app-content {
   flex: 1;
-  padding: 2rem;
+  padding: 24px 32px 32px 32px;
   overflow-y: auto;
   background: var(--bg-color);
+}
+
+@media (max-width: 768px) {
+  .app-content {
+    padding: 16px;
+  }
 }
 
 /* ==================== DATA MODE TOGGLE ==================== */
