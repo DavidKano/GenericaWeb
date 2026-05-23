@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useData } from '../context/DataContext';
 import type { BusinessConfig } from '../services/models';
 import { INITIAL_BUSINESS_CONFIG } from '../services/configDefaults';
+import { Settings } from 'lucide-react';
+import { PageHeader } from '../components/ui/PageHeader';
 
 export const AdminSettingsPage: React.FC = () => {
   const { repo } = useData();
@@ -40,7 +42,7 @@ export const AdminSettingsPage: React.FC = () => {
 
   return (
     <div className="animate-fade-in">
-      <h2 style={{ marginBottom: '1.5rem' }}>⚙️ Ajustes Generales</h2>
+      <PageHeader icon={<Settings size={24} />} title="Ajustes Generales" />
       
       {isLoading && (
         <div style={{ padding: '5rem', textAlign: 'center' }}>

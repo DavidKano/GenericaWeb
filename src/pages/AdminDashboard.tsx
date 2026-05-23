@@ -4,7 +4,8 @@ import type { User, Appointment, BookingService, DaySchedule, BusinessConfig, Co
 import { INITIAL_SCHEDULES } from '../services/scheduleDefaults';
 import { INITIAL_BUSINESS_CONFIG } from '../services/configDefaults';
 import { generateTimeSlots } from '../utils/timeSlots';
-import { Plus, XCircle, User as UserIcon, ChevronLeft, ChevronRight, Columns, Minus, MessageCircle, Bell, Clock, Briefcase, Calendar as LucideCalendar, Phone, Mail, Tag } from 'lucide-react';
+import { Plus, XCircle, User as UserIcon, ChevronLeft, ChevronRight, Columns, Minus, MessageCircle, Bell, Clock, Briefcase, Calendar as LucideCalendar, Phone, Mail, Tag, LayoutDashboard } from 'lucide-react';
+import { PageHeader } from '../components/ui/PageHeader';
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -625,6 +626,7 @@ export const AdminDashboard: React.FC = () => {
           filter: brightness(0.98);
         }
       `}</style>
+      <PageHeader icon={<LayoutDashboard size={24} />} title="Panel de Control" />
       {/* Subscription Expiration Popup */}
       {showSubPopup && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>

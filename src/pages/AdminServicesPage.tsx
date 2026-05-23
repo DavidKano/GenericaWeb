@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useData } from '../context/DataContext';
 import type { BookingService, BusinessConfig } from '../services/models';
 import { INITIAL_BUSINESS_CONFIG } from '../services/configDefaults';
-import { Trash2, Clock, Euro, Edit3, Briefcase, Folder, X } from 'lucide-react';
+import { Trash2, Clock, Euro, Edit3, Briefcase, Folder, X, Sliders } from 'lucide-react';
+import { PageHeader } from '../components/ui/PageHeader';
 
 export const AdminServicesPage: React.FC = () => {
   const { repo } = useData();
@@ -186,7 +187,7 @@ export const AdminServicesPage: React.FC = () => {
         }
       `}</style>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem', alignItems: 'center' }}>
-        <h2 style={{ margin: 0 }}>🛠️ Servicios Disponibles</h2>
+        <PageHeader icon={<Sliders size={24} />} title="Gestión de Servicios" style={{ marginBottom: 0 }} />
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button className="btn-secondary" onClick={() => setShowFolderModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', borderRadius: '8px', fontSize: '0.85rem' }}>
             + Añadir Carpeta

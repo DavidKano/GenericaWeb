@@ -3,7 +3,8 @@ import { useData } from '../context/DataContext';
 import type { PromoOffer } from '../services/models';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Image as ImageIcon, Calendar, Plus, Trash2, Save, Loader2, AlertCircle, Ticket } from 'lucide-react';
+import { Image as ImageIcon, Calendar, Plus, Trash2, Save, Loader2, AlertCircle, Ticket, Megaphone } from 'lucide-react';
+import { PageHeader } from '../components/ui/PageHeader';
 
 export const AdminOffersPage: React.FC = () => {
   const { repo } = useData();
@@ -431,10 +432,9 @@ export const AdminOffersPage: React.FC = () => {
         }
       `}</style>
 
+      <PageHeader icon={<Megaphone size={24} />} title="Ofertas y Promociones" />
+
       <section className="card glass-panel" style={{ padding: isMobile ? '1.5rem 1rem' : '2rem' }}>
-        <h2 style={{ fontSize: '1.4rem', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-primary)' }}>
-          <ImageIcon size={22} color="var(--primary-color)" /> Gestor de Ofertas y Promociones
-        </h2>
         <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem', fontSize: '0.9rem' }}>
           Sube una imagen promocional que aparecerá frente a los clientes cuando entren a la web. 
           Al pasar la "Fecha de Fin", las ofertas desaparecerán por completo y se borrarán automáticamente del sistema.

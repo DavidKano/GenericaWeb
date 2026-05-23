@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import type { User, Appointment, BookingService } from '../services/models';
-import { Search, User as UserIcon, Calendar, FileText, Phone, Mail, MapPin, Edit, X, Info, Trash2, ArrowLeft, Tag } from 'lucide-react';
+import { Search, User as UserIcon, Calendar, FileText, Phone, Mail, MapPin, Edit, X, Info, Trash2, ArrowLeft, Tag, Users } from 'lucide-react';
+import { PageHeader } from '../components/ui/PageHeader';
 
 const getInitials = (name: string) => {
   const parts = name.trim().split(/\s+/);
@@ -176,8 +177,11 @@ export const AdminUsersPage: React.FC = () => {
   };
 
   return (
-    <div className="admin-users-layout animate-fade-in" style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'clamp(280px, 30%, 350px) 1fr', gap: '1.5rem', height: isMobile ? 'auto' : 'calc(100vh - 120px)', overflow: isMobile ? 'visible' : 'hidden' }}>
-      <style>{`
+    <div style={{ display: 'flex', flexDirection: 'column', height: isMobile ? 'auto' : '100%', gap: '0.5rem', width: '100%' }}>
+      <PageHeader icon={<Users size={24} />} title="Gestión de Clientes" />
+      
+      <div className="admin-users-layout animate-fade-in" style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'clamp(280px, 30%, 350px) 1fr', gap: '1.5rem', height: isMobile ? 'auto' : 'calc(100vh - 180px)', overflow: isMobile ? 'visible' : 'hidden', width: '100%' }}>
+        <style>{`
         .premium-input-search {
           background: #FFFFFF !important;
           border: 1px solid #E2E8F0 !important;
@@ -809,6 +813,7 @@ export const AdminUsersPage: React.FC = () => {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };
