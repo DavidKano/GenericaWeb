@@ -625,8 +625,97 @@ export const AdminDashboard: React.FC = () => {
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
           filter: brightness(0.98);
         }
+
+        /* Interactive KPI Badges */
+        .kpi-badge {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          background-color: #FFFFFF;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+          padding: 6px 14px;
+          border-radius: 99px;
+          font-size: 0.8rem;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          user-select: none;
+          box-sizing: border-box;
+          border: 1px solid transparent;
+        }
+
+        .kpi-badge--pending {
+          border-color: #FDE047;
+        }
+        .kpi-badge--pending:hover {
+          transform: translateY(-1px);
+          border-color: #F59E0B;
+          box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15);
+        }
+
+        .kpi-badge--today {
+          border-color: var(--primary-color, #008080);
+        }
+        .kpi-badge--today:hover {
+          transform: translateY(-1px);
+          border-color: var(--primary-hover, #006666);
+          box-shadow: 0 4px 12px rgba(0, 128, 128, 0.15);
+        }
+
+        .status-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          flex-shrink: 0;
+        }
+
+        .status-dot--pending {
+          background-color: #F59E0B;
+          animation: badge-pulse 2s infinite;
+        }
+
+        .status-dot--today {
+          background-color: var(--primary-color, #008080);
+        }
+
+        @keyframes badge-pulse {
+          0% {
+            box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7);
+          }
+          70% {
+            box-shadow: 0 0 0 6px rgba(245, 158, 11, 0);
+          }
+          100% {
+            box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+          }
+        }
       `}</style>
-      <PageHeader icon={<LayoutDashboard size={24} />} title="Panel de Control" />
+      <PageHeader 
+        icon={<LayoutDashboard size={24} />} 
+        title="Panel de Control" 
+        actions={
+          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+            <div 
+              className="kpi-badge kpi-badge--pending"
+              onClick={() => setShowPendingModal(true)}
+              title="Ver citas pendientes"
+            >
+              <span className="status-dot status-dot--pending"></span>
+              <span style={{ color: '#475569' }}>Citas Pendientes:</span>
+              <strong style={{ fontWeight: 600, color: '#1E293B', fontSize: '0.9rem' }}>{pendingAppts.length}</strong>
+            </div>
+
+            <div 
+              className="kpi-badge kpi-badge--today"
+              title="Citas para el día de hoy"
+            >
+              <span className="status-dot status-dot--today"></span>
+              <span style={{ color: '#475569' }}>Citas Hoy:</span>
+              <strong style={{ fontWeight: 600, color: '#1E293B', fontSize: '0.9rem' }}>{todayAppts.length}</strong>
+            </div>
+          </div>
+        }
+      />
       {/* Subscription Expiration Popup */}
       {showSubPopup && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
@@ -671,73 +760,7 @@ export const AdminDashboard: React.FC = () => {
 
       {!isLoading && !errorMessage && (
         <>
-          <div className="card glass-panel" style={{ display: 'flex', flexDirection: 'column', padding: isMobile ? '1rem 0.5rem' : '1.5rem' }}>
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'flex-end', 
-              alignItems: 'center', 
-              marginBottom: '1.25rem', 
-              paddingLeft: isMobile ? '0.5rem' : 0,
-              gap: '1rem',
-              flexWrap: 'wrap',
-              width: '100%'
-            }}>
-              <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                {/* Pending Appts Indicator */}
-                <div 
-                  onClick={() => setShowPendingModal(true)}
-                  style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '0.6rem',
-                    background: 'rgba(234, 179, 8, 0.1)', 
-                    border: '1px solid rgba(234, 179, 8, 0.25)', 
-                    padding: '0.35rem 0.85rem', 
-                    borderRadius: '999px',
-                    color: '#eab308',
-                    fontSize: '0.8rem',
-                    fontWeight: '600',
-                    boxShadow: '0 2px 8px rgba(234, 179, 8, 0.08)',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <span style={{ 
-                    display: 'inline-flex', 
-                    width: '7px', 
-                    height: '7px', 
-                    borderRadius: '50%', 
-                    backgroundColor: '#eab308'
-                  }}></span>
-                  <span>Citas Pendientes:</span>
-                  <strong style={{ fontSize: '0.95rem', color: 'var(--text-primary)' }}>{pendingAppts.length}</strong>
-                </div>
-
-                {/* Premium Live Stat Indicator */}
-                <div style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '0.6rem',
-                  background: 'rgba(59, 130, 246, 0.1)', 
-                  border: '1px solid rgba(59, 130, 246, 0.25)', 
-                  padding: '0.35rem 0.85rem', 
-                  borderRadius: '999px',
-                  color: '#3b82f6',
-                  fontSize: '0.8rem',
-                  fontWeight: '600',
-                  boxShadow: '0 2px 8px rgba(59, 130, 246, 0.08)'
-                }}>
-                  <span style={{ 
-                    display: 'inline-flex', 
-                    width: '7px', 
-                    height: '7px', 
-                    borderRadius: '50%', 
-                    backgroundColor: '#3b82f6'
-                  }}></span>
-                  <span>Citas Hoy:</span>
-                  <strong style={{ fontSize: '0.95rem', color: 'var(--text-primary)' }}>{todayAppts.length}</strong>
-                </div>
-              </div>
-            </div>
+          <div className="card glass-panel" style={{ display: 'flex', flexDirection: 'column', padding: isMobile ? '12px 8px' : '16px' }}>
             <div style={{ flex: 'none', height: 'auto' }} className={`admin-calendar-container view-${currentView}`}>
               <Calendar
                 localizer={localizer}
