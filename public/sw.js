@@ -16,10 +16,36 @@ self.addEventListener('install', event => {
 });
 
 self.addEventListener('fetch', event => {
+  // 1. Solo interceptar peticiones GET
+  if (event.request.method !== 'GET') {
+    return;
+  }
+
+  // 2. Solo interceptar protocolos HTTP o HTTPS (ignorar chrome-extension, etc.)
+  if (!event.request.url.startsWith('http')) {
+    return;
+  }
+
+  const url = new URL(event.request.url);
+
+  // 3. BYPASS PARA FIREBASE / GOOGLE APIS
+  // Al no hacer event.respondWith(), la petición se procesa directamente por el navegador (petición nativa).
+  // Esto evita interrumpir las conexiones persistentes (Server-Sent Events / Long Polling / WebSockets) de Firestore.
+  if (
+    url.hostname.includes('firestore.googleapis.com') ||
+    url.hostname.includes('identitytoolkit.googleapis.com') ||
+    url.hostname.includes('firebase.googleapis.com') ||
+    url.hostname.includes('firebaseapp.com') ||
+    url.hostname.includes('googleapis.com')
+  ) {
+    return;
+  }
+
+  // 4. Lógica normal del Service Worker (Cache First)
   event.respondWith(
     caches.match(event.request)
       .then(response => {
-        // Cache hit - return response
+        // Cache hit - retornar respuesta
         if (response) {
           return response;
         }
