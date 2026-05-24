@@ -6,6 +6,7 @@ type AuthContextType = {
   user: User | null;
   login: (email: string, password: string) => Promise<boolean>;
   register: (userData: Omit<User, 'id' | 'role'>, password: string) => Promise<boolean>;
+  loginWithGoogle: () => Promise<boolean>;
   logout: () => void;
   resetPassword: (email: string) => Promise<boolean>;
   isAdmin: boolean;
@@ -262,6 +263,61 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return true;
   }, [mode]);
 
+  const loginWithGoogle = useCallback(async (): Promise<boolean> => {
+    if (mode === 'firebase') {
+      try {
+        const { getAuth, signInWithPopup, GoogleAuthProvider } = await import('firebase/auth');
+        const auth = getAuth();
+        const provider = new GoogleAuthProvider();
+        
+        const cred = await signInWithPopup(auth, provider);
+        let dbUser = await repo.getUserById(cred.user.uid);
+        
+        if (!dbUser) {
+          dbUser = {
+            id: cred.user.uid,
+            name: cred.user.displayName || 'Usuario Google',
+            email: cred.user.email || '',
+            phone: cred.user.phoneNumber || '',
+            role: 'CUSTOMER',
+            isActive: true
+          };
+          await repo.saveUser(dbUser);
+        }
+        
+        if (dbUser.isActive === false) {
+          await auth.signOut();
+          return false;
+        }
+
+        if (dbUser.role === 'ADMIN') {
+           await repo.saveUser({ ...dbUser, lastAdminAccess: Date.now() });
+        }
+        
+        setUser(dbUser);
+        localStorage.setItem('currentUser', JSON.stringify(dbUser));
+        return true;
+      } catch (err) {
+        console.error('Error en Google Login:', err);
+        return false;
+      }
+    }
+    
+    // Modo local / demo
+    const mockGoogleUser: User = {
+      id: 'google-demo-123',
+      name: 'Usuario Google Demo',
+      email: 'google@demo.com',
+      phone: '655555555',
+      role: 'CUSTOMER',
+      isActive: true
+    };
+    await repo.saveUser(mockGoogleUser);
+    setUser(mockGoogleUser);
+    localStorage.setItem('currentUser', JSON.stringify(mockGoogleUser));
+    return true;
+  }, [repo, mode]);
+
   const logout = useCallback(() => {
     setUser(null);
     localStorage.removeItem('currentUser');
@@ -272,6 +328,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       user, 
       login, 
       register, 
+      loginWithGoogle,
       logout, 
       resetPassword,
       isAdmin: user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN',

@@ -1128,6 +1128,133 @@ input[type="time"] {
   color: var(--primary-color, #3b82f6) !important;
 }
 
+/* Media query for mobile device respiration (safety margins) and organically balanced spaces on Login Page */
+@media (max-width: 480px) {
+  .login-page {
+    padding: 1.5rem 16px !important; /* comfortable page padding */
+    gap: 1rem !important; /* organic gap between elements */
+  }
+  
+  .login-card {
+    margin: 0 !important; /* let parent padding handle the outer 16px safety margin */
+    padding: 32px 24px !important; /* balanced internal padding requested by user */
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: 16px !important;
+  }
+
+  .login-card .login-header {
+    margin-bottom: 1.25rem !important;
+  }
+
+  .login-card .logo-icon {
+    margin: 0 auto 16px !important; /* organic 16px bottom margin requested by user */
+    height: 80px !important; /* beautiful responsive size */
+    width: auto !important;
+    max-width: 120px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  /* Target text-based logo icons if no sourceLogoUrl image is present */
+  .login-card .logo-icon:not(:has(img)) {
+    height: 52px !important;
+    width: 52px !important;
+  }
+  
+  .login-card .logo-icon img {
+    max-height: 72px !important;
+    width: 100% !important;
+    object-fit: contain !important;
+  }
+
+  .login-card h1 {
+    font-size: 1.5rem !important; /* comfortable title size */
+    margin-bottom: 0.35rem !important;
+  }
+
+  .login-card .subtitle {
+    margin-bottom: 1rem !important;
+    font-size: 0.85rem !important;
+  }
+
+  .login-card form {
+    gap: 0.75rem !important;
+  }
+
+  .login-card .form-group {
+    margin-bottom: 16px !important; /* organic 16px bottom margin requested by user */
+  }
+
+  .login-card .form-group label {
+    margin-bottom: 6px !important; /* clear and tidy spacing */
+    font-size: 0.85rem !important;
+  }
+
+  .login-card .form-group input {
+    padding: 0.7rem 0.9rem !important; /* comfortable input heights */
+    font-size: 0.95rem !important;
+  }
+
+  .login-card button[type="submit"] {
+    padding: 0.75rem 1.25rem !important;
+    margin-top: 4px !important;
+    font-size: 1rem !important;
+  }
+
+  .login-card .login-divider {
+    margin: 16px 0 !important; /* perfect 16px spacing requested by user */
+    font-size: 0.8rem !important;
+  }
+
+  .login-card .btn-google {
+    padding: 0.75rem 1.25rem !important;
+    gap: 12px !important; /* 12px spacing for Google branding specs */
+    font-size: 0.95rem !important;
+  }
+
+  .login-card .register-prompt {
+    margin-top: 16px !important; /* 16px of breathing space requested by user */
+    font-size: 0.9rem !important;
+  }
+
+  .login-card .login-footer {
+    margin-top: 16px !important; /* 16px of breathing space requested by user */
+    font-size: 0.8rem !important;
+  }
+
+  .login-card .login-footer span {
+    display: block !important;
+    margin-bottom: 6px !important;
+  }
+
+  .login-card .login-legal-links {
+    display: block !important;
+    width: 100% !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    text-align: center !important;
+    margin-bottom: 6px !important;
+  }
+
+  .login-card .login-legal-links span {
+    display: inline !important;
+    margin: 0 4px !important;
+    opacity: 0.5 !important;
+  }
+
+  .login-card .login-footer button {
+    display: inline-block !important;
+    padding: 2px 4px !important;
+    margin: 0 !important;
+    font-size: 0.8rem !important;
+    line-height: 1.2 !important;
+    text-decoration: underline !important;
+  }
+}
+
 
 
 
