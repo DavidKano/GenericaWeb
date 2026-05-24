@@ -962,4 +962,110 @@ input[type="time"] {
   }
 }
 
+/* ==================== B2C CUSTOMER SERVICE SELECTION REDESIGN ==================== */
+
+/* Refined Progress Bar */
+.booking-step {
+  height: 4px !important;
+  border-radius: 4px !important;
+  background: rgba(0, 0, 0, 0.06) !important;
+}
+
+/* Premium SaaS Service Card */
+.service-card {
+  position: relative !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  padding: 1.25rem 2.75rem 1.25rem 1.25rem !important; /* right padding accommodates absolute chevron */
+  background: #FFFFFF !important;
+  border-radius: 16px !important;
+  border: 1px solid rgba(0, 0, 0, 0.03) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04) !important;
+  border-top: none !important;
+  cursor: pointer !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  box-sizing: border-box !important;
+}
+
+/* Service Card Hover States */
+.service-card:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08) !important;
+  border-color: rgba(59, 130, 246, 0.15) !important;
+}
+
+/* Service Card Active/Selected State */
+.service-card.active {
+  border-color: var(--primary-color, #3b82f6) !important;
+  box-shadow: 0 6px 18px rgba(59, 130, 246, 0.12) !important;
+  border-top: none !important;
+}
+
+/* Action Indicator (Chevron Right) */
+.service-card-chevron {
+  position: absolute !important;
+  right: 1.25rem !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  color: #CBD5E1 !important;
+}
+
+.service-card:hover .service-card-chevron {
+  transform: translateY(-50%) translateX(3px) !important;
+  color: var(--primary-color, #3b82f6) !important;
+}
+
+/* Typography Hierarchy inside Service Cards */
+.service-card h3 {
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  color: #1E293B !important;
+  margin: 0 0 6px 0 !important;
+  letter-spacing: -0.01em !important;
+  line-height: 1.4 !important;
+}
+
+/* Metadata duration and pricing */
+.service-meta {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  flex-wrap: wrap !important;
+}
+
+.service-meta span {
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  color: #64748B !important;
+}
+
+.service-meta svg {
+  color: #94A3B8 !important;
+  transition: color 0.2s ease !important;
+}
+
+.service-card:hover .service-meta svg {
+  color: #64748B !important;
+}
+
+/* Elegant Accordion Header Hover */
+.category-header {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+.category-header:hover {
+  background: #F1F5F9 !important;
+}
+.category-header:active {
+  transform: scale(0.995) !important;
+}
+
+
 

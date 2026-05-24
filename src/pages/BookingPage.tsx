@@ -296,7 +296,15 @@ export const BookingPage: React.FC = () => {
 
   return (
     <div className="booking-page" style={{ maxWidth: '1100px', margin: '0 auto', width: '100%' }}>
-      <h2 style={{ marginBottom: '1rem' }}>📅 Reservar Cita</h2>
+      <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '1.25rem', fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-color, #1e293b)' }}>
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--primary-color)', flexShrink: 0 }}>
+          <rect width="18" height="18" x="3" y="4" rx="2" ry="2"/>
+          <line x1="16" x2="16" y1="2" y2="6"/>
+          <line x1="8" x2="8" y1="2" y2="6"/>
+          <line x1="3" x2="21" y1="10" y2="10"/>
+        </svg>
+        Reservar Cita
+      </h2>
 
       <div className="booking-steps">
         {[1, 2, 3, 4].map(s => (
@@ -306,26 +314,43 @@ export const BookingPage: React.FC = () => {
 
       {step === 1 && (
         <div className="animate-fade-in">
-          <h3 style={{ marginBottom: '1rem' }}>Elige un servicio</h3>
+          <h3 style={{ marginBottom: '1.25rem', fontSize: '1.25rem', fontWeight: 700, color: '#1e293b' }}>Elige un servicio</h3>
           
-          {(businessConfig?.serviceFolders || []).map(folder => {
+          {[...(businessConfig?.serviceFolders || [])].sort((a, b) => a.localeCompare(b)).map(folder => {
             const folderServices = services.filter(s => s.isActive !== false && s.folderName === folder);
             if (folderServices.length === 0) return null;
             
             const isExpanded = expandedFolder === folder;
             
             return (
-              <div key={folder} style={{ marginBottom: '1rem', background: 'var(--surface-color)', borderRadius: '12px', border: '1px solid var(--glass-border)', overflow: 'hidden', transition: 'all 0.3s' }}>
+              <div key={folder} style={{ marginBottom: '1rem', width: '100%' }}>
                 <div 
                   onClick={() => setExpandedFolder(isExpanded ? null : folder)}
-                  style={{ padding: '1rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', background: isExpanded ? 'rgba(var(--primary-color-rgb), 0.05)' : 'transparent' }}
+                  style={{ 
+                    padding: '12px 16px', 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center', 
+                    cursor: 'pointer', 
+                    background: '#F8FAFC', 
+                    borderRadius: '12px',
+                    border: '1px solid rgba(0, 0, 0, 0.02)',
+                    transition: 'all 0.2s ease',
+                    userSelect: 'none'
+                  }}
                 >
-                  <h4 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text-color)' }}>📁 {folder}</h4>
-                  <span style={{ color: 'var(--text-secondary)', transition: 'transform 0.3s', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0)' }}>▼</span>
+                  <h4 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#1e293b' }}>{folder}</h4>
+                  <span style={{ color: '#64748b', display: 'flex', alignItems: 'center' }}>
+                    {isExpanded ? (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+                    ) : (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                    )}
+                  </span>
                 </div>
                 
                 {isExpanded && (
-                  <div style={{ padding: '0 1.5rem 1.5rem 1.5rem' }}>
+                  <div style={{ padding: '0.25rem 0' }}>
                     <div className="services-grid" style={{ marginTop: '1rem' }}>
                       {folderServices.map(svc => (
                         <div
@@ -334,9 +359,28 @@ export const BookingPage: React.FC = () => {
                           onClick={() => { setSelectedService(svc); setStep(2); }}
                         >
                           <h3>{svc.name}</h3>
-                          <div className="service-meta">
-                            <span>⏱ {svc.durationMin} min</span>
-                            {svc.price !== undefined && <span>💰 {svc.price}€</span>}
+                          <div className="service-meta" style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '14px', fontWeight: 500, color: '#64748B' }}>
+                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                                <circle cx="12" cy="12" r="10"/>
+                                <polyline points="12 6 12 12 16 14"/>
+                              </svg>
+                              {svc.durationMin} min
+                            </span>
+                            {svc.price !== undefined && (
+                              <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '14px', fontWeight: 500, color: '#64748B' }}>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                                  <line x1="12" x2="12" y1="2" y2="22"/>
+                                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                                </svg>
+                                {svc.price}€
+                              </span>
+                            )}
+                          </div>
+                          <div className="service-card-chevron">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="9 18 15 12 9 6" />
+                            </svg>
                           </div>
                         </div>
                       ))}
@@ -355,9 +399,28 @@ export const BookingPage: React.FC = () => {
                 onClick={() => { setSelectedService(svc); setStep(2); }}
               >
                 <h3>{svc.name}</h3>
-                <div className="service-meta">
-                  <span>⏱ {svc.durationMin} min</span>
-                  {svc.price !== undefined && <span>💰 {svc.price}€</span>}
+                <div className="service-meta" style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '14px', fontWeight: 500, color: '#64748B' }}>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                      <circle cx="12" cy="12" r="10"/>
+                      <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                    {svc.durationMin} min
+                  </span>
+                  {svc.price !== undefined && (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '14px', fontWeight: 500, color: '#64748B' }}>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                        <line x1="12" x2="12" y1="2" y2="22"/>
+                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                      </svg>
+                      {svc.price}€
+                    </span>
+                  )}
+                </div>
+                <div className="service-card-chevron">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
                 </div>
               </div>
             ))}
