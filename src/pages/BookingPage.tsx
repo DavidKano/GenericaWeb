@@ -307,9 +307,14 @@ export const BookingPage: React.FC = () => {
       </h2>
 
       <div className="booking-steps">
-        {[1, 2, 3, 4].map(s => (
-          <div key={s} className={`booking-step ${s <= step ? 'active' : ''}`} />
-        ))}
+        {[1, 2, 3, 4].map(s => {
+          const statusClass = s < step 
+            ? 'step-completed' 
+            : (s === step ? 'step-active' : 'step-pending');
+          return (
+            <div key={s} className={`booking-step ${statusClass}`} />
+          );
+        })}
       </div>
 
       {step === 1 && (
@@ -368,11 +373,7 @@ export const BookingPage: React.FC = () => {
                               {svc.durationMin} min
                             </span>
                             {svc.price !== undefined && (
-                              <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '14px', fontWeight: 500, color: '#64748B' }}>
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                                  <line x1="12" x2="12" y1="2" y2="22"/>
-                                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-                                </svg>
+                              <span style={{ fontSize: '14px', fontWeight: 500, color: '#64748B' }}>
                                 {svc.price}€
                               </span>
                             )}
@@ -408,11 +409,7 @@ export const BookingPage: React.FC = () => {
                     {svc.durationMin} min
                   </span>
                   {svc.price !== undefined && (
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '14px', fontWeight: 500, color: '#64748B' }}>
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                        <line x1="12" x2="12" y1="2" y2="22"/>
-                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-                      </svg>
+                    <span style={{ fontSize: '14px', fontWeight: 500, color: '#64748B' }}>
                       {svc.price}€
                     </span>
                   )}

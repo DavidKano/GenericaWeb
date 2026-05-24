@@ -966,10 +966,24 @@ input[type="time"] {
 
 /* Refined Progress Bar */
 .booking-step {
+  flex: 1 !important;
   height: 4px !important;
   border-radius: 4px !important;
   background: rgba(0, 0, 0, 0.06) !important;
+  transition: background-color 0.3s ease !important;
 }
+
+/* Stepper Dynamic States */
+.booking-step.step-completed {
+  background-color: var(--primary-color, #3b82f6) !important;
+}
+.booking-step.step-active {
+  background-color: var(--primary-color, #3b82f6) !important;
+}
+.booking-step.step-pending {
+  background-color: rgba(0, 0, 0, 0.08) !important;
+}
+
 
 /* Premium SaaS Service Card */
 .service-card {
