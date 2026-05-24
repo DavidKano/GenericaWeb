@@ -192,63 +192,152 @@ export const ProfilePage: React.FC = () => {
                 </div>
               ) : (
                 <div style={{ display: 'grid', gap: '1.25rem' }}>
-                  {futureAppts.map(appt => (
-                    <div key={appt.id} className="card glass-panel" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem' }}>
-                      <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'center' }}>
-                        <div style={{ 
-                          width: '4px', 
-                          height: '40px', 
-                          background: services.find(s => s.id === appt.serviceId)?.color || 'var(--primary-color)',
-                          borderRadius: '2px'
-                        }} />
-                        <div>
-                          <div style={{ fontWeight: 800, fontSize: '1.15rem', color: 'var(--text-primary)' }}>{services.find(s => s.id === appt.serviceId)?.name}</div>
-                          <div style={{ color: 'var(--text-secondary)', marginTop: '0.25rem', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                            <Clock size={14} /> {new Date(appt.dateTimeStart).toLocaleString('es-ES', { dateStyle: 'full', timeStyle: 'short' })}
+                  {futureAppts.map(appt => {
+                    const apptDate = new Date(appt.dateTimeStart);
+                    const dateStr = apptDate.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+                    const formattedDate = dateStr.charAt(0).toUpperCase() + dateStr.slice(1);
+                    const timeStr = apptDate.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+                    
+                    return (
+                      <div key={appt.id} className="card glass-panel" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem' }}>
+                        <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'center' }}>
+                          <div style={{ 
+                            width: '4px', 
+                            height: '40px', 
+                            background: services.find(s => s.id === appt.serviceId)?.color || 'var(--primary-color)',
+                            borderRadius: '2px'
+                          }} />
+                          <div>
+                            <div style={{ fontWeight: 800, fontSize: '1.15rem', color: 'var(--text-primary)' }}>{services.find(s => s.id === appt.serviceId)?.name}</div>
+                            <div style={{ color: 'var(--text-secondary)', marginTop: '0.35rem', fontSize: '0.9rem', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                              <Clock size={14} style={{ color: 'var(--primary-color)', opacity: 0.8 }} />
+                              <span style={{ fontWeight: 500 }}>{formattedDate}</span>
+                              <span style={{ color: '#CBD5E1' }}>•</span>
+                              <span style={{ fontWeight: 700, color: 'var(--text-primary)', background: 'rgba(59, 130, 246, 0.06)', padding: '2px 8px', borderRadius: '6px', fontSize: '0.85rem' }}>{timeStr} h</span>
+                            </div>
                           </div>
                         </div>
+                        <div>
+                          {(config?.allowClientCancellation !== false) && (
+                            <button 
+                              className="btn-icon" 
+                              onClick={() => handleCancelAppointment(appt.id)}
+                              style={{ 
+                                color: '#94A3B8', 
+                                background: 'transparent', 
+                                border: 'none',
+                                padding: '8px',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.color = '#EF4444';
+                                e.currentTarget.style.background = 'rgba(239, 68, 68, 0.06)';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.color = '#94A3B8';
+                                e.currentTarget.style.background = 'transparent';
+                              }}
+                              title="Cancelar reserva"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          )}
+                        </div>
                       </div>
-                      <div>
-                        {(config?.allowClientCancellation !== false) && (
-                          <button 
-                            className="btn-icon" 
-                            onClick={() => handleCancelAppointment(appt.id)}
-                            style={{ color: '#ef4444', background: 'rgba(239, 68, 68, 0.05)' }}
-                            title="Cancelar reserva"
-                          >
-                            <Trash2 size={20} />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
           ) : (
             <div className="animate-fade-in">
-              <div className="card glass-panel" style={{ padding: 0, overflow: 'hidden' }}>
-                <table className="appointments-table">
-                  <thead>
-                    <tr>
-                      <th style={{ padding: '1rem' }}>Servicio</th>
-                      <th style={{ textAlign: 'right', paddingRight: '1rem' }}>Fecha</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pastAppts.map(appt => (
-                      <tr key={appt.id}>
-                        <td style={{ fontWeight: 700, padding: '1rem' }}>{services.find(s => s.id === appt.serviceId)?.name}</td>
-                        <td style={{ textAlign: 'right', paddingRight: '1rem', color: 'var(--text-secondary)' }}>
-                          {new Date(appt.dateTimeStart).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}
-                        </td>
-                      </tr>
-                    ))}
-                    {pastAppts.length === 0 && (
-                      <tr><td colSpan={2} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>No hay historial de citas.</td></tr>
-                    )}
-                  </tbody>
-                </table>
+              <div className="card glass-panel" style={{ padding: '0.5rem 1.5rem' }}>
+                {pastAppts.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-secondary)' }}>
+                    <History size={48} style={{ opacity: 0.2, marginBottom: '1rem' }} />
+                    <p style={{ fontSize: '1.1rem' }}>No hay historial de citas.</p>
+                  </div>
+                ) : (
+                  pastAppts.map((appt, index) => {
+                    const isCancelled = appt.status === 'CANCELLED';
+                    const serviceName = services.find(s => s.id === appt.serviceId)?.name || 'Servicio';
+                    const apptDate = new Date(appt.dateTimeStart);
+                    const formattedDate = apptDate.toLocaleDateString('es-ES', {
+                      weekday: 'long',
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric'
+                    });
+                    const capitalizedDate = formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1);
+                    const formattedTime = apptDate.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+                    
+                    return (
+                      <div 
+                        key={appt.id} 
+                        style={{ 
+                          display: 'flex', 
+                          justifyContent: 'space-between', 
+                          alignItems: 'center', 
+                          padding: '1.25rem 0',
+                          borderBottom: index === pastAppts.length - 1 ? 'none' : '1px solid rgba(0, 0, 0, 0.05)'
+                        }}
+                      >
+                        <div>
+                          <div style={{ 
+                            fontWeight: 600, 
+                            fontSize: '1rem', 
+                            color: isCancelled ? 'var(--text-secondary)' : 'var(--text-primary)',
+                            textDecoration: isCancelled ? 'line-through' : 'none'
+                          }}>
+                            {serviceName}
+                          </div>
+                          <div style={{ 
+                            color: '#64748B', 
+                            fontSize: '0.85rem', 
+                            marginTop: '0.25rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.4rem'
+                          }}>
+                            <Clock size={12} style={{ opacity: 0.6 }} />
+                            <span>{capitalizedDate} • {formattedTime} h</span>
+                          </div>
+                        </div>
+                        
+                        <div>
+                          {isCancelled ? (
+                            <span style={{ 
+                              background: '#FEF2F2', 
+                              color: '#EF4444', 
+                              padding: '4px 10px', 
+                              borderRadius: '100px', 
+                              fontSize: '0.75rem', 
+                              fontWeight: 600 
+                            }}>
+                              Cancelada
+                            </span>
+                          ) : (
+                            <span style={{ 
+                              background: '#F0FDF4', 
+                              color: '#16A34A', 
+                              padding: '4px 10px', 
+                              borderRadius: '100px', 
+                              fontSize: '0.75rem', 
+                              fontWeight: 600 
+                            }}>
+                              Completada
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
               </div>
             </div>
           )}
@@ -268,7 +357,26 @@ export const ProfilePage: React.FC = () => {
           </div>
           <div className="form-group">
             <label><Mail size={14} style={{ marginRight: '4px' }} /> Email (No editable)</label>
-            <input value={user.email} disabled style={{ opacity: 0.6 }} />
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <span style={{ 
+                position: 'absolute', 
+                left: '12px', 
+                color: '#94A3B8', 
+                display: 'flex', 
+                alignItems: 'center', 
+                pointerEvents: 'none' 
+              }}>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-lock"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              </span>
+              <input 
+                value={user.email} 
+                disabled 
+                style={{ 
+                  paddingLeft: '38px', 
+                  cursor: 'not-allowed'
+                }} 
+              />
+            </div>
           </div>
           <div className="form-group">
             <label><MapPin size={14} style={{ marginRight: '4px' }} /> Dirección / Domicilio</label>
