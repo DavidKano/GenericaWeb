@@ -1070,16 +1070,54 @@ input[type="time"] {
   color: #64748B !important;
 }
 
-/* Elegant Accordion Header Hover */
+/* Elegant Category Accordion Header (Transparent & Section Style) */
 .category-header {
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 0px !important;
+  padding: 16px 0 !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
-.category-header:hover {
-  background: #F1F5F9 !important;
+
+.category-header h4 {
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  color: #1E293B !important;
+  margin: 0 !important;
+  transition: color 0.3s ease !important;
 }
-.category-header:active {
-  transform: scale(0.995) !important;
+
+.category-header .category-chevron {
+  display: flex !important;
+  align-items: center !important;
+  color: #64748B !important;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), color 0.3s ease !important;
 }
+
+/* Category Header Active/Open State */
+.category-header.active {
+  border-bottom-color: transparent !important;
+}
+
+.category-header.active h4 {
+  color: var(--primary-color, #3b82f6) !important;
+}
+
+.category-header.active .category-chevron {
+  transform: rotate(180deg) !important;
+  color: var(--primary-color, #3b82f6) !important;
+}
+
+/* Accordion hover target area visual feedback */
+.category-header:hover h4 {
+  color: var(--primary-color, #3b82f6) !important;
+}
+.category-header:hover .category-chevron {
+  color: var(--primary-color, #3b82f6) !important;
+}
+
 
 
 

@@ -331,32 +331,24 @@ export const BookingPage: React.FC = () => {
               <div key={folder} style={{ marginBottom: '1rem', width: '100%' }}>
                 <div 
                   onClick={() => setExpandedFolder(isExpanded ? null : folder)}
+                  className={`category-header ${isExpanded ? 'active' : ''}`}
                   style={{ 
-                    padding: '12px 16px', 
                     display: 'flex', 
                     justifyContent: 'space-between', 
                     alignItems: 'center', 
                     cursor: 'pointer', 
-                    background: '#F8FAFC', 
-                    borderRadius: '12px',
-                    border: '1px solid rgba(0, 0, 0, 0.02)',
-                    transition: 'all 0.2s ease',
                     userSelect: 'none'
                   }}
                 >
-                  <h4 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#1e293b' }}>{folder}</h4>
-                  <span style={{ color: '#64748b', display: 'flex', alignItems: 'center' }}>
-                    {isExpanded ? (
-                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
-                    ) : (
-                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-                    )}
+                  <h4 style={{ margin: 0 }}>{folder}</h4>
+                  <span className="category-chevron">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
                   </span>
                 </div>
                 
                 {isExpanded && (
-                  <div style={{ padding: '0.25rem 0' }}>
-                    <div className="services-grid" style={{ marginTop: '1rem' }}>
+                  <div className="category-services-wrapper" style={{ marginTop: '12px', width: '96%', marginLeft: 'auto', marginRight: 'auto' }}>
+                    <div className="services-grid">
                       {folderServices.map(svc => (
                         <div
                           key={svc.id}
