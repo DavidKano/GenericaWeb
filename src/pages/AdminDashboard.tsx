@@ -212,6 +212,11 @@ export const AdminDashboard: React.FC = () => {
   useEffect(() => {
     if (isInitialized) {
       loadData();
+      
+      const unsubscribe = repo.subscribeToAppointments((appts) => {
+        setAppointments(appts);
+      });
+      return () => unsubscribe();
     }
   }, [repo, isInitialized]);
 
