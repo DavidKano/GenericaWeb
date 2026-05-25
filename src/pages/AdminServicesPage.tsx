@@ -483,10 +483,10 @@ export const AdminServicesPage: React.FC = () => {
                   <input 
                     value={newName} 
                     onChange={e => setNewName(e.target.value)} 
-                    placeholder="Ej: Corte de pelo" 
+                    placeholder="Nombre del servicio" 
                     style={{ 
                       width: '100%', 
-                      padding: '0.45rem 0.8rem 0.45rem 2.2rem', 
+                      padding: '0.45rem 0.8rem 0.45rem 2.5rem', 
                       borderRadius: '8px', 
                       background: '#FFFFFF', 
                       border: '1px solid #E2E8F0', 
@@ -646,22 +646,21 @@ export const AdminServicesPage: React.FC = () => {
               <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', marginBottom: '0.8rem' }}>
                 <label style={{ fontSize: '0.78rem', fontWeight: '500', color: '#475569' }}>Color en el Calendario</label>
                 <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
-                  <div style={{ position: 'relative', width: '24px', height: '24px', borderRadius: '50%', overflow: 'hidden', border: '1px solid #CBD5E1', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+                  <div style={{ position: 'relative', width: '24px', height: '24px', borderRadius: '50%', overflow: 'hidden', border: '1px solid #CBD5E1', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', backgroundColor: newColor }}>
                     <input 
                       type="color" 
                       value={newColor} 
                       onChange={e => setNewColor(e.target.value)} 
                       style={{ 
                         position: 'absolute',
-                        width: '150%',
-                        height: '150%',
+                        inset: 0,
+                        width: '100%',
+                        height: '100%',
                         padding: 0,
                         margin: 0,
                         border: 'none',
                         cursor: 'pointer',
-                        background: 'none',
-                        appearance: 'none',
-                        WebkitAppearance: 'none'
+                        opacity: 0
                       }} 
                     />
                   </div>
