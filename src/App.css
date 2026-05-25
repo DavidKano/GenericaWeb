@@ -1244,15 +1244,24 @@ input[type="time"] {
     width: 100% !important;
     white-space: nowrap !important;
     overflow: hidden !important;
-    text-overflow: ellipsis !important;
     text-align: center !important;
     margin-bottom: 6px !important;
   }
 
   .login-card .login-legal-links span {
-    display: inline !important;
+    display: inline-block !important;
     margin: 0 4px !important;
     opacity: 0.5 !important;
+    vertical-align: middle !important;
+  }
+
+  .login-card .login-legal-links button {
+    display: inline-block !important;
+    max-width: 44% !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    vertical-align: middle !important;
   }
 
   .login-card .login-footer button {
