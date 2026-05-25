@@ -74,7 +74,7 @@ export const AdminSettingsPage: React.FC = () => {
               min="1"
               value={config.concurrentSlots || 1} 
               onChange={(e) => setConfig(prev => prev ? { ...prev, concurrentSlots: Math.max(1, parseInt(e.target.value) || 1) } : null)}
-              style={{ width: '60px', textAlign: 'center', padding: '0.5rem', borderRadius: '6px', border: '1px solid #E2E8F0', background: '#FFF', color: 'var(--text-color)' }}
+              style={{ width: '90px', textAlign: 'center', padding: '0.5rem', borderRadius: '6px', border: '1px solid #E2E8F0', background: '#FFF', color: 'var(--text-color)' }}
             />
           </div>
 
