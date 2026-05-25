@@ -765,14 +765,14 @@ export const AdminDashboard: React.FC = () => {
 
       {!isLoading && !errorMessage && (
         <>
-          <div className="card glass-panel" style={{ display: 'flex', flexDirection: 'column', padding: isMobile ? '12px 8px' : '16px' }}>
+          <div className="card glass-panel" style={{ display: 'flex', flexDirection: 'column', padding: isMobile ? '8px 4px' : '16px', margin: isMobile ? '0 -10px' : '0' }}>
             <div style={{ flex: 'none', height: 'auto' }} className={`admin-calendar-container view-${currentView}`}>
               <Calendar
                 localizer={localizer}
                 events={events}
                 startAccessor="start"
                 endAccessor="end"
-                style={{ height: 'auto', background: 'white', color: 'black', borderRadius: '8px', padding: '1rem', fontFamily: 'inherit' }}
+                style={{ height: 'auto', background: 'white', color: 'black', borderRadius: '8px', padding: isMobile ? '8px 4px' : '1rem', fontFamily: 'inherit' }}
                 eventPropGetter={eventPropGetter}
                 onSelectEvent={handleSelectEvent}
                 culture="es"
