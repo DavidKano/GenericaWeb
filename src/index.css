@@ -158,6 +158,13 @@ body {
   .admin-calendar-container.view-week .rbc-time-header-content .rbc-row {
     min-width: max-content !important;
     flex: 1 0 0% !important;
+    z-index: 1 !important;
+    position: relative !important;
+  }
+
+  .admin-calendar-container.view-week .rbc-time-content {
+    z-index: 1 !important;
+    position: relative !important;
   }
 
   /* Fijar la columna de horas (gutter) a la izquierda de forma pegajosa (sticky) */
@@ -200,6 +207,13 @@ body {
   .admin-calendar-container.view-day.resources-scrollable .rbc-time-header-content .rbc-row {
     min-width: max-content !important;
     flex: 1 0 0% !important;
+    z-index: 1 !important;
+    position: relative !important;
+  }
+
+  .admin-calendar-container.view-day.resources-scrollable .rbc-time-content {
+    z-index: 1 !important;
+    position: relative !important;
   }
 
   /* Fijar la columna de horas (gutter) a la izquierda de forma pegajosa (sticky) */
