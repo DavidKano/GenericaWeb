@@ -103,11 +103,14 @@ function GlobalThemeInjector({ children }: { children: React.ReactNode }) {
       }
 
       // 1. Dynamic manifest generation
+      const isAdmin = location.pathname.startsWith('/admin');
+
       const manifest = {
-        name: companyName,
-        short_name: company?.nombreEmpresa || "Reservas",
-        description: "Gestión de Reservas Web App",
-        start_url: isWelcome ? "/welcome" : "/booking",
+        name: isAdmin ? `Admin | ${companyName}` : companyName,
+        short_name: isAdmin ? `Admin ${company?.nombreEmpresa || "Reservas"}` : (company?.nombreEmpresa || "Reservas"),
+        description: isAdmin ? "Panel de Gestión y Reservas" : "Gestión de Reservas Web App",
+        start_url: isAdmin ? "/admin" : (isWelcome ? "/welcome" : "/booking"),
+        scope: isAdmin ? "/admin" : "/",
         display: "standalone",
         background_color: cfg?.backgroundColor || "#f3f4f6",
         theme_color: cfg?.primaryColor || "#3b82f6",
