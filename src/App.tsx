@@ -5,6 +5,7 @@ import { useData } from './context/DataContext';
 import { LoginPage } from './pages/LoginPage';
 import { SystemIgnition } from './pages/SystemIgnition';
 import { WelcomePage } from './pages/WelcomePage';
+import { WelcomeAdminPage } from './pages/WelcomeAdminPage';
 
 // Portals & Pages
 import { CustomerLayout } from './components/layouts/CustomerLayout';
@@ -227,6 +228,9 @@ function App() {
 
           {/* PWA Landing Page */}
           <Route path="/welcome" element={<WelcomePage />} />
+
+          {/* Public Admin Welcome Onboarding/Installation Page */}
+          <Route path="/admin/welcome" element={<WelcomeAdminPage />} />
 
           {/* ---------------- ADMIN PORTAL ---------------- */}
           <Route path="/admin" element={

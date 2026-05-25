@@ -30,8 +30,8 @@ export const AdminPromotePage: React.FC = () => {
       setLoading(false);
     });
 
-    // Generate Admin QR pointing to the admin panel
-    const adminUrl = `${window.location.origin}/admin`;
+    // Generate Admin QR pointing to the admin panel welcome onboarding page
+    const adminUrl = `${window.location.origin}/admin/welcome`;
     QRCode.toDataURL(adminUrl, {
         width: 400,
         margin: 2,
@@ -162,7 +162,7 @@ export const AdminPromotePage: React.FC = () => {
   }
 
   const pwaUrl = `${window.location.origin}/welcome`;
-  const adminUrl = `${window.location.origin}/admin`;
+  const adminUrl = `${window.location.origin}/admin/welcome`;
 
   return (
     <div className="animate-fade-in" style={{ padding: isMobile ? '0' : '0.5rem' }}>
