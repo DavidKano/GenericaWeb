@@ -89,6 +89,14 @@ export const AdminLayout: React.FC = () => {
     { to: "/admin/settings", icon: <Settings size={20} strokeWidth={2} />, label: "Ajustes" },
   ];
 
+  const bottomNavItems = [
+    { to: "/admin", icon: <LayoutDashboard size={20} strokeWidth={2} />, label: "Panel", end: true },
+    { to: "/admin/services", icon: <Sliders size={20} strokeWidth={2} />, label: "Servicios" },
+    { to: "/admin/users", icon: <Users size={20} strokeWidth={2} />, label: "Clientes" },
+    { to: "/admin/schedule", icon: <Clock size={20} strokeWidth={2} />, label: "Horarios" },
+    { to: "/admin/offers", icon: <Megaphone size={20} strokeWidth={2} />, label: "Ofertas" },
+  ];
+
   return (
     <div className="app-layout">
       
@@ -338,10 +346,10 @@ export const AdminLayout: React.FC = () => {
 
       {isMobile && (
         <nav className="admin-bottom-nav">
-          {navItems.map(item => (
+          {bottomNavItems.map(item => (
             <NavLink key={item.to} to={item.to} className={({ isActive }) => isActive ? 'active' : ''} end={item.end}>
               {item.icon}
-              <span>{item.label.split(' ')[0]}</span>
+              <span>{item.label}</span>
             </NavLink>
           ))}
         </nav>
