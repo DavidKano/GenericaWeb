@@ -336,7 +336,7 @@ export const AdminLayout: React.FC = () => {
           )}
         </aside>
         
-        <main className="app-content main-content" style={{ flex: 1, padding: isMobile ? '1rem' : '1.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+        <main className="app-content main-content" style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
           <div style={{ maxWidth: '100%', margin: '0 auto', flex: 1, width: '100%' }}>
             <Outlet />
           </div>

@@ -69,7 +69,7 @@ export const CustomerLayout: React.FC = () => {
           </NavLink>
         </nav>
         
-        <main className="app-content" style={{ flex: 1, padding: '1.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+        <main className="app-content" style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
           <div style={{ maxWidth: '1000px', margin: '0 auto', flex: 1, width: '100%' }}>
             <Outlet />
           </div>
