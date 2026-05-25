@@ -214,6 +214,16 @@
   box-shadow: none !important;
 }
 
+/* Evitar solapamiento de texto y placeholder con iconos absolutos en formularios */
+.form-group span ~ input,
+.form-group span ~ select,
+.form-group span ~ textarea,
+.form-group div > span ~ input,
+.form-group div > span ~ select,
+.form-group div > span ~ textarea {
+  padding-left: 2.5rem !important;
+}
+
 .login-error {
   background: #fef2f2;
   color: #dc2626;
