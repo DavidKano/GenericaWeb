@@ -766,7 +766,10 @@ export const AdminDashboard: React.FC = () => {
       {!isLoading && !errorMessage && (
         <>
           <div className="card glass-panel" style={{ display: 'flex', flexDirection: 'column', padding: isMobile ? '8px 4px' : '16px', margin: isMobile ? '0 -10px' : '0' }}>
-            <div style={{ flex: 'none', height: 'auto' }} className={`admin-calendar-container view-${currentView}`}>
+            <div 
+              style={{ flex: 'none', height: 'auto' }} 
+              className={`admin-calendar-container view-${currentView} ${currentView === 'day' && resources && resources.length > 2 ? 'resources-scrollable' : ''}`}
+            >
               <Calendar
                 localizer={localizer}
                 events={events}

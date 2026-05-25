@@ -181,6 +181,48 @@ body {
     min-width: calc((100vw - 3rem - 60px) / 3) !important;
     flex: 0 0 calc((100vw - 3rem - 60px) / 3) !important;
   }
+
+  /* Habilitar scroll horizontal nativo y suave en la vista diaria con múltiples puestos/recursos */
+  .admin-calendar-container.view-day.resources-scrollable .rbc-time-view {
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch;
+    position: relative;
+  }
+
+  .admin-calendar-container.view-day.resources-scrollable .rbc-time-header,
+  .admin-calendar-container.view-day.resources-scrollable .rbc-time-content {
+    min-width: max-content !important;
+    width: 100% !important;
+  }
+
+  .admin-calendar-container.view-day.resources-scrollable .rbc-time-header-content,
+  .admin-calendar-container.view-day.resources-scrollable .rbc-time-header-content .rbc-row {
+    min-width: max-content !important;
+    flex: 1 0 0% !important;
+  }
+
+  /* Fijar la columna de horas (gutter) a la izquierda de forma pegajosa (sticky) */
+  .admin-calendar-container.view-day.resources-scrollable .rbc-time-header-gutter,
+  .admin-calendar-container.view-day.resources-scrollable .rbc-time-gutter {
+    position: sticky !important;
+    left: 0 !important;
+    z-index: 10 !important;
+    background-color: var(--surface-color) !important;
+    border-right: 1px solid var(--glass-border) !important;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05) !important;
+    width: 60px !important;
+    min-width: 60px !important;
+    flex: 0 0 60px !important;
+  }
+
+  /* Mostrar exactamente 2 puestos visibles a la vez en la pantalla móvil, dejando que el resto scrollen */
+  .admin-calendar-container.view-day.resources-scrollable .rbc-header,
+  .admin-calendar-container.view-day.resources-scrollable .rbc-day-slot {
+    width: calc((100vw - 3rem - 60px) / 2) !important;
+    min-width: calc((100vw - 3rem - 60px) / 2) !important;
+    flex: 0 0 calc((100vw - 3rem - 60px) / 2) !important;
+  }
 }
 
 
