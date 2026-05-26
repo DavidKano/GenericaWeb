@@ -601,9 +601,8 @@ export const AdminTpvPage: React.FC = () => {
   return (
     <div className="admin-tpv-container animate-fade-in">
       <PageHeader 
-        icon={<Calculator size={28} />}
-        title="TPV Virtual"
-        description="Gestiona cobros múltiples, asocia clientes con búsqueda predictiva, edita importes en tiempo real y simula vueltas."
+        icon={<CreditCard size={28} />}
+        title="TPV"
       />
 
       {/* PERSISTENT PENDING CLOSE REMINDER BANNER */}
