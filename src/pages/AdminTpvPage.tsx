@@ -409,7 +409,6 @@ export const AdminTpvPage: React.FC = () => {
         }
       }
 
-      alert('¡Cobro registrado con éxito en base de datos!');
       resetForm();
       // Clean query search params
       window.history.replaceState(null, '', window.location.pathname);
