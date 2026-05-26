@@ -1989,7 +1989,7 @@ export const AdminTpvPage: React.FC = () => {
               {/* Button: Métricas y Estadísticas */}
               <button
                 type="button"
-                onClick={() => setShowAnalyticsModal(true)}
+                onClick={() => setActiveView('ventas')}
                 style={{
                   padding: '10px',
                   borderRadius: '8px',
