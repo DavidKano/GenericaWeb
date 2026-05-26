@@ -4,7 +4,7 @@ import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
 import type { BookingService, User, Transaction, DesignConfig, CashClose } from '../services/models';
 import { PageHeader } from '../components/ui/PageHeader';
-import { CreditCard, Coins, Check, Trash2, User as UserIcon, Briefcase, Calculator, RefreshCw, Euro, Plus, X, BarChart3, Download, Archive, TrendingUp } from 'lucide-react';
+import { CreditCard, Coins, Check, Trash2, User as UserIcon, Briefcase, Calculator, RefreshCw, Euro, Plus, X, BarChart3, Download, Archive, TrendingUp, History, Search, ArrowLeft, CalendarDays, FileText } from 'lucide-react';
 
 interface TicketItem {
   id: string; // Unique ID inside the current ticket
@@ -61,6 +61,17 @@ export const AdminTpvPage: React.FC = () => {
   const [closeNotes, setCloseNotes] = useState('');
   
   const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
+
+  // Sub-view mode
+  const [activeView, setActiveView] = useState<'tpv' | 'cierres'>('tpv');
+  
+  // History Filters
+  const [closeSearchQuery, setCloseSearchQuery] = useState('');
+  const [closeStartDate, setCloseStartDate] = useState('');
+  const [closeEndDate, setCloseEndDate] = useState('');
+  
+  // Selected close details
+  const [selectedCloseForDetail, setSelectedCloseForDetail] = useState<CashClose | null>(null);
 
   // Fetch initial data
   const loadData = async () => {
@@ -556,6 +567,123 @@ export const AdminTpvPage: React.FC = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center', justifyContent: 'center', minHeight: '300px' }}>
           <RefreshCw size={40} className="animate-spin" style={{ color: primaryColor }} />
           <span style={{ color: '#64748B', fontWeight: 500 }}>Cargando datos del TPV...</span>
+        </div>
+      ) : activeView === 'cierres' ? (
+        <div className="admin-tpv-cierres-view fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%', animation: 'fadeIn 0.3s ease' }}>
+          {/* Top Bar with Go Back Button and Filters */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', justifyContent: 'space-between', alignItems: 'center', background: '#fff', padding: '16px 20px', borderRadius: '12px', border: '1px solid #E2E8F0', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.03)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <button 
+                onClick={() => setActiveView('tpv')}
+                style={{ background: 'transparent', border: '1px solid #CBD5E1', padding: '8px 12px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: '#475569', fontWeight: 600, transition: 'all 0.2s' }}
+                onMouseOver={(e) => e.currentTarget.style.background = '#F8FAFC'}
+                onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+              >
+                <ArrowLeft size={16} /> Volver al TPV
+              </button>
+              <h3 style={{ margin: 0, fontSize: '1.2rem', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <History size={20} style={{ color: primaryColor }} /> Historial de Cierres de Caja
+              </h3>
+            </div>
+            
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <div style={{ position: 'relative' }}>
+                <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                <input 
+                  type="text" 
+                  placeholder="Buscar notas..." 
+                  value={closeSearchQuery}
+                  onChange={(e) => setCloseSearchQuery(e.target.value)}
+                  style={{ padding: '8px 12px 8px 36px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.9rem', width: '200px' }}
+                />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <CalendarDays size={16} style={{ color: '#64748B' }} />
+                <input 
+                  type="date" 
+                  value={closeStartDate}
+                  onChange={(e) => setCloseStartDate(e.target.value)}
+                  style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.9rem' }}
+                />
+                <span style={{ color: '#94A3B8' }}>-</span>
+                <input 
+                  type="date" 
+                  value={closeEndDate}
+                  onChange={(e) => setCloseEndDate(e.target.value)}
+                  style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.9rem' }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Data Table */}
+          <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #E2E8F0', overflow: 'hidden', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.03)' }}>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                <thead>
+                  <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
+                    <th style={{ padding: '16px 20px', fontSize: '0.85rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>Fecha y Hora</th>
+                    <th style={{ padding: '16px 20px', fontSize: '0.85rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>Realizado Por</th>
+                    <th style={{ padding: '16px 20px', fontSize: '0.85rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>Tarjeta</th>
+                    <th style={{ padding: '16px 20px', fontSize: '0.85rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>Efectivo</th>
+                    <th style={{ padding: '16px 20px', fontSize: '0.85rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>Total Recaudado</th>
+                    <th style={{ padding: '16px 20px', fontSize: '0.85rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {cashCloses
+                    .filter(c => {
+                      let match = true;
+                      if (closeSearchQuery) {
+                        match = match && (c.notes || '').toLowerCase().includes(closeSearchQuery.toLowerCase());
+                      }
+                      if (closeStartDate) {
+                        const start = new Date(closeStartDate + 'T00:00:00').getTime();
+                        if (c.date < start) match = false;
+                      }
+                      if (closeEndDate) {
+                        const end = new Date(closeEndDate + 'T23:59:59').getTime();
+                        if (c.date > end) match = false;
+                      }
+                      return match;
+                    })
+                    .map(close => (
+                      <tr key={close.id} style={{ borderBottom: '1px solid #F1F5F9', transition: 'background 0.2s' }} onMouseOver={(e) => e.currentTarget.style.background = '#F8FAFC'} onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}>
+                        <td style={{ padding: '16px 20px', fontSize: '0.9rem', color: '#0F172A', fontWeight: 500 }}>
+                          {new Date(close.date).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })}
+                        </td>
+                        <td style={{ padding: '16px 20px', fontSize: '0.9rem', color: '#475569' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <UserIcon size={14} style={{ color: '#94A3B8' }} /> {close.closedBy}
+                          </div>
+                        </td>
+                        <td style={{ padding: '16px 20px', fontSize: '0.9rem', color: '#475569' }}>{close.totalCard.toFixed(2)}€</td>
+                        <td style={{ padding: '16px 20px', fontSize: '0.9rem', color: '#475569' }}>{close.totalCash.toFixed(2)}€</td>
+                        <td style={{ padding: '16px 20px', fontSize: '0.95rem', color: primaryColor, fontWeight: 700 }}>{close.totalAmount.toFixed(2)}€</td>
+                        <td style={{ padding: '16px 20px' }}>
+                          <button 
+                            onClick={() => setSelectedCloseForDetail(close)}
+                            style={{ background: 'transparent', border: '1px solid #CBD5E1', borderRadius: '6px', padding: '6px 10px', fontSize: '0.8rem', fontWeight: 600, color: '#475569', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', transition: 'all 0.2s' }}
+                            onMouseOver={(e) => e.currentTarget.style.background = '#F1F5F9'}
+                            onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                          >
+                            <FileText size={14} /> Detalles
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {cashCloses.length === 0 && (
+                      <tr>
+                        <td colSpan={7} style={{ padding: '32px 20px', textAlign: 'center', color: '#94A3B8', fontSize: '0.9rem' }}>
+                          <Archive size={32} style={{ margin: '0 auto 12px auto', opacity: 0.5, display: 'block' }} />
+                          No hay cierres de caja registrados
+                        </td>
+                      </tr>
+                    )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       ) : (
         <div className="tpv-grid" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '24px', width: '100%' }}>
@@ -1390,6 +1518,32 @@ export const AdminTpvPage: React.FC = () => {
                 <Archive size={16} /> Cierre de Caja Diario
               </button>
 
+              {/* Button: Consultar Cierres de Caja */}
+              <button
+                type="button"
+                onClick={() => setActiveView('cierres')}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  background: '#FFFFFF',
+                  color: '#475569',
+                  border: '1px solid #CBD5E1',
+                  fontSize: '0.9rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  transition: 'background 0.2s'
+                }}
+                onMouseOver={(e) => e.currentTarget.style.background = '#F8FAFC'}
+                onMouseOut={(e) => e.currentTarget.style.background = '#FFFFFF'}
+              >
+                <History size={16} /> Consultar Cierres de Caja
+              </button>
+
               {/* Button: Métricas y Estadísticas */}
               <button
                 type="button"
@@ -1814,6 +1968,109 @@ export const AdminTpvPage: React.FC = () => {
               }}
             >
               Cerrar Panel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* MODAL: DETALLES DE CIERRE HISTÓRICO                       */}
+      {/* ======================================================== */}
+      {selectedCloseForDetail && (
+        <div className="modal-overlay" onClick={() => setSelectedCloseForDetail(null)} style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(15, 23, 42, 0.45)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: '16px'
+        }}>
+          <div className="modal-content animate-pop-in" onClick={e => e.stopPropagation()} style={{
+            background: '#ffffff',
+            borderRadius: '16px',
+            width: '100%',
+            maxWidth: '500px',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.15)',
+            border: '1px solid #E2E8F0',
+            padding: '24px',
+            boxSizing: 'border-box',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '20px'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F1F5F9', paddingBottom: '12px' }}>
+              <h2 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <FileText size={20} style={{ color: primaryColor }} /> Detalles del Cierre
+              </h2>
+              <button 
+                onClick={() => setSelectedCloseForDetail(null)}
+                style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', padding: '4px' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div style={{ background: '#F8FAFC', padding: '12px', borderRadius: '8px' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 600, textTransform: 'uppercase' }}>Fecha y Hora</div>
+                  <div style={{ fontSize: '0.9rem', color: '#0F172A', fontWeight: 500, marginTop: '4px' }}>
+                    {new Date(selectedCloseForDetail.date).toLocaleString('es-ES', { dateStyle: 'long', timeStyle: 'short' })}
+                  </div>
+                </div>
+                <div style={{ background: '#F8FAFC', padding: '12px', borderRadius: '8px' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 600, textTransform: 'uppercase' }}>Realizado por</div>
+                  <div style={{ fontSize: '0.9rem', color: '#0F172A', fontWeight: 500, marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <UserIcon size={14} style={{ color: '#94A3B8' }} /> {selectedCloseForDetail.closedBy}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ background: '#F8FAFC', borderRadius: '8px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px', border: '1px solid #E2E8F0' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
+                  <span style={{ color: '#64748B' }}>Total Tarjeta:</span>
+                  <strong style={{ color: '#0F172A' }}>{selectedCloseForDetail.totalCard.toFixed(2)}€</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
+                  <span style={{ color: '#64748B' }}>Total Efectivo:</span>
+                  <strong style={{ color: '#0F172A' }}>{selectedCloseForDetail.totalCash.toFixed(2)}€</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem', borderTop: '1px dashed #CBD5E1', paddingTop: '12px', marginTop: '4px' }}>
+                  <span style={{ color: '#0F172A', fontWeight: 700 }}>Total Recaudado:</span>
+                  <strong style={{ color: primaryColor, fontSize: '1.2rem', fontWeight: 800 }}>{selectedCloseForDetail.totalAmount.toFixed(2)}€</strong>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569' }}>Notas / Observaciones</label>
+                <div style={{ background: '#F8FAFC', padding: '12px', borderRadius: '8px', border: '1px solid #E2E8F0', minHeight: '60px', fontSize: '0.9rem', color: selectedCloseForDetail.notes ? '#0F172A' : '#94A3B8' }}>
+                  {selectedCloseForDetail.notes || 'Sin observaciones para este cierre.'}
+                </div>
+              </div>
+            </div>
+            
+            <button
+              onClick={() => setSelectedCloseForDetail(null)}
+              style={{
+                width: '100%',
+                padding: '12px',
+                borderRadius: '8px',
+                background: '#F1F5F9',
+                color: '#475569',
+                border: 'none',
+                fontSize: '0.95rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'background 0.2s',
+                marginTop: '8px'
+              }}
+              onMouseOver={(e) => e.currentTarget.style.background = '#E2E8F0'}
+              onMouseOut={(e) => e.currentTarget.style.background = '#F1F5F9'}
+            >
+              Cerrar Detalles
             </button>
           </div>
         </div>
