@@ -5,6 +5,11 @@ import type { FirebaseOptions } from 'firebase/app';
 import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc, getDoc, onSnapshot } from 'firebase/firestore';
 import { getStorage, ref, uploadString, getDownloadURL } from 'firebase/storage';
 
+// Helper to remove 'undefined' fields before writing to Firestore
+function cleanData<T>(data: T): T {
+  return JSON.parse(JSON.stringify(data));
+}
+
 export class FirebaseRepository implements DataRepository {
   private db: any;
   private storage: any;
@@ -26,7 +31,7 @@ export class FirebaseRepository implements DataRepository {
   }
 
   async saveUser(user: User): Promise<void> {
-    await setDoc(doc(this.db, 'users', user.id), user);
+    await setDoc(doc(this.db, 'users', user.id), cleanData(user));
   }
 
   async deleteUser(id: string): Promise<void> {
@@ -39,7 +44,7 @@ export class FirebaseRepository implements DataRepository {
   }
 
   async saveService(service: BookingService): Promise<void> {
-    await setDoc(doc(this.db, 'services', service.id), service);
+    await setDoc(doc(this.db, 'services', service.id), cleanData(service));
   }
 
   async deleteService(id: string): Promise<void> {
@@ -60,7 +65,7 @@ export class FirebaseRepository implements DataRepository {
   }
 
   async saveAppointment(appointment: Appointment): Promise<void> {
-    await setDoc(doc(this.db, 'appointments', appointment.id), appointment);
+    await setDoc(doc(this.db, 'appointments', appointment.id), cleanData(appointment));
   }
 
   async deleteAppointment(id: string): Promise<void> {
@@ -73,7 +78,7 @@ export class FirebaseRepository implements DataRepository {
   }
 
   async saveConfig(config: BusinessConfig): Promise<void> {
-    await setDoc(doc(this.db, 'config', 'global'), config);
+    await setDoc(doc(this.db, 'config', 'global'), cleanData(config));
   }
 
   async getSchedules(): Promise<DaySchedule[]> {
@@ -83,7 +88,7 @@ export class FirebaseRepository implements DataRepository {
 
   async saveSchedules(schedules: DaySchedule[]): Promise<void> {
     await Promise.all(schedules.map(s => 
-      setDoc(doc(this.db, 'schedules', s.dayOfWeek.toString()), s)
+      setDoc(doc(this.db, 'schedules', s.dayOfWeek.toString()), cleanData(s))
     ));
   }
 
@@ -93,7 +98,7 @@ export class FirebaseRepository implements DataRepository {
   }
 
   async saveBlockedDay(day: BlockedDay): Promise<void> {
-    await setDoc(doc(this.db, 'blockedDays', day.id), day);
+    await setDoc(doc(this.db, 'blockedDays', day.id), cleanData(day));
   }
 
   async deleteBlockedDay(id: string): Promise<void> {
@@ -107,7 +112,7 @@ export class FirebaseRepository implements DataRepository {
   }
 
   async saveCompanyData(data: CompanyData): Promise<void> {
-    await setDoc(doc(this.db, 'system', 'company_data'), data);
+    await setDoc(doc(this.db, 'system', 'company_data'), cleanData(data));
   }
 
   async getDesignConfig(): Promise<DesignConfig | null> {
@@ -116,14 +121,12 @@ export class FirebaseRepository implements DataRepository {
   }
 
   async saveDesignConfig(data: DesignConfig): Promise<void> {
-    await setDoc(doc(this.db, 'system', 'design_config'), data);
+    await setDoc(doc(this.db, 'system', 'design_config'), cleanData(data));
   }
 
   // --- Storage ---
   async uploadImage(path: string, base64: string): Promise<string> {
     const storageRef = ref(this.storage, path);
-    // Extraemos el formato y los datos puros del dataURL
-    // Formato esperado: data:image/png;base64,.....
     await uploadString(storageRef, base64, 'data_url');
     return await getDownloadURL(storageRef);
   }
@@ -135,7 +138,7 @@ export class FirebaseRepository implements DataRepository {
   }
 
   async savePromoOffer(offer: PromoOffer): Promise<void> {
-    await setDoc(doc(this.db, 'promoOffers', offer.id), offer);
+    await setDoc(doc(this.db, 'promoOffers', offer.id), cleanData(offer));
   }
 
   async deletePromoOffer(id: string): Promise<void> {
@@ -149,7 +152,7 @@ export class FirebaseRepository implements DataRepository {
   }
 
   async saveEmailLog(log: EmailLog): Promise<void> {
-    await setDoc(doc(this.db, 'emailLogs', log.id), log);
+    await setDoc(doc(this.db, 'emailLogs', log.id), cleanData(log));
   }
 
   // --- Transactions (TPV) ---
@@ -159,7 +162,7 @@ export class FirebaseRepository implements DataRepository {
   }
 
   async saveTransaction(transaction: Transaction): Promise<void> {
-    await setDoc(doc(this.db, 'transactions', transaction.id), transaction);
+    await setDoc(doc(this.db, 'transactions', transaction.id), cleanData(transaction));
   }
 
   async deleteTransaction(id: string): Promise<void> {
@@ -173,6 +176,6 @@ export class FirebaseRepository implements DataRepository {
   }
 
   async saveCashClose(close: CashClose): Promise<void> {
-    await setDoc(doc(this.db, 'cashCloses', close.id), close);
+    await setDoc(doc(this.db, 'cashCloses', close.id), cleanData(close));
   }
 }
