@@ -80,8 +80,16 @@ const SalesDashboardSVGChart: React.FC<{ data: ChartDataPoint[]; primaryColor: s
             const chartWidth = 600 - paddingLeft - paddingRight;
             const gapRatio = 0.35;
             const totalBarWidth = chartWidth / barCount;
-            const barWidth = totalBarWidth * (1 - gapRatio);
-            const xPos = paddingLeft + idx * totalBarWidth + (totalBarWidth * gapRatio) / 2;
+            
+            // Limit maximum width to 50px to prevent visual distortion with few bars
+            let barWidth = totalBarWidth * (1 - gapRatio);
+            if (barWidth > 50) {
+              barWidth = 50;
+            }
+            
+            // Center the bar horizontally within its column slot
+            const centerX = paddingLeft + idx * totalBarWidth + totalBarWidth / 2;
+            const xPos = centerX - barWidth / 2;
 
             const ratio = item.amount / yMax;
             const barHeight = (chartHeight - paddingTop - paddingBottom) * ratio;
