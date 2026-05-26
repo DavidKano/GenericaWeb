@@ -1204,9 +1204,9 @@ export const AdminTpvPage: React.FC = () => {
                 style={{
                   padding: '10px',
                   borderRadius: '8px',
-                  background: '#F1F5F9',
-                  color: '#334155',
-                  border: '1px solid #E2E8F0',
+                  background: '#FFFFFF',
+                  color: '#475569',
+                  border: '1px solid #CBD5E1',
                   fontSize: '0.85rem',
                   fontWeight: 700,
                   cursor: 'pointer',
@@ -1217,8 +1217,8 @@ export const AdminTpvPage: React.FC = () => {
                   transition: 'background 0.2s',
                   whiteSpace: 'nowrap'
                 }}
-                onMouseOver={(e) => e.currentTarget.style.background = '#E2E8F0'}
-                onMouseOut={(e) => e.currentTarget.style.background = '#F1F5F9'}
+                onMouseOver={(e) => e.currentTarget.style.background = '#F8FAFC'}
+                onMouseOut={(e) => e.currentTarget.style.background = '#FFFFFF'}
               >
                 <BarChart3 size={14} /> Estadísticas y Métricas
               </button>
