@@ -59,6 +59,8 @@ export const AdminTpvPage: React.FC = () => {
   
   const [showCloseBoxModal, setShowCloseBoxModal] = useState(false);
   const [closeNotes, setCloseNotes] = useState('');
+  const [selectedCloseDate, setSelectedCloseDate] = useState<Date | null>(null);
+  const [hasPromptedPendingClose, setHasPromptedPendingClose] = useState(false);
   
   const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
 
@@ -106,6 +108,47 @@ export const AdminTpvPage: React.FC = () => {
   useEffect(() => {
     loadData();
   }, [repo]);
+
+  // Scan for past days with transactions but no cash close
+  const pendingCloseDates = useMemo(() => {
+    if (transactions.length === 0) return [];
+    const now = new Date();
+    const pending: Date[] = [];
+    
+    // Look back up to 7 days in the past
+    for (let i = 1; i <= 7; i++) {
+      const checkDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+      const start = new Date(checkDate.getFullYear(), checkDate.getMonth(), checkDate.getDate()).getTime();
+      const end = start + 24 * 60 * 60 * 1000 - 1;
+      
+      const hasTxs = transactions.some(tx => tx.date >= start && tx.date <= end);
+      if (!hasTxs) continue;
+      
+      const hasClose = cashCloses.some(c => c.date >= start && c.date <= end);
+      if (!hasClose) {
+        pending.push(checkDate);
+      }
+    }
+    return pending;
+  }, [transactions, cashCloses]);
+
+  // Prompt user on load if there are pending cash closes
+  useEffect(() => {
+    if (pendingCloseDates.length > 0 && !hasPromptedPendingClose && !isLoading) {
+      setHasPromptedPendingClose(true);
+      const mostRecentPending = pendingCloseDates[0];
+      const formattedDate = mostRecentPending.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+      
+      const confirmClose = window.confirm(
+        `Atención: El cierre de caja del día (${formattedDate}) quedó pendiente.\n\n¿Deseas realizar el cierre de caja de ese día ahora?`
+      );
+      
+      if (confirmClose) {
+        setSelectedCloseDate(mostRecentPending);
+        setShowCloseBoxModal(true);
+      }
+    }
+  }, [pendingCloseDates, hasPromptedPendingClose, isLoading]);
 
   // Handle URL Query Params (Redirection from appointment details modal)
   useEffect(() => {
@@ -431,26 +474,38 @@ export const AdminTpvPage: React.FC = () => {
     document.body.removeChild(link);
   };
 
+  // Helper to calculate close data for any given date
+  const getCloseDataForDate = (date: Date) => {
+    const start = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+    const end = start + 24 * 60 * 60 * 1000 - 1;
+    const dayTxs = transactions.filter(tx => tx.date >= start && tx.date <= end);
+    const cash = dayTxs.filter(tx => tx.paymentMethod === 'metalico').reduce((s, tx) => s + tx.amount, 0);
+    const card = dayTxs.filter(tx => tx.paymentMethod === 'tarjeta').reduce((s, tx) => s + tx.amount, 0);
+    
+    return {
+      cash: Number(cash.toFixed(2)),
+      card: Number(card.toFixed(2)),
+      total: Number((cash + card).toFixed(2)),
+      count: dayTxs.length,
+      start,
+      end
+    };
+  };
+
   // Perform daily cash close
   const handleCreateCashClose = async () => {
-    const now = new Date();
-    // Get start of today (local time)
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-    
-    // Filter today's transactions
-    const todayTxs = transactions.filter(tx => tx.date >= todayStart);
-    const cashTotal = todayTxs.filter(tx => tx.paymentMethod === 'metalico').reduce((s, tx) => s + tx.amount, 0);
-    const cardTotal = todayTxs.filter(tx => tx.paymentMethod === 'tarjeta').reduce((s, tx) => s + tx.amount, 0);
-    const totalAmount = cashTotal + cardTotal;
+    const closeDate = selectedCloseDate || new Date();
+    const { cash, card, total, start } = getCloseDataForDate(closeDate);
 
     setIsSaving(true);
     try {
       const closeObj: CashClose = {
         id: `close-${Date.now()}`,
-        date: Date.now(),
-        totalCash: Number(cashTotal.toFixed(2)),
-        totalCard: Number(cardTotal.toFixed(2)),
-        totalAmount: Number(totalAmount.toFixed(2)),
+        // Use noon of that day for historical closes to ensure it stays in that day
+        date: selectedCloseDate ? (start + 12 * 60 * 60 * 1000) : Date.now(),
+        totalCash: cash,
+        totalCard: card,
+        totalAmount: total,
         closedBy: user?.name || 'Administrador',
         notes: closeNotes.trim() || undefined
       };
@@ -458,6 +513,7 @@ export const AdminTpvPage: React.FC = () => {
       await repo.saveCashClose(closeObj);
       alert('¡Cierre de caja guardado con éxito!');
       setShowCloseBoxModal(false);
+      setSelectedCloseDate(null);
       setCloseNotes('');
       await loadData();
     } catch (e) {
@@ -468,23 +524,10 @@ export const AdminTpvPage: React.FC = () => {
     }
   };
 
-  // Calculations for Today's Cash Close preview
+  // Calculations for current Cash Close preview (today or selected close date)
   const todayCloseData = useMemo(() => {
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const startMs = todayStart.getTime();
-    
-    const todayTxs = transactions.filter(tx => tx.date >= startMs);
-    const cash = todayTxs.filter(tx => tx.paymentMethod === 'metalico').reduce((s, tx) => s + tx.amount, 0);
-    const card = todayTxs.filter(tx => tx.paymentMethod === 'tarjeta').reduce((s, tx) => s + tx.amount, 0);
-    
-    return {
-      cash: Number(cash.toFixed(2)),
-      card: Number(card.toFixed(2)),
-      total: Number((cash + card).toFixed(2)),
-      count: todayTxs.length
-    };
-  }, [transactions]);
+    return getCloseDataForDate(selectedCloseDate || new Date());
+  }, [transactions, selectedCloseDate]);
 
   // Calculations for the interactive Analytics modal
   const metrics = useMemo(() => {
@@ -562,6 +605,70 @@ export const AdminTpvPage: React.FC = () => {
         title="TPV Virtual"
         description="Gestiona cobros múltiples, asocia clientes con búsqueda predictiva, edita importes en tiempo real y simula vueltas."
       />
+
+      {/* PERSISTENT PENDING CLOSE REMINDER BANNER */}
+      {pendingCloseDates.length > 0 && !isLoading && (
+        <div style={{
+          background: '#FFFBEB',
+          border: '1px solid #FDE68A',
+          borderRadius: '12px',
+          padding: '12px 16px',
+          marginBottom: '20px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          boxShadow: '0 2px 10px rgba(251, 191, 36, 0.05)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{
+              background: '#FCD34D',
+              borderRadius: '50%',
+              width: '28px',
+              height: '28px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#78350F'
+            }}>
+              <Archive size={16} />
+            </div>
+            <div>
+              <h4 style={{ margin: 0, fontSize: '0.88rem', fontWeight: 700, color: '#78350F' }}>
+                Cierres de caja del pasado pendientes
+              </h4>
+              <p style={{ margin: '2px 0 0 0', fontSize: '0.8rem', color: '#92400E' }}>
+                Tienes {pendingCloseDates.length} cierre{pendingCloseDates.length > 1 ? 's' : ''} de caja pendiente{pendingCloseDates.length > 1 ? 's' : ''} de días anteriores (el más antiguo: {pendingCloseDates[pendingCloseDates.length - 1].toLocaleDateString('es-ES')}).
+              </p>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            {pendingCloseDates.map((date, idx) => (
+              <button
+                key={idx}
+                onClick={() => {
+                  setSelectedCloseDate(date);
+                  setShowCloseBoxModal(true);
+                }}
+                style={{
+                  background: '#92400E',
+                  color: '#fff',
+                  border: 'none',
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  transition: 'background 0.2s'
+                }}
+                onMouseOver={(e) => e.currentTarget.style.background = '#78350F'}
+                onMouseOut={(e) => e.currentTarget.style.background = '#92400E'}
+              >
+                Cerrar {date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {isLoading ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center', justifyContent: 'center', minHeight: '300px' }}>
@@ -1665,7 +1772,7 @@ export const AdminTpvPage: React.FC = () => {
       {/* MODAL 1: CIERRE DE CAJA DIARIO & CONSULTAS ANTERIORES */}
       {/* ======================================================== */}
       {showCloseBoxModal && (
-        <div className="modal-overlay" onClick={() => setShowCloseBoxModal(false)} style={{
+        <div className="modal-overlay" onClick={() => { setShowCloseBoxModal(false); setSelectedCloseDate(null); }} style={{
           position: 'fixed',
           inset: 0,
           background: 'rgba(15, 23, 42, 0.45)',
@@ -1693,10 +1800,10 @@ export const AdminTpvPage: React.FC = () => {
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F1F5F9', paddingBottom: '12px' }}>
               <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Archive size={20} style={{ color: primaryColor }} /> Cierre de Caja Diario
+                <Archive size={20} style={{ color: primaryColor }} /> {selectedCloseDate ? `Cierre de Caja - ${selectedCloseDate.toLocaleDateString('es-ES')}` : 'Cierre de Caja Diario'}
               </h2>
               <button 
-                onClick={() => setShowCloseBoxModal(false)}
+                onClick={() => { setShowCloseBoxModal(false); setSelectedCloseDate(null); }}
                 style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', padding: '4px' }}
               >
                 <X size={20} />
@@ -1707,7 +1814,11 @@ export const AdminTpvPage: React.FC = () => {
               
               {/* Left Form: Realizar cierre */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', borderRight: '1px solid #F1F5F9', paddingRight: '16px' }}>
-                <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 700, color: '#475569' }}>Cerrar Caja de Hoy</h4>
+                <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 700, color: '#475569' }}>
+                  {selectedCloseDate 
+                    ? `Cerrar Caja del ${selectedCloseDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}` 
+                    : 'Cerrar Caja de Hoy'}
+                </h4>
                 
                 <div style={{ background: '#F8FAFC', borderRadius: '8px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
@@ -1723,7 +1834,7 @@ export const AdminTpvPage: React.FC = () => {
                     <strong style={{ color: primaryColor, fontSize: '1.05rem', fontWeight: 800 }}>{todayCloseData.total.toFixed(2)}€</strong>
                   </div>
                   <div style={{ fontSize: '0.72rem', color: '#94A3B8', textAlign: 'right', marginTop: '2px' }}>
-                    ({todayCloseData.count} movimientos hoy)
+                    ({todayCloseData.count} movimientos)
                   </div>
                 </div>
 
