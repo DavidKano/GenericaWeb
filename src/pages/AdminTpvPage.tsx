@@ -1,9 +1,9 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import type { BookingService, User, Transaction, DesignConfig } from '../services/models';
 import { PageHeader } from '../components/ui/PageHeader';
-import { CreditCard, Coins, Check, Trash2, User as UserIcon, Briefcase, Calculator, RefreshCw, Euro, Plus } from 'lucide-react';
+import { CreditCard, Coins, Check, Trash2, User as UserIcon, Briefcase, Calculator, RefreshCw, Euro, Plus, X } from 'lucide-react';
 
 interface TicketItem {
   id: string; // Unique ID inside the current ticket
@@ -28,6 +28,11 @@ export const AdminTpvPage: React.FC = () => {
   const [selectedCustomerId, setSelectedCustomerId] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'tarjeta' | 'metalico' | 'mixto'>('tarjeta');
   
+  // Searchable Customer Dropdown State
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
   // Mixed Payment Details
   const [mixedCashAmount, setMixedCashAmount] = useState<number | string>('');
   const [mixedCardAmount, setMixedCardAmount] = useState<number | string>('');
@@ -97,6 +102,61 @@ export const AdminTpvPage: React.FC = () => {
       }
     }
   }, [services, location.search]);
+
+  // Sync Search Query text when selectedCustomerId changes or customers load
+  useEffect(() => {
+    if (selectedCustomerId && customers.length > 0) {
+      const found = customers.find(c => c.id === selectedCustomerId);
+      if (found) {
+        setSearchQuery(found.name);
+      } else {
+        setSearchQuery('');
+      }
+    } else {
+      setSearchQuery('');
+    }
+  }, [selectedCustomerId, customers]);
+
+  // Handle Click Outside for searchable dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+        // Restore previous selection name if closed without selecting
+        if (selectedCustomerId) {
+          const found = customers.find(c => c.id === selectedCustomerId);
+          if (found) setSearchQuery(found.name);
+        } else {
+          setSearchQuery('');
+        }
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [selectedCustomerId, customers]);
+
+  // Filter and Sort Customers alphabetically
+  const sortedAndFilteredCustomers = useMemo(() => {
+    // 1. Sort alphabetically by name
+    const sorted = [...customers].sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
+    
+    // 2. Filter by search query
+    if (!searchQuery.trim() || selectedCustomerId) {
+      // If we already selected someone and the query matches their name exactly, show all when focused
+      const selected = customers.find(c => c.id === selectedCustomerId);
+      if (selected && selected.name === searchQuery) {
+        return sorted;
+      }
+      if (!searchQuery.trim()) return sorted;
+    }
+    
+    const query = searchQuery.toLowerCase().trim();
+    return sorted.filter(c => 
+      c.name.toLowerCase().includes(query) || 
+      (c.phone && c.phone.includes(query)) ||
+      (c.email && c.email.toLowerCase().includes(query))
+    );
+  }, [customers, searchQuery, selectedCustomerId]);
 
   // Total Amount Calculation
   const totalAmount = useMemo(() => {
@@ -183,6 +243,7 @@ export const AdminTpvPage: React.FC = () => {
   const resetForm = () => {
     setTicket([]);
     setSelectedCustomerId('');
+    setSearchQuery('');
     setPaymentMethod('tarjeta');
     setMixedCashAmount('');
     setMixedCardAmount('');
@@ -308,7 +369,7 @@ export const AdminTpvPage: React.FC = () => {
       <PageHeader 
         icon={<Calculator size={28} />}
         title="TPV Virtual"
-        description="Gestiona cobros múltiples, asocia clientes, edita importes en tiempo real y simula vueltas de efectivo."
+        description="Gestiona cobros múltiples, asocia clientes con búsqueda predictiva, edita importes en tiempo real y simula vueltas."
       />
 
       {isLoading ? (
@@ -588,34 +649,151 @@ export const AdminTpvPage: React.FC = () => {
             }}>
               <form onSubmit={handleCharge} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 
-                {/* Cliente */}
+                {/* Searchable Autocomplete Customer Selector */}
                 <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <label style={{ fontSize: '0.875rem', fontWeight: 600, color: '#475569' }}>Cliente del Cobro</label>
-                  <div style={{ position: 'relative' }}>
-                    <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', display: 'flex', alignItems: 'center' }}>
-                      <UserIcon size={18} />
-                    </span>
-                    <select
-                      value={selectedCustomerId}
-                      onChange={(e) => setSelectedCustomerId(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '12px 12px 12px 38px',
-                        border: '1px solid #CBD5E1',
+                  
+                  <div ref={dropdownRef} style={{ position: 'relative', width: '100%' }}>
+                    <div style={{ position: 'relative' }}>
+                      <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', display: 'flex', alignItems: 'center' }}>
+                        <UserIcon size={18} />
+                      </span>
+                      
+                      <input
+                        type="text"
+                        placeholder="Buscar cliente por nombre o teléfono..."
+                        value={searchQuery}
+                        onChange={(e) => {
+                          setSearchQuery(e.target.value);
+                          setIsDropdownOpen(true);
+                          if (selectedCustomerId && e.target.value === '') {
+                            setSelectedCustomerId(''); // Clear selection if text is fully deleted
+                          }
+                        }}
+                        onFocus={() => setIsDropdownOpen(true)}
+                        style={{
+                          width: '100%',
+                          padding: '12px 35px 12px 38px',
+                          border: '1px solid #CBD5E1',
+                          borderRadius: '8px',
+                          fontSize: '0.95rem',
+                          background: '#fff',
+                          outline: 'none',
+                          boxSizing: 'border-box',
+                          color: selectedCustomerId ? '#0F172A' : '#475569',
+                          fontWeight: selectedCustomerId ? '600' : 'normal'
+                        }}
+                      />
+
+                      {/* Clear Button */}
+                      {(searchQuery || selectedCustomerId) && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedCustomerId('');
+                            setSearchQuery('');
+                            setIsDropdownOpen(false);
+                          }}
+                          style={{
+                            position: 'absolute',
+                            right: '12px',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            background: 'transparent',
+                            border: 'none',
+                            color: '#94A3B8',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            padding: '4px'
+                          }}
+                        >
+                          <X size={16} />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Dropdown Options */}
+                    {isDropdownOpen && (
+                      <div className="autocomplete-dropdown" style={{
+                        position: 'absolute',
+                        top: 'calc(100% + 4px)',
+                        left: '0',
+                        right: '0',
+                        background: '#ffffff',
+                        border: '1px solid #E2E8F0',
                         borderRadius: '8px',
-                        fontSize: '0.95rem',
-                        background: '#fff',
-                        outline: 'none',
-                        color: selectedCustomerId ? '#0F172A' : '#94A3B8'
-                      }}
-                    >
-                      <option value="">-- Cliente no identificado (Venta rápida) --</option>
-                      {customers.map(c => (
-                        <option key={c.id} value={c.id}>
-                          {c.name} {c.phone ? `(${c.phone})` : ''}
-                        </option>
-                      ))}
-                    </select>
+                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                        maxHeight: '220px',
+                        overflowY: 'auto',
+                        zIndex: '50',
+                        animation: 'fadeIn 0.2s ease',
+                        boxSizing: 'border-box'
+                      }}>
+                        {/* Option: Venta Rápida (Clear) */}
+                        <div 
+                          onClick={() => {
+                            setSelectedCustomerId('');
+                            setSearchQuery('');
+                            setIsDropdownOpen(false);
+                          }}
+                          style={{
+                            padding: '10px 14px',
+                            fontSize: '0.9rem',
+                            color: '#64748B',
+                            cursor: 'pointer',
+                            borderBottom: '1px solid #F1F5F9',
+                            fontWeight: !selectedCustomerId ? '700' : 'normal',
+                            background: !selectedCustomerId ? '#F8FAFC' : 'transparent',
+                            textAlign: 'left'
+                          }}
+                          className="dropdown-item-hover"
+                        >
+                          -- Cliente no identificado (Venta rápida) --
+                        </div>
+
+                        {sortedAndFilteredCustomers.length === 0 ? (
+                          <div style={{ padding: '12px 14px', fontSize: '0.875rem', color: '#94A3B8', textAlign: 'center' }}>
+                            No se encontraron clientes matching
+                          </div>
+                        ) : (
+                          sortedAndFilteredCustomers.map(c => {
+                            const isSelected = c.id === selectedCustomerId;
+                            return (
+                              <div
+                                key={c.id}
+                                onClick={() => {
+                                  setSelectedCustomerId(c.id);
+                                  setSearchQuery(c.name);
+                                  setIsDropdownOpen(false);
+                                }}
+                                style={{
+                                  padding: '10px 14px',
+                                  fontSize: '0.9rem',
+                                  color: '#0F172A',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  justifyContent: 'space-between',
+                                  alignItems: 'center',
+                                  borderBottom: '1px solid #F8FAFC',
+                                  fontWeight: isSelected ? '700' : 'normal',
+                                  background: isSelected ? `color-mix(in srgb, ${primaryColor} 8%, #fff)` : 'transparent',
+                                  textAlign: 'left'
+                                }}
+                                className="dropdown-item-hover"
+                              >
+                                <span>{c.name}</span>
+                                {c.phone && (
+                                  <span style={{ fontSize: '0.8rem', color: '#64748B', marginLeft: '6px' }}>
+                                    ({c.phone})
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -1024,6 +1202,9 @@ export const AdminTpvPage: React.FC = () => {
         }
         .tx-row:hover {
           background-color: #F8FAFC;
+        }
+        .dropdown-item-hover:hover {
+          background-color: color-mix(in srgb, ${primaryColor} 6%, #F8FAFC) !important;
         }
         @media(min-width: 992px) {
           .tpv-grid {
