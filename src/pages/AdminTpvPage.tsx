@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useData } from '../context/DataContext';
-import type { BookingService, User, Transaction, DesignConfig } from '../services/models';
+import { useAuth } from '../context/AuthContext';
+import type { BookingService, User, Transaction, DesignConfig, CashClose } from '../services/models';
 import { PageHeader } from '../components/ui/PageHeader';
-import { CreditCard, Coins, Check, Trash2, User as UserIcon, Briefcase, Calculator, RefreshCw, Euro, Plus, X } from 'lucide-react';
+import { CreditCard, Coins, Check, Trash2, User as UserIcon, Briefcase, Calculator, RefreshCw, Euro, Plus, X, BarChart3, Download, Archive, TrendingUp } from 'lucide-react';
 
 interface TicketItem {
   id: string; // Unique ID inside the current ticket
@@ -14,6 +15,7 @@ interface TicketItem {
 
 export const AdminTpvPage: React.FC = () => {
   const { repo } = useData();
+  const { user } = useAuth();
   const location = useLocation();
 
   const [design, setDesign] = useState<DesignConfig | null>(null);
@@ -22,6 +24,7 @@ export const AdminTpvPage: React.FC = () => {
   const [services, setServices] = useState<BookingService[]>([]);
   const [customers, setCustomers] = useState<User[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [cashCloses, setCashCloses] = useState<CashClose[]>([]);
 
   // TPV Ticket State
   const [ticket, setTicket] = useState<TicketItem[]>([]);
@@ -49,15 +52,26 @@ export const AdminTpvPage: React.FC = () => {
   const [manualConcept, setManualConcept] = useState('');
   const [manualPrice, setManualPrice] = useState<number | string>('');
 
+  // Export & Modals State
+  const [showExportPanel, setShowExportPanel] = useState(false);
+  const [exportStartDate, setExportStartDate] = useState(new Date().toISOString().split('T')[0]);
+  const [exportEndDate, setExportEndDate] = useState(new Date().toISOString().split('T')[0]);
+  
+  const [showCloseBoxModal, setShowCloseBoxModal] = useState(false);
+  const [closeNotes, setCloseNotes] = useState('');
+  
+  const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
+
   // Fetch initial data
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [svcs, usrs, txs, cfg] = await Promise.all([
+      const [svcs, usrs, txs, cfg, closes] = await Promise.all([
         repo.getServices(),
         repo.getUsers(),
         repo.getTransactions(),
         repo.getDesignConfig(),
+        repo.getCashCloses(),
       ]);
       setServices(svcs.filter(s => s.isActive));
       setCustomers(usrs.filter(u => u.role === 'CUSTOMER'));
@@ -65,6 +79,11 @@ export const AdminTpvPage: React.FC = () => {
       // Sort transactions by date descending
       const sortedTxs = [...txs].sort((a, b) => b.date - a.date);
       setTransactions(sortedTxs);
+      
+      // Sort cash closes by date descending
+      const sortedCloses = [...closes].sort((a, b) => b.date - a.date);
+      setCashCloses(sortedCloses);
+      
       setDesign(cfg);
     } catch (error) {
       console.error('Error cargando datos del TPV:', error);
@@ -362,10 +381,171 @@ export const AdminTpvPage: React.FC = () => {
     }
   };
 
+  // CSV Exporter for movements
+  const handleExportCSV = () => {
+    const start = new Date(exportStartDate + 'T00:00:00').getTime();
+    const end = new Date(exportEndDate + 'T23:59:59').getTime();
+    
+    const filtered = transactions.filter(tx => tx.date >= start && tx.date <= end);
+    
+    if (filtered.length === 0) {
+      alert('No se encontraron movimientos de caja en el rango de fechas seleccionado.');
+      return;
+    }
+    
+    // Generate CSV UTF-8 string with BOM (for Excel Spanish encoding compatibility)
+    let csvContent = "\uFEFFFecha,Hora,Cliente,Concepto/Servicio,Metodo de Pago,Importe\n";
+    
+    filtered.forEach(tx => {
+      const dateObj = new Date(tx.date);
+      const dateStr = dateObj.toLocaleDateString('es-ES');
+      const timeStr = dateObj.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+      const clientName = customers.find(c => c.id === tx.customerId)?.name || "Venta rapida";
+      const serviceName = services.find(s => s.id === tx.serviceId)?.name || tx.notes || "Cobro manual";
+      const method = tx.paymentMethod === 'tarjeta' ? "Tarjeta" : "Efectivo";
+      
+      const cleanConcept = serviceName.replace(/"/g, '""').replace(/,/g, ' ');
+      const cleanClient = clientName.replace(/"/g, '""').replace(/,/g, ' ');
+      
+      csvContent += `${dateStr},${timeStr},"${cleanClient}","${cleanConcept}",${method},${tx.amount.toFixed(2)}\n`;
+    });
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `movimientos_caja_${exportStartDate}_a_${exportEndDate}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Perform daily cash close
+  const handleCreateCashClose = async () => {
+    const now = new Date();
+    // Get start of today (local time)
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    
+    // Filter today's transactions
+    const todayTxs = transactions.filter(tx => tx.date >= todayStart);
+    const cashTotal = todayTxs.filter(tx => tx.paymentMethod === 'metalico').reduce((s, tx) => s + tx.amount, 0);
+    const cardTotal = todayTxs.filter(tx => tx.paymentMethod === 'tarjeta').reduce((s, tx) => s + tx.amount, 0);
+    const totalAmount = cashTotal + cardTotal;
+
+    setIsSaving(true);
+    try {
+      const closeObj: CashClose = {
+        id: `close-${Date.now()}`,
+        date: Date.now(),
+        totalCash: Number(cashTotal.toFixed(2)),
+        totalCard: Number(cardTotal.toFixed(2)),
+        totalAmount: Number(totalAmount.toFixed(2)),
+        closedBy: user?.name || 'Administrador',
+        notes: closeNotes.trim() || undefined
+      };
+
+      await repo.saveCashClose(closeObj);
+      alert('¡Cierre de caja guardado con éxito!');
+      setShowCloseBoxModal(false);
+      setCloseNotes('');
+      await loadData();
+    } catch (e) {
+      console.error(e);
+      alert('Error guardando el cierre de caja.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Calculations for Today's Cash Close preview
+  const todayCloseData = useMemo(() => {
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const startMs = todayStart.getTime();
+    
+    const todayTxs = transactions.filter(tx => tx.date >= startMs);
+    const cash = todayTxs.filter(tx => tx.paymentMethod === 'metalico').reduce((s, tx) => s + tx.amount, 0);
+    const card = todayTxs.filter(tx => tx.paymentMethod === 'tarjeta').reduce((s, tx) => s + tx.amount, 0);
+    
+    return {
+      cash: Number(cash.toFixed(2)),
+      card: Number(card.toFixed(2)),
+      total: Number((cash + card).toFixed(2)),
+      count: todayTxs.length
+    };
+  }, [transactions]);
+
+  // Calculations for the interactive Analytics modal
+  const metrics = useMemo(() => {
+    const totalRevenue = transactions.reduce((s, t) => s + t.amount, 0);
+    const count = transactions.length;
+    const averageTicket = count > 0 ? (totalRevenue / count) : 0;
+    
+    // Payment method distribution
+    const cashTotal = transactions.filter(tx => tx.paymentMethod === 'metalico').reduce((s, t) => s + t.amount, 0);
+    const cardTotal = transactions.filter(tx => tx.paymentMethod === 'tarjeta').reduce((s, t) => s + t.amount, 0);
+    const cashPercent = totalRevenue > 0 ? Math.round((cashTotal / totalRevenue) * 100) : 50;
+    const cardPercent = totalRevenue > 0 ? Math.round((cardTotal / totalRevenue) * 100) : 50;
+
+    // Top services revenue and count
+    const serviceMap: Record<string, { name: string, count: number, total: number }> = {};
+    transactions.forEach(tx => {
+      if (tx.serviceId) {
+        const foundS = services.find(s => s.id === tx.serviceId);
+        const name = foundS ? foundS.name : 'Servicio Desconocido';
+        if (!serviceMap[tx.serviceId]) {
+          serviceMap[tx.serviceId] = { name, count: 0, total: 0 };
+        }
+        serviceMap[tx.serviceId].count += 1;
+        serviceMap[tx.serviceId].total += tx.amount;
+      } else {
+        if (!serviceMap['manual']) {
+          serviceMap['manual'] = { name: 'Ventas Manuales Directas', count: 0, total: 0 };
+        }
+        serviceMap['manual'].count += 1;
+        serviceMap['manual'].total += tx.amount;
+      }
+    });
+
+    const topServices = Object.values(serviceMap)
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 5);
+
+    // Top customers lifetime spend
+    const customerMap: Record<string, { name: string, total: number, count: number }> = {};
+    transactions.forEach(tx => {
+      const cId = tx.customerId || 'venta-rapida';
+      const name = cId === 'venta-rapida' ? 'Venta Rápida (Sin Cliente)' : (customers.find(c => c.id === cId)?.name || 'Cliente no informado');
+      
+      if (!customerMap[cId]) {
+        customerMap[cId] = { name, total: 0, count: 0 };
+      }
+      customerMap[cId].total += tx.amount;
+      customerMap[cId].count += 1;
+    });
+
+    const topCustomers = Object.values(customerMap)
+      .filter(c => c.name !== 'Venta Rápida (Sin Cliente)')
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 5);
+
+    return {
+      totalRevenue: Number(totalRevenue.toFixed(2)),
+      count,
+      averageTicket: Number(averageTicket.toFixed(2)),
+      cashPercent,
+      cardPercent,
+      cashTotal: Number(cashTotal.toFixed(2)),
+      cardTotal: Number(cardTotal.toFixed(2)),
+      topServices,
+      topCustomers
+    };
+  }, [transactions, services, customers]);
+
   const primaryColor = design?.primaryColor || '#008080';
 
   return (
-    <div className="admin-tpv-container" style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto', boxSizing: 'border-box' }}>
+    <div className="admin-tpv-container" style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto', boxSizing: 'border-box' }}>
       <PageHeader 
         icon={<Calculator size={28} />}
         title="TPV Virtual"
@@ -380,10 +560,10 @@ export const AdminTpvPage: React.FC = () => {
       ) : (
         <div className="tpv-grid" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '24px', width: '100%' }}>
           
-          {/* Main Left Column: Ticket Management & Calculator */}
+          {/* Column 1: Ticket Management & Calculator */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
             
-            {/* 1. Ticket de Cobro Actual */}
+            {/* Ticket de Cobro Actual */}
             <div className="tpv-card" style={{
               background: '#ffffff',
               border: '1px solid #E2E8F0',
@@ -506,7 +686,7 @@ export const AdminTpvPage: React.FC = () => {
               </div>
             </div>
 
-            {/* 2. Añadir Conceptos / Servicios */}
+            {/* Añadir Conceptos / Servicios */}
             <div className="tpv-card" style={{
               background: '#ffffff',
               border: '1px solid #E2E8F0',
@@ -521,7 +701,7 @@ export const AdminTpvPage: React.FC = () => {
               
               <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
                 
-                {/* A. Añadir Servicio Catálogo */}
+                {/* Añadir Servicio Catálogo */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#64748B' }}>Añadir Servicio del Catálogo</label>
                   <div style={{ display: 'flex', gap: '8px' }}>
@@ -573,7 +753,7 @@ export const AdminTpvPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* B. Añadir Concepto Manual Personalizado */}
+                {/* Añadir Concepto Manual Personalizado */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', borderTop: '1px dashed #E2E8F0', paddingTop: '14px' }}>
                   <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#64748B' }}>Añadir Concepto / Venta Manual</label>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 100px auto', gap: '8px' }}>
@@ -636,7 +816,7 @@ export const AdminTpvPage: React.FC = () => {
               </div>
             </div>
 
-            {/* 3. Datos de Cobro, Métodos y Simulaciones */}
+            {/* Datos de Cobro, Métodos y Simulaciones */}
             <div className="tpv-card" style={{
               background: '#ffffff',
               border: '1px solid #E2E8F0',
@@ -730,8 +910,6 @@ export const AdminTpvPage: React.FC = () => {
                         animation: 'fadeIn 0.2s ease',
                         boxSizing: 'border-box'
                       }}>
-
-
                         {sortedAndFilteredCustomers.length === 0 ? (
                           <div style={{ padding: '12px 14px', fontSize: '0.875rem', color: '#94A3B8', textAlign: 'center' }}>
                             No se encontraron clientes matching
@@ -1044,7 +1222,7 @@ export const AdminTpvPage: React.FC = () => {
 
           </div>
 
-          {/* Right Column: Recent Transactions list */}
+          {/* Column 2: Recent Transactions list */}
           <div className="tpv-card" style={{
             background: '#ffffff',
             border: '1px solid #E2E8F0',
@@ -1165,6 +1343,479 @@ export const AdminTpvPage: React.FC = () => {
             )}
           </div>
 
+          {/* Column 3: Cash Management & Analysis Dashboard (No sensitive figures by default) */}
+          <div className="tpv-card" style={{
+            background: '#ffffff',
+            border: '1px solid #E2E8F0',
+            borderRadius: '16px',
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.03)',
+            padding: '24px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px',
+            alignSelf: 'start'
+          }}>
+            <h3 style={{ margin: '0', fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-color, #0F172A)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <TrendingUp size={20} style={{ color: primaryColor }} /> Gestión de Caja
+            </h3>
+            <p style={{ margin: '0 0 10px 0', fontSize: '0.85rem', color: '#64748B', lineHeight: 1.5 }}>
+              Administra cierres de caja y genera análisis financieros de forma segura sin revelar datos en pantalla a tus clientes.
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              
+              {/* Button: Cierre de Caja */}
+              <button
+                type="button"
+                onClick={() => setShowCloseBoxModal(true)}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  background: `color-mix(in srgb, ${primaryColor} 8%, #fff)`,
+                  color: primaryColor,
+                  border: `1px solid color-mix(in srgb, ${primaryColor} 20%, #E2E8F0)`,
+                  fontSize: '0.9rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  transition: 'background 0.2s'
+                }}
+                onMouseOver={(e) => e.currentTarget.style.background = `color-mix(in srgb, ${primaryColor} 12%, #fff)`}
+                onMouseOut={(e) => e.currentTarget.style.background = `color-mix(in srgb, ${primaryColor} 8%, #fff)`}
+              >
+                <Archive size={16} /> Cierre de Caja Diario
+              </button>
+
+              {/* Button: Métricas y Estadísticas */}
+              <button
+                type="button"
+                onClick={() => setShowAnalyticsModal(true)}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  background: '#F1F5F9',
+                  color: '#334155',
+                  border: '1px solid #E2E8F0',
+                  fontSize: '0.9rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  transition: 'background 0.2s'
+                }}
+                onMouseOver={(e) => e.currentTarget.style.background = '#E2E8F0'}
+                onMouseOut={(e) => e.currentTarget.style.background = '#F1F5F9'}
+              >
+                <BarChart3 size={16} /> Estadísticas y Métricas
+              </button>
+
+              {/* Button: Exportar Movimientos */}
+              <button
+                type="button"
+                onClick={() => setShowExportPanel(!showExportPanel)}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  background: '#FFFFFF',
+                  color: '#475569',
+                  border: '1px solid #CBD5E1',
+                  fontSize: '0.9rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  transition: 'background 0.2s'
+                }}
+                onMouseOver={(e) => e.currentTarget.style.background = '#F8FAFC'}
+                onMouseOut={(e) => e.currentTarget.style.background = '#FFFFFF'}
+              >
+                <Download size={16} /> Exportar Movimientos (.csv)
+              </button>
+
+              {/* Export CSV Collapsible Panel */}
+              {showExportPanel && (
+                <div style={{
+                  background: '#F8FAFC',
+                  border: '1px solid #E2E8F0',
+                  borderRadius: '8px',
+                  padding: '12px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px',
+                  marginTop: '4px',
+                  animation: 'fadeIn 0.2s ease'
+                }}>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#334155' }}>Rango de fechas para exportar:</span>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                      <span style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: 600 }}>Desde:</span>
+                      <input 
+                        type="date"
+                        value={exportStartDate}
+                        onChange={(e) => setExportStartDate(e.target.value)}
+                        style={{ padding: '6px', border: '1px solid #CBD5E1', borderRadius: '4px', fontSize: '0.8rem' }}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                      <span style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: 600 }}>Hasta:</span>
+                      <input 
+                        type="date"
+                        value={exportEndDate}
+                        onChange={(e) => setExportEndDate(e.target.value)}
+                        style={{ padding: '6px', border: '1px solid #CBD5E1', borderRadius: '4px', fontSize: '0.8rem' }}
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleExportCSV}
+                    style={{
+                      padding: '8px',
+                      borderRadius: '6px',
+                      background: '#334155',
+                      color: '#fff',
+                      border: 'none',
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    <Download size={14} /> Descargar CSV
+                  </button>
+                </div>
+              )}
+
+            </div>
+          </div>
+
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* MODAL 1: CIERRE DE CAJA DIARIO & CONSULTAS ANTERIORES */}
+      {/* ======================================================== */}
+      {showCloseBoxModal && (
+        <div className="modal-overlay" onClick={() => setShowCloseBoxModal(false)} style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(15, 23, 42, 0.45)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: '16px'
+        }}>
+          <div className="modal-content animate-pop-in" onClick={e => e.stopPropagation()} style={{
+            background: '#ffffff',
+            borderRadius: '16px',
+            width: '100%',
+            maxWidth: '650px',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.15)',
+            border: '1px solid #E2E8F0',
+            padding: '24px',
+            boxSizing: 'border-box',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '20px',
+            maxHeight: '90vh',
+            overflowY: 'auto'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F1F5F9', paddingBottom: '12px' }}>
+              <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Archive size={20} style={{ color: primaryColor }} /> Cierre de Caja Diario
+              </h2>
+              <button 
+                onClick={() => setShowCloseBoxModal(false)}
+                style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', padding: '4px' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              
+              {/* Left Form: Realizar cierre */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', borderRight: '1px solid #F1F5F9', paddingRight: '16px' }}>
+                <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 700, color: '#475569' }}>Cerrar Caja de Hoy</h4>
+                
+                <div style={{ background: '#F8FAFC', borderRadius: '8px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
+                    <span style={{ color: '#64748B' }}>Total Cobrado Tarjeta:</span>
+                    <strong style={{ color: '#0F172A' }}>{todayCloseData.card.toFixed(2)}€</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
+                    <span style={{ color: '#64748B' }}>Total Cobrado Efectivo:</span>
+                    <strong style={{ color: '#0F172A' }}>{todayCloseData.cash.toFixed(2)}€</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', borderTop: '1px dashed #CBD5E1', paddingTop: '8px', marginTop: '4px' }}>
+                    <span style={{ color: '#475569', fontWeight: 700 }}>Total Recaudado:</span>
+                    <strong style={{ color: primaryColor, fontSize: '1.05rem', fontWeight: 800 }}>{todayCloseData.total.toFixed(2)}€</strong>
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: '#94A3B8', textAlign: 'right', marginTop: '2px' }}>
+                    ({todayCloseData.count} movimientos hoy)
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569' }}>Notas de caja (Opcional)</label>
+                  <textarea
+                    placeholder="Escribe comentarios, descuadres o incidencias del día..."
+                    rows={3}
+                    value={closeNotes}
+                    onChange={(e) => setCloseNotes(e.target.value)}
+                    style={{
+                      padding: '8px 10px',
+                      border: '1px solid #CBD5E1',
+                      borderRadius: '6px',
+                      fontSize: '0.85rem',
+                      fontFamily: 'inherit',
+                      resize: 'none',
+                      outline: 'none'
+                    }}
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleCreateCashClose}
+                  disabled={isSaving}
+                  style={{
+                    padding: '10px',
+                    borderRadius: '6px',
+                    background: primaryColor,
+                    color: '#fff',
+                    border: 'none',
+                    fontSize: '0.85rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  <Check size={16} /> Guardar Cierre de Caja
+                </button>
+              </div>
+
+              {/* Right List: Cierres anteriores */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', maxHeight: '350px', overflowY: 'auto' }}>
+                <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 700, color: '#475569' }}>Histórico de Cierres</h4>
+                
+                {cashCloses.length === 0 ? (
+                  <div style={{ padding: '40px 10px', textAlign: 'center', color: '#94A3B8', fontSize: '0.8rem' }}>
+                    No hay cierres de caja archivados en el histórico.
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {cashCloses.map(c => {
+                      const dateStr = new Date(c.date).toLocaleDateString('es-ES', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric'
+                      });
+                      return (
+                        <div key={c.id} style={{
+                          padding: '10px',
+                          borderRadius: '8px',
+                          border: '1px solid #E2E8F0',
+                          fontSize: '0.8rem',
+                          background: '#F8FAFC'
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, color: '#0F172A', marginBottom: '4px' }}>
+                            <span>{dateStr}</span>
+                            <span style={{ color: primaryColor }}>{c.totalAmount.toFixed(2)}€</span>
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', color: '#64748B', fontSize: '0.75rem' }}>
+                            <span>Efectivo: {c.totalCash.toFixed(2)}€ | Tarjeta: {c.totalCard.toFixed(2)}€</span>
+                            <span>Cerrado por: <strong>{c.closedBy}</strong></span>
+                            {c.notes && (
+                              <span style={{ fontStyle: 'italic', background: '#F1F5F9', padding: '4px', borderRadius: '4px', marginTop: '2px', color: '#475569' }}>
+                                "{c.notes}"
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* MODAL 2: INTERACTIVE ANALYTICS & STATISTICS PANEL */}
+      {/* ======================================================== */}
+      {showAnalyticsModal && (
+        <div className="modal-overlay" onClick={() => setShowAnalyticsModal(false)} style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(15, 23, 42, 0.45)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: '16px'
+        }}>
+          <div className="modal-content animate-pop-in" onClick={e => e.stopPropagation()} style={{
+            background: '#ffffff',
+            borderRadius: '16px',
+            width: '100%',
+            maxWidth: '600px',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.15)',
+            border: '1px solid #E2E8F0',
+            padding: '24px',
+            boxSizing: 'border-box',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '20px',
+            maxHeight: '90vh',
+            overflowY: 'auto'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F1F5F9', paddingBottom: '12px' }}>
+              <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <BarChart3 size={20} style={{ color: primaryColor }} /> Estadísticas y Análisis de Negocio
+              </h2>
+              <button 
+                onClick={() => setShowAnalyticsModal(false)}
+                style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', padding: '4px' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Quick Cards Row */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+              <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '12px', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Ingresos Totales</div>
+                <strong style={{ fontSize: '1.2rem', fontWeight: 800, color: primaryColor }}>{metrics.totalRevenue.toFixed(2)}€</strong>
+              </div>
+              <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '12px', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Operaciones</div>
+                <strong style={{ fontSize: '1.2rem', fontWeight: 800, color: '#334155' }}>{metrics.count}</strong>
+              </div>
+              <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '12px', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Ticket Medio</div>
+                <strong style={{ fontSize: '1.2rem', fontWeight: 800, color: '#334155' }}>{metrics.averageTicket.toFixed(2)}€</strong>
+              </div>
+            </div>
+
+            {/* 1. Payment Ratio progress bar */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', fontWeight: 700, color: '#475569' }}>
+                <span>Tarjeta ({metrics.cardPercent}%)</span>
+                <span>Efectivo ({metrics.cashPercent}%)</span>
+              </div>
+              <div style={{ height: '10px', width: '100%', background: '#F1F5F9', borderRadius: '10px', overflow: 'hidden', display: 'flex' }}>
+                <div style={{ width: `${metrics.cardPercent}%`, background: '#4F46E5', height: '100%' }} title={`Tarjeta: ${metrics.cardTotal}€`} />
+                <div style={{ width: `${metrics.cashPercent}%`, background: '#16A34A', height: '100%' }} title={`Efectivo: ${metrics.cashTotal}€`} />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: '#94A3B8' }}>
+                <span>Tarjeta: {metrics.cardTotal.toFixed(2)}€</span>
+                <span>Efectivo: {metrics.cashTotal.toFixed(2)}€</span>
+              </div>
+            </div>
+
+            {/* 2. Top Services Table */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', borderTop: '1px dashed #E2E8F0', paddingTop: '14px' }}>
+              <h4 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.3px' }}>
+                Top 5 Servicios por Ingresos
+              </h4>
+              {metrics.topServices.length === 0 ? (
+                <div style={{ fontSize: '0.8rem', color: '#94A3B8', padding: '10px 0' }}>No se han registrado cobros.</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {metrics.topServices.map((s, i) => {
+                    const pct = metrics.totalRevenue > 0 ? Math.round((s.total / metrics.totalRevenue) * 100) : 0;
+                    return (
+                      <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#0F172A' }}>
+                          <span style={{ fontWeight: 600 }}>{s.name} <span style={{ fontWeight: 'normal', color: '#64748B' }}>({s.count} veces)</span></span>
+                          <strong>{s.total.toFixed(2)}€</strong>
+                        </div>
+                        <div style={{ height: '6px', background: '#F1F5F9', borderRadius: '100px', overflow: 'hidden' }}>
+                          <div style={{ height: '100%', background: primaryColor, width: `${pct}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* 3. Top Customers Table */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', borderTop: '1px dashed #E2E8F0', paddingTop: '14px' }}>
+              <h4 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.3px' }}>
+                Top 5 Clientes (Fidelidad & Gasto)
+              </h4>
+              {metrics.topCustomers.length === 0 ? (
+                <div style={{ fontSize: '0.8rem', color: '#94A3B8', padding: '10px 0' }}>No hay clientes registrados en las transacciones aún.</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {metrics.topCustomers.map((c, i) => (
+                    <div key={i} style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: '8px 10px',
+                      background: '#F8FAFC',
+                      border: '1px solid #E2E8F0',
+                      borderRadius: '6px',
+                      fontSize: '0.8rem'
+                    }}>
+                      <span style={{ fontWeight: 600, color: '#334155' }}>
+                        {i + 1}. {c.name} <span style={{ fontWeight: 'normal', color: '#64748B' }}>({c.count} visitas)</span>
+                      </span>
+                      <strong style={{ color: primaryColor }}>{c.total.toFixed(2)}€</strong>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Footer close */}
+            <button
+              type="button"
+              onClick={() => setShowAnalyticsModal(false)}
+              style={{
+                width: '100%',
+                padding: '10px',
+                borderRadius: '6px',
+                background: '#334155',
+                color: '#fff',
+                border: 'none',
+                fontSize: '0.85rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                textAlign: 'center',
+                marginTop: '10px'
+              }}
+            >
+              Cerrar Panel
+            </button>
+          </div>
         </div>
       )}
 
@@ -1186,9 +1837,14 @@ export const AdminTpvPage: React.FC = () => {
         .dropdown-item-hover:hover {
           background-color: color-mix(in srgb, ${primaryColor} 6%, #F8FAFC) !important;
         }
-        @media(min-width: 992px) {
+        @media(min-width: 1200px) {
           .tpv-grid {
-            grid-template-columns: 500px 1fr !important;
+            grid-template-columns: 400px 1fr 300px !important;
+          }
+        }
+        @media(min-width: 992px) and (max-width: 1199px) {
+          .tpv-grid {
+            grid-template-columns: 450px 1fr !important;
           }
         }
       `}</style>

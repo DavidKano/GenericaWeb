@@ -131,3 +131,13 @@ export interface Transaction {
   customerId?: string; // Optional
   notes?: string;
 }
+
+export interface CashClose {
+  id: string;
+  date: number; // timestamp
+  totalCash: number;
+  totalCard: number;
+  totalAmount: number;
+  closedBy: string; // Admin who performed the close
+  notes?: string;
+}

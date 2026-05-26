@@ -1,4 +1,4 @@
-import type { User, BookingService, Appointment, BusinessConfig, DaySchedule, BlockedDay, CompanyData, DesignConfig, PromoOffer, EmailLog, Transaction } from './models';
+import type { User, BookingService, Appointment, BusinessConfig, DaySchedule, BlockedDay, CompanyData, DesignConfig, PromoOffer, EmailLog, Transaction, CashClose } from './models';
 
 export interface DataRepository {
   // Users
@@ -52,4 +52,8 @@ export interface DataRepository {
   getTransactions(): Promise<Transaction[]>;
   saveTransaction(transaction: Transaction): Promise<void>;
   deleteTransaction(id: string): Promise<void>;
+
+  // Cash Closes
+  getCashCloses(): Promise<CashClose[]>;
+  saveCashClose(close: CashClose): Promise<void>;
 }

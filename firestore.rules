@@ -92,6 +92,10 @@ service cloud.firestore {
       allow read, write: if isSignedIn() && getRole() in ['ADMIN', 'SUPER_ADMIN'];
     }
 
+    match /cashCloses/{document=**} {
+      allow read, write: if isSignedIn() && getRole() in ['ADMIN', 'SUPER_ADMIN'];
+    }
+
     // --- CITAS / AGENDA ---
     match /appointments/{appointmentId} {
       // Lectura: Cualquier usuario logueado (para ver su agenda o la disponibilidad general)
