@@ -13,164 +13,6 @@ interface TicketItem {
   price: number;
 }
 
-interface ChartDataPoint {
-  id: string;
-  label: string;
-  amount: number;
-  count: number;
-}
-
-const SalesDashboardSVGChart: React.FC<{ data: ChartDataPoint[]; primaryColor: string }> = ({ data, primaryColor }) => {
-  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
-  const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(null);
-
-  const maxVal = Math.max(...data.map(d => d.amount), 1);
-  const yMax = maxVal * 1.15;
-
-  const chartHeight = 260;
-  const paddingLeft = 60;
-  const paddingRight = 20;
-  const paddingTop = 20;
-  const paddingBottom = 40;
-
-  return (
-    <div style={{ width: '100%', height: '100%', minHeight: '260px', display: 'flex', flexDirection: 'column', position: 'relative' }}>
-      <div style={{ flexGrow: 1, position: 'relative', width: '100%' }}>
-        <svg 
-          style={{ width: '100%', height: `${chartHeight}px`, overflow: 'visible' }} 
-          viewBox={`0 0 600 ${chartHeight}`}
-          preserveAspectRatio="none"
-        >
-          <defs>
-            <linearGradient id="dashboardBarGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={primaryColor} />
-              <stop offset="100%" stopColor={`color-mix(in srgb, ${primaryColor} 40%, #ffffff)`} />
-            </linearGradient>
-          </defs>
-
-          {/* Grid lines (Y axis) */}
-          {[0, 0.25, 0.5, 0.75, 1].map((ratio, i) => {
-            const yVal = yMax * ratio;
-            const yPos = chartHeight - paddingBottom - (chartHeight - paddingTop - paddingBottom) * ratio;
-            return (
-              <g key={i}>
-                <line 
-                  x1={paddingLeft} 
-                  y1={yPos} 
-                  x2={600 - paddingRight} 
-                  y2={yPos} 
-                  stroke="#F1F5F9" 
-                  strokeWidth={1} 
-                />
-                <text 
-                  x={paddingLeft - 8} 
-                  y={yPos + 4} 
-                  textAnchor="end" 
-                  style={{ fontSize: '9px', fill: '#64748B', fontFamily: 'sans-serif', fontWeight: 600 }}
-                >
-                  {yVal.toFixed(0)}€
-                </text>
-              </g>
-            );
-          })}
-
-          {/* Bar elements */}
-          {data.map((item, idx) => {
-            const barCount = data.length;
-            const chartWidth = 600 - paddingLeft - paddingRight;
-            const gapRatio = 0.35;
-            const totalBarWidth = chartWidth / barCount;
-            
-            // Limit maximum width to 50px to prevent visual distortion with few bars
-            let barWidth = totalBarWidth * (1 - gapRatio);
-            if (barWidth > 50) {
-              barWidth = 50;
-            }
-            
-            // Center the bar horizontally within its column slot
-            const centerX = paddingLeft + idx * totalBarWidth + totalBarWidth / 2;
-            const xPos = centerX - barWidth / 2;
-
-            const ratio = item.amount / yMax;
-            const barHeight = (chartHeight - paddingTop - paddingBottom) * ratio;
-            const yPos = chartHeight - paddingBottom - barHeight;
-
-            return (
-              <g key={idx}>
-                <rect
-                  x={xPos}
-                  y={yPos}
-                  width={barWidth}
-                  height={Math.max(barHeight, 4)}
-                  rx={Math.min(barWidth / 4, 4)}
-                  ry={Math.min(barWidth / 4, 4)}
-                  fill="url(#dashboardBarGradient)"
-                  className="chart-bar-hover"
-                  style={{ transition: 'all 0.2s ease' }}
-                  onMouseEnter={() => {
-                    setHoveredIdx(idx);
-                    setTooltipPos({
-                      x: xPos + barWidth / 2,
-                      y: yPos - 12
-                    });
-                  }}
-                  onMouseLeave={() => {
-                    setHoveredIdx(null);
-                    setTooltipPos(null);
-                  }}
-                />
-                
-                <text
-                  x={xPos + barWidth / 2}
-                  y={chartHeight - paddingBottom + 16}
-                  textAnchor="middle"
-                  style={{ 
-                    fontSize: barCount > 12 ? '7px' : '9px', 
-                    fill: '#64748B', 
-                    fontFamily: 'sans-serif', 
-                    fontWeight: 600
-                  }}
-                >
-                  {item.label.length > (barCount > 10 ? 8 : 12) 
-                    ? item.label.slice(0, barCount > 10 ? 6 : 10) + '...' 
-                    : item.label}
-                </text>
-              </g>
-            );
-          })}
-        </svg>
-
-        {hoveredIdx !== null && tooltipPos && (
-          <div style={{
-            position: 'absolute',
-            left: `${(tooltipPos.x / 600) * 100}%`,
-            top: `${tooltipPos.y}px`,
-            transform: 'translate(-50%, -100%)',
-            background: '#1E293B',
-            color: '#ffffff',
-            padding: '8px 12px',
-            borderRadius: '6px',
-            fontSize: '0.75rem',
-            fontWeight: 700,
-            pointerEvents: 'none',
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-            zIndex: 1000,
-            whiteSpace: 'nowrap',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '2px',
-            textAlign: 'left'
-          }}>
-            <span style={{ fontSize: '0.7rem', color: '#94A3B8' }}>{data[hoveredIdx].label}</span>
-            <strong style={{ fontSize: '0.85rem', color: '#38BDF8' }}>{data[hoveredIdx].amount.toFixed(2)}€</strong>
-            <span style={{ fontSize: '0.65rem', color: '#CBD5E1', fontWeight: 'normal' }}>{data[hoveredIdx].count} ventas</span>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
 export const AdminTpvPage: React.FC = () => {
   const { repo } = useData();
   const { user } = useAuth();
@@ -243,7 +85,6 @@ export const AdminTpvPage: React.FC = () => {
   const [selectedFilterServices, setSelectedFilterServices] = useState<string[]>([]);
   const [selectedFilterCustomers, setSelectedFilterCustomers] = useState<string[]>([]);
   const [selectedFilterMethods, setSelectedFilterMethods] = useState<string[]>([]);
-  const [dashboardViewMode, setDashboardViewMode] = useState<'grafica' | 'tabla'>('grafica');
   const [isDashboardLoading, setIsDashboardLoading] = useState(false);
 
   // Dropdowns states for multi-check boxes
@@ -1489,48 +1330,11 @@ export const AdminTpvPage: React.FC = () => {
             overflow: 'hidden',
             position: 'relative'
           }}>
-            {/* View Mode Toggle Switch (Segmented Control) */}
+            {/* View Mode Title */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F1F5F9', paddingBottom: '10px', flexShrink: 0 }}>
               <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#334155' }}>
                 {reportType === 'servicio' ? 'Desglose por Servicios' : reportType === 'cliente' ? 'Desglose por Clientes' : 'Desglose por Períodos de Tiempo'}
               </span>
-              
-              <div style={{ display: 'inline-flex', background: '#F1F5F9', padding: '3px', borderRadius: '8px' }}>
-                <button
-                  onClick={() => setDashboardViewMode('grafica')}
-                  style={{
-                    border: 'none',
-                    background: dashboardViewMode === 'grafica' ? '#ffffff' : 'transparent',
-                    color: dashboardViewMode === 'grafica' ? primaryColor : '#475569',
-                    padding: '6px 12px',
-                    fontSize: '0.75rem',
-                    fontWeight: 700,
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    boxShadow: dashboardViewMode === 'grafica' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-                    transition: 'all 0.15s'
-                  }}
-                >
-                  Modo Gráfica
-                </button>
-                <button
-                  onClick={() => setDashboardViewMode('tabla')}
-                  style={{
-                    border: 'none',
-                    background: dashboardViewMode === 'tabla' ? '#ffffff' : 'transparent',
-                    color: dashboardViewMode === 'tabla' ? primaryColor : '#475569',
-                    padding: '6px 12px',
-                    fontSize: '0.75rem',
-                    fontWeight: 700,
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    boxShadow: dashboardViewMode === 'tabla' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-                    transition: 'all 0.15s'
-                  }}
-                >
-                  Modo Tabla Detallada
-                </button>
-              </div>
             </div>
 
             {/* Inner Dashboard Viewport */}
@@ -1544,10 +1348,6 @@ export const AdminTpvPage: React.FC = () => {
                 <BarChart3 size={48} style={{ margin: '0 auto 12px auto', opacity: 0.25 }} />
                 <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 600 }}>No hay movimientos que coincidan con los filtros aplicados.</p>
                 <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>Prueba a ampliar el rango de fechas o restablecer los selectores.</span>
-              </div>
-            ) : dashboardViewMode === 'grafica' ? (
-              <div style={{ flexGrow: 1, minHeight: 0, display: 'flex', flexDirection: 'column', width: '100%' }}>
-                <SalesDashboardSVGChart data={dashboardGroupedData} primaryColor={primaryColor} />
               </div>
             ) : (
               <div className="tpv-scrollable-transactions" style={{ width: '100%', flexGrow: 1, minHeight: 0 }}>
