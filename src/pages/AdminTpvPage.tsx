@@ -13,6 +13,156 @@ interface TicketItem {
   price: number;
 }
 
+interface ChartDataPoint {
+  id: string;
+  label: string;
+  amount: number;
+  count: number;
+}
+
+const SalesDashboardSVGChart: React.FC<{ data: ChartDataPoint[]; primaryColor: string }> = ({ data, primaryColor }) => {
+  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+  const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(null);
+
+  const maxVal = Math.max(...data.map(d => d.amount), 1);
+  const yMax = maxVal * 1.15;
+
+  const chartHeight = 260;
+  const paddingLeft = 60;
+  const paddingRight = 20;
+  const paddingTop = 20;
+  const paddingBottom = 40;
+
+  return (
+    <div style={{ width: '100%', height: '100%', minHeight: '260px', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+      <div style={{ flexGrow: 1, position: 'relative', width: '100%' }}>
+        <svg 
+          style={{ width: '100%', height: `${chartHeight}px`, overflow: 'visible' }} 
+          viewBox={`0 0 600 ${chartHeight}`}
+          preserveAspectRatio="none"
+        >
+          <defs>
+            <linearGradient id="dashboardBarGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={primaryColor} />
+              <stop offset="100%" stopColor={`color-mix(in srgb, ${primaryColor} 40%, #ffffff)`} />
+            </linearGradient>
+          </defs>
+
+          {/* Grid lines (Y axis) */}
+          {[0, 0.25, 0.5, 0.75, 1].map((ratio, i) => {
+            const yVal = yMax * ratio;
+            const yPos = chartHeight - paddingBottom - (chartHeight - paddingTop - paddingBottom) * ratio;
+            return (
+              <g key={i}>
+                <line 
+                  x1={paddingLeft} 
+                  y1={yPos} 
+                  x2={600 - paddingRight} 
+                  y2={yPos} 
+                  stroke="#F1F5F9" 
+                  strokeWidth={1} 
+                />
+                <text 
+                  x={paddingLeft - 8} 
+                  y={yPos + 4} 
+                  textAnchor="end" 
+                  style={{ fontSize: '9px', fill: '#64748B', fontFamily: 'sans-serif', fontWeight: 600 }}
+                >
+                  {yVal.toFixed(0)}€
+                </text>
+              </g>
+            );
+          })}
+
+          {/* Bar elements */}
+          {data.map((item, idx) => {
+            const barCount = data.length;
+            const chartWidth = 600 - paddingLeft - paddingRight;
+            const gapRatio = 0.35;
+            const totalBarWidth = chartWidth / barCount;
+            const barWidth = totalBarWidth * (1 - gapRatio);
+            const xPos = paddingLeft + idx * totalBarWidth + (totalBarWidth * gapRatio) / 2;
+
+            const ratio = item.amount / yMax;
+            const barHeight = (chartHeight - paddingTop - paddingBottom) * ratio;
+            const yPos = chartHeight - paddingBottom - barHeight;
+
+            return (
+              <g key={idx}>
+                <rect
+                  x={xPos}
+                  y={yPos}
+                  width={barWidth}
+                  height={Math.max(barHeight, 4)}
+                  rx={Math.min(barWidth / 4, 4)}
+                  ry={Math.min(barWidth / 4, 4)}
+                  fill="url(#dashboardBarGradient)"
+                  className="chart-bar-hover"
+                  style={{ transition: 'all 0.2s ease' }}
+                  onMouseEnter={() => {
+                    setHoveredIdx(idx);
+                    setTooltipPos({
+                      x: xPos + barWidth / 2,
+                      y: yPos - 12
+                    });
+                  }}
+                  onMouseLeave={() => {
+                    setHoveredIdx(null);
+                    setTooltipPos(null);
+                  }}
+                />
+                
+                <text
+                  x={xPos + barWidth / 2}
+                  y={chartHeight - paddingBottom + 16}
+                  textAnchor="middle"
+                  style={{ 
+                    fontSize: barCount > 12 ? '7px' : '9px', 
+                    fill: '#64748B', 
+                    fontFamily: 'sans-serif', 
+                    fontWeight: 600
+                  }}
+                >
+                  {item.label.length > (barCount > 10 ? 8 : 12) 
+                    ? item.label.slice(0, barCount > 10 ? 6 : 10) + '...' 
+                    : item.label}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
+
+        {hoveredIdx !== null && tooltipPos && (
+          <div style={{
+            position: 'absolute',
+            left: `${(tooltipPos.x / 600) * 100}%`,
+            top: `${tooltipPos.y}px`,
+            transform: 'translate(-50%, -100%)',
+            background: '#1E293B',
+            color: '#ffffff',
+            padding: '8px 12px',
+            borderRadius: '6px',
+            fontSize: '0.75rem',
+            fontWeight: 700,
+            pointerEvents: 'none',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+            zIndex: 1000,
+            whiteSpace: 'nowrap',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '2px',
+            textAlign: 'left'
+          }}>
+            <span style={{ fontSize: '0.7rem', color: '#94A3B8' }}>{data[hoveredIdx].label}</span>
+            <strong style={{ fontSize: '0.85rem', color: '#38BDF8' }}>{data[hoveredIdx].amount.toFixed(2)}€</strong>
+            <span style={{ fontSize: '0.65rem', color: '#CBD5E1', fontWeight: 'normal' }}>{data[hoveredIdx].count} ventas</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 export const AdminTpvPage: React.FC = () => {
   const { repo } = useData();
   const { user } = useAuth();
@@ -65,7 +215,7 @@ export const AdminTpvPage: React.FC = () => {
   const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
 
   // Sub-view mode
-  const [activeView, setActiveView] = useState<'tpv' | 'cierres'>('tpv');
+  const [activeView, setActiveView] = useState<'tpv' | 'cierres' | 'ventas'>('tpv');
   
   // History Filters
   const [closeSearchQuery, setCloseSearchQuery] = useState('');
@@ -74,6 +224,142 @@ export const AdminTpvPage: React.FC = () => {
   
   // Selected close details
   const [selectedCloseForDetail, setSelectedCloseForDetail] = useState<CashClose | null>(null);
+
+  // Dashboard Analytics States
+  const [reportType, setReportType] = useState<'servicio' | 'cliente' | 'periodo'>('servicio');
+  const [filterStartDate, setFilterStartDate] = useState<string>(() => {
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0];
+  });
+  const [filterEndDate, setFilterEndDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
+  const [selectedFilterServices, setSelectedFilterServices] = useState<string[]>([]);
+  const [selectedFilterCustomers, setSelectedFilterCustomers] = useState<string[]>([]);
+  const [selectedFilterMethods, setSelectedFilterMethods] = useState<string[]>([]);
+  const [dashboardViewMode, setDashboardViewMode] = useState<'grafica' | 'tabla'>('grafica');
+  const [isDashboardLoading, setIsDashboardLoading] = useState(false);
+
+  // Dropdowns states for multi-check boxes
+  const [isServiceFilterOpen, setIsServiceFilterOpen] = useState(false);
+  const [isCustomerFilterOpen, setIsCustomerFilterOpen] = useState(false);
+  const [isMethodFilterOpen, setIsMethodFilterOpen] = useState(false);
+  
+  // Refs for click outside dropdown filters
+  const serviceFilterRef = useRef<HTMLDivElement>(null);
+  const customerFilterRef = useRef<HTMLDivElement>(null);
+  const methodFilterRef = useRef<HTMLDivElement>(null);
+
+  // Click outside listener for dashboard filters
+  useEffect(() => {
+    const handleClickOutsideFilters = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (serviceFilterRef.current && !serviceFilterRef.current.contains(target)) {
+        setIsServiceFilterOpen(false);
+      }
+      if (customerFilterRef.current && !customerFilterRef.current.contains(target)) {
+        setIsCustomerFilterOpen(false);
+      }
+      if (methodFilterRef.current && !methodFilterRef.current.contains(target)) {
+        setIsMethodFilterOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutsideFilters);
+    return () => document.removeEventListener('mousedown', handleClickOutsideFilters);
+  }, []);
+
+  // Filtered transactions for the Sales Dashboard
+  const filteredDashboardTransactions = useMemo(() => {
+    const start = new Date(filterStartDate + 'T00:00:00').getTime();
+    const end = new Date(filterEndDate + 'T23:59:59').getTime();
+
+    return transactions.filter(tx => {
+      // 1. Date check
+      if (tx.date < start || tx.date > end) return false;
+
+      // 2. Service check
+      if (selectedFilterServices.length > 0) {
+        const svcId = tx.serviceId || 'manual';
+        if (!selectedFilterServices.includes(svcId)) return false;
+      }
+
+      // 3. Customer check
+      if (selectedFilterCustomers.length > 0) {
+        const custId = tx.customerId || 'venta-rapida';
+        if (!selectedFilterCustomers.includes(custId)) return false;
+      }
+
+      // 4. Payment method check
+      if (selectedFilterMethods.length > 0) {
+        if (!selectedFilterMethods.includes(tx.paymentMethod)) return false;
+      }
+
+      return true;
+    });
+  }, [transactions, filterStartDate, filterEndDate, selectedFilterServices, selectedFilterCustomers, selectedFilterMethods]);
+
+  // KPI Metrics based on filtered transactions
+  const dashboardMetrics = useMemo(() => {
+    const total = filteredDashboardTransactions.reduce((sum, tx) => sum + tx.amount, 0);
+    const count = filteredDashboardTransactions.length;
+    const average = count > 0 ? total / count : 0;
+
+    return {
+      total: Number(total.toFixed(2)),
+      count,
+      average: Number(average.toFixed(2))
+    };
+  }, [filteredDashboardTransactions]);
+
+  // Grouped data based on report type and auto interval calculations
+  const dashboardGroupedData = useMemo(() => {
+    const groups: Record<string, { label: string; amount: number; count: number }> = {};
+
+    filteredDashboardTransactions.forEach(tx => {
+      let key = '';
+      let label = '';
+
+      if (reportType === 'servicio') {
+        key = tx.serviceId || 'manual';
+        label = services.find(s => s.id === tx.serviceId)?.name || tx.notes || 'Ventas Manuales Directas';
+      } else if (reportType === 'cliente') {
+        key = tx.customerId || 'venta-rapida';
+        label = key === 'venta-rapida' ? 'Venta Rápida (Sin Cliente)' : (customers.find(c => c.id === key)?.name || 'Cliente Desconocido');
+      } else if (reportType === 'periodo') {
+        const dateObj = new Date(tx.date);
+        const start = new Date(filterStartDate + 'T00:00:00').getTime();
+        const end = new Date(filterEndDate + 'T23:59:59').getTime();
+        const diffDays = Math.ceil((end - start) / (24 * 60 * 60 * 1000));
+
+        if (diffDays <= 31) {
+          // Group by Day (e.g. "26 May")
+          key = dateObj.toISOString().split('T')[0]; // YYYY-MM-DD
+          label = dateObj.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
+        } else {
+          // Group by Month (e.g. "May 2026")
+          key = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}`; // YYYY-MM
+          label = dateObj.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+          label = label.charAt(0).toUpperCase() + label.slice(1);
+        }
+      }
+
+      if (!groups[key]) {
+        groups[key] = { label, amount: 0, count: 0 };
+      }
+      groups[key].amount += tx.amount;
+      groups[key].count += 1;
+    });
+
+    const sorted = Object.entries(groups).map(([id, item]) => ({
+      id,
+      label: item.label,
+      amount: Number(item.amount.toFixed(2)),
+      count: item.count
+    }));
+
+    if (reportType === 'periodo') {
+      return sorted.sort((a, b) => a.id.localeCompare(b.id));
+    }
+    return sorted.sort((a, b) => b.amount - a.amount);
+  }, [filteredDashboardTransactions, reportType, filterStartDate, filterEndDate, services, customers]);
 
   // Fetch initial data
   const loadData = async () => {
@@ -788,6 +1074,510 @@ export const AdminTpvPage: React.FC = () => {
                 </tbody>
               </table>
             </div>
+          </div>
+        </div>
+      ) : activeView === 'ventas' ? (
+        <div className="admin-tpv-dashboard-view fade-in" style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '16px',
+          width: '100%',
+          height: '100%',
+          minHeight: 0,
+          boxSizing: 'border-box',
+          animation: 'fadeIn 0.3s ease'
+        }}>
+          {/* Style overlays for dropdown checkbox items */}
+          <style>{`
+            .dashboard-filter-btn {
+              background: #fff;
+              border: 1px solid #CBD5E1;
+              padding: 8px 12px;
+              border-radius: 8px;
+              font-size: 0.875rem;
+              color: #475569;
+              font-weight: 600;
+              cursor: pointer;
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              transition: all 0.2s;
+              height: 38px;
+              box-sizing: border-box;
+              min-width: 150px;
+              justify-content: space-between;
+            }
+            .dashboard-filter-btn:hover {
+              background: #F8FAFC;
+              border-color: #94A3B8;
+            }
+            .dashboard-filter-dropdown {
+              position: absolute;
+              top: calc(100% + 4px);
+              left: 0;
+              width: 240px;
+              background: #ffffff;
+              border: 1px solid #E2E8F0;
+              border-radius: 8px;
+              box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+              padding: 8px;
+              display: flex;
+              flex-direction: column;
+              gap: 6px;
+              z-index: 100;
+              max-height: 240px;
+              overflow-y: auto;
+              box-sizing: border-box;
+            }
+            .filter-checkbox-row {
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              padding: 6px 8px;
+              border-radius: 6px;
+              cursor: pointer;
+              transition: background 0.2s;
+              font-size: 0.85rem;
+              color: #334155;
+              user-select: none;
+              text-align: left;
+            }
+            .filter-checkbox-row:hover {
+              background: #F1F5F9;
+            }
+            .dashboard-kpi-card {
+              background: #ffffff;
+              border: 1px solid #E2E8F0;
+              border-radius: 12px;
+              padding: 16px 20px;
+              box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+              display: flex;
+              flex-direction: column;
+              gap: 4px;
+              box-sizing: border-box;
+            }
+            .chart-bar-hover:hover {
+              filter: brightness(0.92);
+              cursor: pointer;
+            }
+          `}</style>
+
+          {/* Top Bar with Go Back Button and Filters */}
+          <div style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '12px',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            background: '#fff',
+            padding: '12px 20px',
+            borderRadius: '12px',
+            border: '1px solid #E2E8F0',
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.03)',
+            flexShrink: 0
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <button 
+                onClick={() => setActiveView('tpv')}
+                style={{
+                  background: 'transparent',
+                  border: '1px solid #CBD5E1',
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  cursor: 'pointer',
+                  color: '#475569',
+                  fontWeight: 600,
+                  transition: 'all 0.2s',
+                  height: '38px',
+                  boxSizing: 'border-box'
+                }}
+                onMouseOver={(e) => e.currentTarget.style.background = '#F8FAFC'}
+                onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+              >
+                <ArrowLeft size={16} /> Volver al TPV
+              </button>
+              <h3 style={{ margin: 0, fontSize: '1.15rem', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}>
+                <BarChart3 size={20} style={{ color: primaryColor }} /> Panel de Control de Ventas
+              </h3>
+            </div>
+            
+            {/* Filter controls */}
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+              
+              {/* Dropdown 1: Report Type */}
+              <select
+                value={reportType}
+                onChange={(e) => {
+                  setIsDashboardLoading(true);
+                  setReportType(e.target.value as any);
+                  setTimeout(() => setIsDashboardLoading(false), 250);
+                }}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  border: '1px solid #CBD5E1',
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  color: '#334155',
+                  height: '38px',
+                  boxSizing: 'border-box',
+                  background: '#fff',
+                  cursor: 'pointer',
+                  outline: 'none'
+                }}
+              >
+                <option value="servicio">Ventas por Servicio</option>
+                <option value="cliente">Ventas por Cliente</option>
+                <option value="periodo">Ventas por Período</option>
+              </select>
+
+              {/* Date Filters */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#F8FAFC', padding: '2px 8px', borderRadius: '8px', border: '1px solid #E2E8F0', height: '38px', boxSizing: 'border-box' }}>
+                <CalendarDays size={14} style={{ color: '#64748B' }} />
+                <input 
+                  type="date" 
+                  value={filterStartDate}
+                  onChange={(e) => setFilterStartDate(e.target.value)}
+                  style={{ background: 'transparent', border: 'none', fontSize: '0.8rem', color: '#334155', fontWeight: 600, outline: 'none' }}
+                />
+                <span style={{ color: '#94A3B8', fontSize: '0.8rem' }}>-</span>
+                <input 
+                  type="date" 
+                  value={filterEndDate}
+                  onChange={(e) => setFilterEndDate(e.target.value)}
+                  style={{ background: 'transparent', border: 'none', fontSize: '0.8rem', color: '#334155', fontWeight: 600, outline: 'none' }}
+                />
+              </div>
+
+              {/* Dropdown Multi-check: Servicios */}
+              <div ref={serviceFilterRef} style={{ position: 'relative' }}>
+                <button 
+                  type="button" 
+                  onClick={() => setIsServiceFilterOpen(!isServiceFilterOpen)}
+                  className="dashboard-filter-btn"
+                >
+                  <span>Servicios {selectedFilterServices.length > 0 ? `(${selectedFilterServices.length})` : '(Todos)'}</span>
+                  <Plus size={14} style={{ opacity: 0.6 }} />
+                </button>
+                {isServiceFilterOpen && (
+                  <div className="dashboard-filter-dropdown">
+                    <div 
+                      onClick={() => setSelectedFilterServices([])}
+                      className="filter-checkbox-row" 
+                      style={{ fontWeight: 700, borderBottom: '1px solid #F1F5F9', color: primaryColor }}
+                    >
+                      Limpiar selección
+                    </div>
+                    {services.map(s => {
+                      const isChecked = selectedFilterServices.includes(s.id);
+                      return (
+                        <label key={s.id} className="filter-checkbox-row">
+                          <input 
+                            type="checkbox" 
+                            checked={isChecked}
+                            onChange={() => {
+                              if (isChecked) {
+                                setSelectedFilterServices(prev => prev.filter(id => id !== s.id));
+                              } else {
+                                setSelectedFilterServices(prev => [...prev, s.id]);
+                              }
+                            }}
+                          />
+                          <span>{s.name}</span>
+                        </label>
+                      );
+                    })}
+                    {/* Manual sales item */}
+                    <label className="filter-checkbox-row">
+                      <input 
+                        type="checkbox" 
+                        checked={selectedFilterServices.includes('manual')}
+                        onChange={() => {
+                          const isChecked = selectedFilterServices.includes('manual');
+                          if (isChecked) {
+                            setSelectedFilterServices(prev => prev.filter(id => id !== 'manual'));
+                          } else {
+                            setSelectedFilterServices(prev => [...prev, 'manual']);
+                          }
+                        }}
+                      />
+                      <span>Ventas Manuales Directas</span>
+                    </label>
+                  </div>
+                )}
+              </div>
+
+              {/* Dropdown Multi-check: Clientes */}
+              <div ref={customerFilterRef} style={{ position: 'relative' }}>
+                <button 
+                  type="button" 
+                  onClick={() => setIsCustomerFilterOpen(!isCustomerFilterOpen)}
+                  className="dashboard-filter-btn"
+                >
+                  <span>Clientes {selectedFilterCustomers.length > 0 ? `(${selectedFilterCustomers.length})` : '(Todos)'}</span>
+                  <Plus size={14} style={{ opacity: 0.6 }} />
+                </button>
+                {isCustomerFilterOpen && (
+                  <div className="dashboard-filter-dropdown" style={{ width: '260px' }}>
+                    <div 
+                      onClick={() => setSelectedFilterCustomers([])}
+                      className="filter-checkbox-row" 
+                      style={{ fontWeight: 700, borderBottom: '1px solid #F1F5F9', color: primaryColor }}
+                    >
+                      Limpiar selección
+                    </div>
+                    {customers.map(c => {
+                      const isChecked = selectedFilterCustomers.includes(c.id);
+                      return (
+                        <label key={c.id} className="filter-checkbox-row">
+                          <input 
+                            type="checkbox" 
+                            checked={isChecked}
+                            onChange={() => {
+                              if (isChecked) {
+                                setSelectedFilterCustomers(prev => prev.filter(id => id !== c.id));
+                              } else {
+                                setSelectedFilterCustomers(prev => [...prev, c.id]);
+                              }
+                            }}
+                          />
+                          <span>{c.name}</span>
+                        </label>
+                      );
+                    })}
+                    {/* Walk-in customer item */}
+                    <label className="filter-checkbox-row">
+                      <input 
+                        type="checkbox" 
+                        checked={selectedFilterCustomers.includes('venta-rapida')}
+                        onChange={() => {
+                          const isChecked = selectedFilterCustomers.includes('venta-rapida');
+                          if (isChecked) {
+                            setSelectedFilterCustomers(prev => prev.filter(id => id !== 'venta-rapida'));
+                          } else {
+                            setSelectedFilterCustomers(prev => [...prev, 'venta-rapida']);
+                          }
+                        }}
+                      />
+                      <span>Venta Rápida (Sin Cliente)</span>
+                    </label>
+                  </div>
+                )}
+              </div>
+
+              {/* Dropdown Multi-check: Forma de Pago */}
+              <div ref={methodFilterRef} style={{ position: 'relative' }}>
+                <button 
+                  type="button" 
+                  onClick={() => setIsMethodFilterOpen(!isMethodFilterOpen)}
+                  className="dashboard-filter-btn"
+                >
+                  <span>Métodos {selectedFilterMethods.length > 0 ? `(${selectedFilterMethods.length})` : '(Todos)'}</span>
+                  <Plus size={14} style={{ opacity: 0.6 }} />
+                </button>
+                {isMethodFilterOpen && (
+                  <div className="dashboard-filter-dropdown">
+                    <div 
+                      onClick={() => setSelectedFilterMethods([])}
+                      className="filter-checkbox-row" 
+                      style={{ fontWeight: 700, borderBottom: '1px solid #F1F5F9', color: primaryColor }}
+                    >
+                      Limpiar selección
+                    </div>
+                    <label className="filter-checkbox-row">
+                      <input 
+                        type="checkbox" 
+                        checked={selectedFilterMethods.includes('tarjeta')}
+                        onChange={() => {
+                          const isChecked = selectedFilterMethods.includes('tarjeta');
+                          if (isChecked) {
+                            setSelectedFilterMethods(prev => prev.filter(m => m !== 'tarjeta'));
+                          } else {
+                            setSelectedFilterMethods(prev => [...prev, 'tarjeta']);
+                          }
+                        }}
+                      />
+                      <span>Tarjeta</span>
+                    </label>
+                    <label className="filter-checkbox-row">
+                      <input 
+                        type="checkbox" 
+                        checked={selectedFilterMethods.includes('metalico')}
+                        onChange={() => {
+                          const isChecked = selectedFilterMethods.includes('metalico');
+                          if (isChecked) {
+                            setSelectedFilterMethods(prev => prev.filter(m => m !== 'metalico'));
+                          } else {
+                            setSelectedFilterMethods(prev => [...prev, 'metalico']);
+                          }
+                        }}
+                      />
+                      <span>Efectivo</span>
+                    </label>
+                  </div>
+                )}
+              </div>
+
+              {/* Reset Filters button */}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsDashboardLoading(true);
+                  setSelectedFilterServices([]);
+                  setSelectedFilterCustomers([]);
+                  setSelectedFilterMethods([]);
+                  const d = new Date();
+                  setFilterStartDate(new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0]);
+                  setFilterEndDate(new Date().toISOString().split('T')[0]);
+                  setTimeout(() => setIsDashboardLoading(false), 200);
+                }}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#EF4444',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  padding: '4px'
+                }}
+              >
+                Restablecer
+              </button>
+
+            </div>
+          </div>
+
+          {/* Zona 2: KPI Summaries Row */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', flexShrink: 0 }}>
+            <div className="dashboard-kpi-card">
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.3px' }}>Total Ventas</span>
+              <strong style={{ fontSize: '1.45rem', fontWeight: 900, color: primaryColor }}>{dashboardMetrics.total.toFixed(2)}€</strong>
+            </div>
+            <div className="dashboard-kpi-card">
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.3px' }}>Número de Operaciones</span>
+              <strong style={{ fontSize: '1.45rem', fontWeight: 900, color: '#1E293B' }}>{dashboardMetrics.count}</strong>
+            </div>
+            <div className="dashboard-kpi-card">
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.3px' }}>Ticket Medio</span>
+              <strong style={{ fontSize: '1.45rem', fontWeight: 900, color: '#334155' }}>{dashboardMetrics.average.toFixed(2)}€</strong>
+            </div>
+          </div>
+
+          {/* Zona 3: Main Analytical Visual Area */}
+          <div style={{
+            background: '#ffffff',
+            border: '1px solid #E2E8F0',
+            borderRadius: '16px',
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.03)',
+            padding: '20px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
+            flexGrow: 1,
+            minHeight: 0,
+            overflow: 'hidden',
+            position: 'relative'
+          }}>
+            {/* View Mode Toggle Switch (Segmented Control) */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F1F5F9', paddingBottom: '10px', flexShrink: 0 }}>
+              <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#334155' }}>
+                {reportType === 'servicio' ? 'Desglose por Servicios' : reportType === 'cliente' ? 'Desglose por Clientes' : 'Desglose por Períodos de Tiempo'}
+              </span>
+              
+              <div style={{ display: 'inline-flex', background: '#F1F5F9', padding: '3px', borderRadius: '8px' }}>
+                <button
+                  onClick={() => setDashboardViewMode('grafica')}
+                  style={{
+                    border: 'none',
+                    background: dashboardViewMode === 'grafica' ? '#ffffff' : 'transparent',
+                    color: dashboardViewMode === 'grafica' ? primaryColor : '#475569',
+                    padding: '6px 12px',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    boxShadow: dashboardViewMode === 'grafica' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  Modo Gráfica
+                </button>
+                <button
+                  onClick={() => setDashboardViewMode('tabla')}
+                  style={{
+                    border: 'none',
+                    background: dashboardViewMode === 'tabla' ? '#ffffff' : 'transparent',
+                    color: dashboardViewMode === 'tabla' ? primaryColor : '#475569',
+                    padding: '6px 12px',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    boxShadow: dashboardViewMode === 'tabla' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  Modo Tabla Detallada
+                </button>
+              </div>
+            </div>
+
+            {/* Inner Dashboard Viewport */}
+            {isDashboardLoading ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center', justifyContent: 'center', margin: 'auto' }}>
+                <RefreshCw size={36} className="animate-spin" style={{ color: primaryColor }} />
+                <span style={{ color: '#64748B', fontWeight: 500, fontSize: '0.85rem' }}>Procesando base de datos de caja...</span>
+              </div>
+            ) : dashboardGroupedData.length === 0 ? (
+              <div style={{ padding: '60px 20px', textAlign: 'center', color: '#94A3B8', margin: 'auto' }}>
+                <BarChart3 size={48} style={{ margin: '0 auto 12px auto', opacity: 0.25 }} />
+                <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 600 }}>No hay movimientos que coincidan con los filtros aplicados.</p>
+                <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>Prueba a ampliar el rango de fechas o restablecer los selectores.</span>
+              </div>
+            ) : dashboardViewMode === 'grafica' ? (
+              <div style={{ flexGrow: 1, minHeight: 0, display: 'flex', flexDirection: 'column', width: '100%' }}>
+                <SalesDashboardSVGChart data={dashboardGroupedData} primaryColor={primaryColor} />
+              </div>
+            ) : (
+              <div className="tpv-scrollable-transactions" style={{ width: '100%', flexGrow: 1, minHeight: 0 }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '550px' }}>
+                  <thead>
+                    <tr style={{ background: '#F8FAFC', borderBottom: '2px solid #E2E8F0', position: 'sticky', top: 0, zIndex: 10 }}>
+                      <th style={{ padding: '12px 14px', fontSize: '0.8rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>
+                        {reportType === 'servicio' ? 'Servicio / Concepto' : reportType === 'cliente' ? 'Cliente' : 'Período'}
+                      </th>
+                      <th style={{ padding: '12px 14px', fontSize: '0.8rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', textAlign: 'center' }}>Operaciones</th>
+                      <th style={{ padding: '12px 14px', fontSize: '0.8rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', textAlign: 'right' }}>% Total</th>
+                      <th style={{ padding: '12px 14px', fontSize: '0.8rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', textAlign: 'right' }}>Total Facturado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {dashboardGroupedData.map((item) => {
+                      const percent = dashboardMetrics.total > 0 ? (item.amount / dashboardMetrics.total) * 100 : 0;
+                      return (
+                        <tr key={item.id} style={{ borderBottom: '1px solid #F1F5F9', transition: 'background 0.2s' }} className="tx-row">
+                          <td style={{ padding: '14px', fontSize: '0.9rem', color: '#0F172A', fontWeight: 600 }}>{item.label}</td>
+                          <td style={{ padding: '14px', fontSize: '0.9rem', color: '#475569', textAlign: 'center' }}>{item.count}</td>
+                          <td style={{ padding: '14px', fontSize: '0.9rem', color: '#64748B', textAlign: 'right' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px' }}>
+                              <span>{percent.toFixed(1)}%</span>
+                              <div style={{ width: '60px', height: '6px', background: '#E2E8F0', borderRadius: '10px', overflow: 'hidden', display: 'inline-flex' }}>
+                                <div style={{ width: `${percent}%`, background: primaryColor, height: '100%' }} />
+                              </div>
+                            </div>
+                          </td>
+                          <td style={{ padding: '14px', fontSize: '0.95rem', fontWeight: 700, color: primaryColor, textAlign: 'right' }}>{item.amount.toFixed(2)}€</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
           </div>
         </div>
       ) : (
