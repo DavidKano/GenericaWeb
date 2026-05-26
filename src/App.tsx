@@ -23,6 +23,7 @@ import { AdminSchedulePage } from './pages/AdminSchedulePage';
 import { AdminOffersPage } from './pages/AdminOffersPage';
 import { AdminServicesPage } from './pages/AdminServicesPage';
 import { AdminSettingsPage } from './pages/AdminSettingsPage';
+import { AdminTpvPage } from './pages/AdminTpvPage';
 import { UpdateNotification } from './components/ui/UpdateNotification';
 
 import './App.css';
@@ -244,6 +245,7 @@ function App() {
             <Route path="promote" element={<AdminPromotePage />} />
             <Route path="schedule" element={<AdminSchedulePage />} />
             <Route path="offers" element={<AdminOffersPage />} />
+            <Route path="tpv" element={<AdminTpvPage />} />
             <Route path="settings" element={<AdminSettingsPage />} />
           </Route>
 

@@ -1,4 +1,4 @@
-import type { User, BookingService, Appointment, BusinessConfig, DaySchedule, BlockedDay, CompanyData, DesignConfig, PromoOffer, EmailLog } from './models';
+import type { User, BookingService, Appointment, BusinessConfig, DaySchedule, BlockedDay, CompanyData, DesignConfig, PromoOffer, EmailLog, Transaction } from './models';
 
 export interface DataRepository {
   // Users
@@ -47,4 +47,9 @@ export interface DataRepository {
   // Email Logs
   getEmailLogs(): Promise<EmailLog[]>;
   saveEmailLog(log: EmailLog): Promise<void>;
+
+  // Transactions
+  getTransactions(): Promise<Transaction[]>;
+  saveTransaction(transaction: Transaction): Promise<void>;
+  deleteTransaction(id: string): Promise<void>;
 }

@@ -121,3 +121,13 @@ export interface EmailLog {
   subject: string;
   sentByUserId: string;
 }
+
+export interface Transaction {
+  id: string;
+  date: number; // timestamp
+  amount: number; // Total charged
+  paymentMethod: 'tarjeta' | 'metalico';
+  serviceId?: string; // Optional
+  customerId?: string; // Optional
+  notes?: string;
+}

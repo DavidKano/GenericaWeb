@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { LayoutDashboard, Users, User as UserIcon, LogOut, QrCode, Clock, Megaphone, Menu, X, Sliders, Settings, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, Users, User as UserIcon, LogOut, QrCode, Clock, Megaphone, Menu, X, Sliders, Settings, ChevronLeft, ChevronRight, CreditCard } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import type { DesignConfig, CompanyData } from '../../services/models';
 import { ConnessiaFooter } from '../ui/ConnessiaFooter';
@@ -85,9 +85,11 @@ export const AdminLayout: React.FC = () => {
     { to: "/admin/users", icon: <Users size={20} strokeWidth={2} />, label: "Gestión Clientes" },
     { to: "/admin/schedule", icon: <Clock size={20} strokeWidth={2} />, label: "Horarios y Bloqueos" },
     { to: "/admin/offers", icon: <Megaphone size={20} strokeWidth={2} />, label: "Ofertas y Promos" },
+    { to: "/admin/tpv", icon: <CreditCard size={20} strokeWidth={2} />, label: "TPV" },
     { to: "/admin/promote", icon: <QrCode size={20} strokeWidth={2} />, label: "Promocionar App" },
     { to: "/admin/settings", icon: <Settings size={20} strokeWidth={2} />, label: "Ajustes" },
   ];
+
 
   const bottomNavItems = [
     { to: "/admin", icon: <LayoutDashboard size={20} strokeWidth={2} />, label: "Panel", end: true },

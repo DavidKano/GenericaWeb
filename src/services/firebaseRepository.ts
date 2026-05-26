@@ -1,5 +1,5 @@
 import type { DataRepository } from './repository';
-import type { User, BookingService, Appointment, BusinessConfig, DaySchedule, BlockedDay, CompanyData, DesignConfig, PromoOffer, EmailLog } from './models';
+import type { User, BookingService, Appointment, BusinessConfig, DaySchedule, BlockedDay, CompanyData, DesignConfig, PromoOffer, EmailLog, Transaction } from './models';
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import type { FirebaseOptions } from 'firebase/app';
 import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc, getDoc, onSnapshot } from 'firebase/firestore';
@@ -150,5 +150,19 @@ export class FirebaseRepository implements DataRepository {
 
   async saveEmailLog(log: EmailLog): Promise<void> {
     await setDoc(doc(this.db, 'emailLogs', log.id), log);
+  }
+
+  // --- Transactions (TPV) ---
+  async getTransactions(): Promise<Transaction[]> {
+    const snapshot = await getDocs(collection(this.db, 'transactions'));
+    return snapshot.docs.map(doc => doc.data() as Transaction);
+  }
+
+  async saveTransaction(transaction: Transaction): Promise<void> {
+    await setDoc(doc(this.db, 'transactions', transaction.id), transaction);
+  }
+
+  async deleteTransaction(id: string): Promise<void> {
+    await deleteDoc(doc(this.db, 'transactions', id));
   }
 }
