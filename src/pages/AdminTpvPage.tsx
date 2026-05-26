@@ -730,27 +730,7 @@ export const AdminTpvPage: React.FC = () => {
                         animation: 'fadeIn 0.2s ease',
                         boxSizing: 'border-box'
                       }}>
-                        {/* Option: Venta Rápida (Clear) */}
-                        <div 
-                          onClick={() => {
-                            setSelectedCustomerId('');
-                            setSearchQuery('');
-                            setIsDropdownOpen(false);
-                          }}
-                          style={{
-                            padding: '10px 14px',
-                            fontSize: '0.9rem',
-                            color: '#64748B',
-                            cursor: 'pointer',
-                            borderBottom: '1px solid #F1F5F9',
-                            fontWeight: !selectedCustomerId ? '700' : 'normal',
-                            background: !selectedCustomerId ? '#F8FAFC' : 'transparent',
-                            textAlign: 'left'
-                          }}
-                          className="dropdown-item-hover"
-                        >
-                          -- Cliente no identificado (Venta rápida) --
-                        </div>
+
 
                         {sortedAndFilteredCustomers.length === 0 ? (
                           <div style={{ padding: '12px 14px', fontSize: '0.875rem', color: '#94A3B8', textAlign: 'center' }}>
