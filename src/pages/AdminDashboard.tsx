@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import type { User, Appointment, BookingService, DaySchedule, BusinessConfig, CompanyData, BlockedDay } from '../services/models';
 import { INITIAL_SCHEDULES } from '../services/scheduleDefaults';
 import { INITIAL_BUSINESS_CONFIG } from '../services/configDefaults';
 import { generateTimeSlots } from '../utils/timeSlots';
-import { Plus, XCircle, User as UserIcon, ChevronLeft, ChevronRight, Columns, Minus, MessageCircle, Bell, Clock, Briefcase, Calendar as LucideCalendar, Phone, Mail, Tag, LayoutDashboard } from 'lucide-react';
+import { Plus, XCircle, User as UserIcon, ChevronLeft, ChevronRight, Columns, Minus, MessageCircle, Bell, Clock, Briefcase, Calendar as LucideCalendar, Phone, Mail, Tag, LayoutDashboard, CreditCard } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
@@ -39,6 +40,7 @@ const getWhatsAppLink = (phone: string, name: string, date: string, time: string
 };
 
 export const AdminDashboard: React.FC = () => {
+  const navigate = useNavigate();
   const { repo } = useData();
   const { isInitialized } = useAuth();
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
@@ -1023,7 +1025,29 @@ export const AdminDashboard: React.FC = () => {
               />
             </div>
             
-            <div className="modal-actions" style={{ marginTop: '2rem' }}>
+            <div className="modal-actions" style={{ marginTop: '2rem', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              <button 
+                type="button"
+                className="btn-secondary" 
+                onClick={() => {
+                  const customerId = selectedEvent.resource.customerId;
+                  const serviceId = eventServiceId;
+                  navigate(`/admin/tpv?customerId=${customerId}&serviceId=${serviceId}`);
+                }}
+                style={{
+                  marginRight: 'auto',
+                  borderColor: 'var(--primary-color)',
+                  color: 'var(--primary-color)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontWeight: 600,
+                  background: 'transparent',
+                  cursor: 'pointer'
+                }}
+              >
+                <CreditCard size={16} /> TPV
+              </button>
               <button className="btn-secondary" onClick={() => setShowEventModal(false)}>Cancelar</button>
               <button className="btn-primary" onClick={handleSaveEventEdits}>Guardar Cambios</button>
             </div>

@@ -1,11 +1,20 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import type { BookingService, User, Transaction, DesignConfig } from '../services/models';
 import { PageHeader } from '../components/ui/PageHeader';
-import { CreditCard, Coins, Check, Trash2, User as UserIcon, Briefcase, Calculator, RefreshCw, Euro } from 'lucide-react';
+import { CreditCard, Coins, Check, Trash2, User as UserIcon, Briefcase, Calculator, RefreshCw, Euro, Plus } from 'lucide-react';
+
+interface TicketItem {
+  id: string; // Unique ID inside the current ticket
+  serviceId?: string; // Optional if it is a manual concept
+  name: string;
+  price: number;
+}
 
 export const AdminTpvPage: React.FC = () => {
   const { repo } = useData();
+  const location = useLocation();
 
   const [design, setDesign] = useState<DesignConfig | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -14,9 +23,8 @@ export const AdminTpvPage: React.FC = () => {
   const [customers, setCustomers] = useState<User[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
 
-  // TPV Form State
-  const [amount, setAmount] = useState<number | string>('');
-  const [selectedServiceId, setSelectedServiceId] = useState('');
+  // TPV Ticket State
+  const [ticket, setTicket] = useState<TicketItem[]>([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'tarjeta' | 'metalico' | 'mixto'>('tarjeta');
   
@@ -30,6 +38,11 @@ export const AdminTpvPage: React.FC = () => {
 
   // Notes
   const [notes, setNotes] = useState('');
+
+  // Dropdown / Form selectors to ADD items
+  const [selectedServiceId, setSelectedServiceId] = useState('');
+  const [manualConcept, setManualConcept] = useState('');
+  const [manualPrice, setManualPrice] = useState<number | string>('');
 
   // Fetch initial data
   const loadData = async () => {
@@ -59,49 +72,116 @@ export const AdminTpvPage: React.FC = () => {
     loadData();
   }, [repo]);
 
-  // Handle service select to autofill price
-  const handleServiceChange = (serviceId: string) => {
-    setSelectedServiceId(serviceId);
-    if (serviceId) {
-      const selected = services.find(s => s.id === serviceId);
-      if (selected && selected.price !== undefined) {
-        setAmount(selected.price);
-        // Reset mixed amounts
-        setMixedCashAmount('');
-        setMixedCardAmount('');
+  // Handle URL Query Params (Redirection from appointment details modal)
+  useEffect(() => {
+    if (services.length > 0) {
+      const query = new URLSearchParams(location.search);
+      const paramCustomerId = query.get('customerId') || '';
+      const paramServiceId = query.get('serviceId') || '';
+
+      if (paramCustomerId) {
+        setSelectedCustomerId(paramCustomerId);
+      }
+      
+      if (paramServiceId) {
+        const found = services.find(s => s.id === paramServiceId);
+        if (found) {
+          // Add service to ticket
+          setTicket([{
+            id: 'item-' + Date.now(),
+            serviceId: found.id,
+            name: found.name,
+            price: found.price || 0
+          }]);
+        }
       }
     }
+  }, [services, location.search]);
+
+  // Total Amount Calculation
+  const totalAmount = useMemo(() => {
+    return Number(ticket.reduce((sum, item) => sum + (Number(item.price) || 0), 0).toFixed(2));
+  }, [ticket]);
+
+  // Add Service to Ticket
+  const handleAddServiceToTicket = () => {
+    if (!selectedServiceId) return;
+    const found = services.find(s => s.id === selectedServiceId);
+    if (found) {
+      const newItem: TicketItem = {
+        id: 'item-' + Date.now() + '-' + Math.floor(Math.random() * 100),
+        serviceId: found.id,
+        name: found.name,
+        price: found.price || 0
+      };
+      setTicket(prev => [...prev, newItem]);
+      setSelectedServiceId('');
+    }
+  };
+
+  // Add Manual Concept to Ticket
+  const handleAddManualConceptToTicket = () => {
+    if (!manualConcept.trim()) {
+      alert('Por favor, indica un nombre para el concepto manual.');
+      return;
+    }
+    const price = Number(manualPrice) || 0;
+    if (price <= 0) {
+      alert('Por favor, indica un importe válido.');
+      return;
+    }
+
+    const newItem: TicketItem = {
+      id: 'item-manual-' + Date.now() + '-' + Math.floor(Math.random() * 100),
+      name: manualConcept.trim(),
+      price: price
+    };
+
+    setTicket(prev => [...prev, newItem]);
+    setManualConcept('');
+    setManualPrice('');
+  };
+
+  // Update Item Price in Ticket
+  const handleUpdateItemPrice = (itemId: string, newPrice: number | string) => {
+    const parsed = newPrice === '' ? 0 : Number(newPrice);
+    setTicket(prev => prev.map(item => 
+      item.id === itemId ? { ...item, price: parsed } : item
+    ));
+  };
+
+  // Remove Item from Ticket
+  const handleRemoveItemFromTicket = (itemId: string) => {
+    setTicket(prev => prev.filter(item => item.id !== itemId));
   };
 
   // Mixed payment sync
   useEffect(() => {
-    const total = Number(amount) || 0;
-    if (paymentMethod === 'mixto' && total > 0) {
+    if (paymentMethod === 'mixto' && totalAmount > 0) {
       const cash = Number(mixedCashAmount) || 0;
-      if (cash > total) {
-        setMixedCashAmount(total);
+      if (cash > totalAmount) {
+        setMixedCashAmount(totalAmount);
         setMixedCardAmount(0);
       } else {
-        setMixedCardAmount(Number((total - cash).toFixed(2)));
+        setMixedCardAmount(Number((totalAmount - cash).toFixed(2)));
       }
     }
-  }, [amount, mixedCashAmount, paymentMethod]);
+  }, [totalAmount, mixedCashAmount, paymentMethod]);
 
   // Cash return calculation
   useEffect(() => {
-    const totalToPay = paymentMethod === 'mixto' ? (Number(mixedCashAmount) || 0) : (Number(amount) || 0);
+    const totalToPay = paymentMethod === 'mixto' ? (Number(mixedCashAmount) || 0) : totalAmount;
     const given = Number(cashGiven) || 0;
     if (paymentMethod !== 'tarjeta' && given >= totalToPay) {
       setChangeAmount(Number((given - totalToPay).toFixed(2)));
     } else {
       setChangeAmount(0);
     }
-  }, [amount, cashGiven, paymentMethod, mixedCashAmount]);
+  }, [totalAmount, cashGiven, paymentMethod, mixedCashAmount]);
 
   // Reset form
   const resetForm = () => {
-    setAmount('');
-    setSelectedServiceId('');
+    setTicket([]);
     setSelectedCustomerId('');
     setPaymentMethod('tarjeta');
     setMixedCashAmount('');
@@ -114,69 +194,95 @@ export const AdminTpvPage: React.FC = () => {
   // Submit charge
   const handleCharge = async (e: React.FormEvent) => {
     e.preventDefault();
-    const totalAmount = Number(amount) || 0;
+    if (ticket.length === 0) {
+      alert('El ticket está vacío. Por favor, añade algún servicio o concepto para cobrar.');
+      return;
+    }
     if (totalAmount <= 0) {
-      alert('Por favor, indica un importe válido mayor que cero.');
+      alert('El importe total debe ser mayor que cero.');
       return;
     }
 
     setIsSaving(true);
     try {
       const now = Date.now();
-      const baseTransaction = {
-        serviceId: selectedServiceId || undefined,
-        customerId: selectedCustomerId || undefined,
-        notes: notes.trim() || undefined,
-        date: now,
-      };
-
+      
       if (paymentMethod === 'mixto') {
         const cashPart = Number(mixedCashAmount) || 0;
         const cardPart = Number(mixedCardAmount) || 0;
 
-        if (cashPart + cardPart !== totalAmount) {
+        if (Number((cashPart + cardPart).toFixed(2)) !== totalAmount) {
           alert('La suma de las partes no coincide con el total.');
           setIsSaving(false);
           return;
         }
 
-        // Save two separate transactions (cash portion and card portion)
-        if (cashPart > 0) {
-          const txCash: Transaction = {
-            ...baseTransaction,
-            id: `tx-cash-${now}-${Math.floor(Math.random() * 1000)}`,
-            amount: cashPart,
-            paymentMethod: 'metalico',
-          };
-          await repo.saveTransaction(txCash);
-        }
+        // Proportional distribution of cash and card amounts among ticket items
+        let remainingCash = cashPart;
+        let remainingCard = cardPart;
 
-        if (cardPart > 0) {
-          const txCard: Transaction = {
-            ...baseTransaction,
-            id: `tx-card-${now}-${Math.floor(Math.random() * 1000)}`,
-            amount: cardPart,
-            paymentMethod: 'tarjeta',
-          };
-          await repo.saveTransaction(txCard);
+        for (const item of ticket) {
+          const itemPrice = Number(item.price) || 0;
+          if (itemPrice <= 0) continue;
+
+          // Allocate cash portion up to item price
+          const cashAllocated = Number(Math.min(itemPrice, remainingCash).toFixed(2));
+          remainingCash = Number((remainingCash - cashAllocated).toFixed(2));
+
+          // Allocate rest to card
+          const cardAllocated = Number((itemPrice - cashAllocated).toFixed(2));
+          remainingCard = Number((remainingCard - cardAllocated).toFixed(2));
+
+          if (cashAllocated > 0) {
+            await repo.saveTransaction({
+              id: `tx-cash-${now}-${Math.floor(Math.random() * 10000)}`,
+              date: now,
+              amount: cashAllocated,
+              paymentMethod: 'metalico',
+              serviceId: item.serviceId || undefined,
+              customerId: selectedCustomerId || undefined,
+              notes: item.serviceId ? (notes ? notes.trim() : undefined) : `${item.name}${notes ? ` - ${notes.trim()}` : ''}`
+            });
+          }
+
+          if (cardAllocated > 0) {
+            await repo.saveTransaction({
+              id: `tx-card-${now}-${Math.floor(Math.random() * 10000)}`,
+              date: now,
+              amount: cardAllocated,
+              paymentMethod: 'tarjeta',
+              serviceId: item.serviceId || undefined,
+              customerId: selectedCustomerId || undefined,
+              notes: item.serviceId ? (notes ? notes.trim() : undefined) : `${item.name}${notes ? ` - ${notes.trim()}` : ''}`
+            });
+          }
         }
       } else {
-        // Single payment method transaction
-        const tx: Transaction = {
-          ...baseTransaction,
-          id: `tx-${now}-${Math.floor(Math.random() * 1000)}`,
-          amount: totalAmount,
-          paymentMethod: paymentMethod === 'tarjeta' ? 'tarjeta' : 'metalico',
-        };
-        await repo.saveTransaction(tx);
+        // Single payment method - save one transaction per item to preserve clean service breakdown reports
+        for (const item of ticket) {
+          const itemPrice = Number(item.price) || 0;
+          if (itemPrice <= 0) continue;
+
+          await repo.saveTransaction({
+            id: `tx-${now}-${Math.floor(Math.random() * 10000)}`,
+            date: now,
+            amount: itemPrice,
+            paymentMethod: paymentMethod === 'tarjeta' ? 'tarjeta' : 'metalico',
+            serviceId: item.serviceId || undefined,
+            customerId: selectedCustomerId || undefined,
+            notes: item.serviceId ? (notes ? notes.trim() : undefined) : `${item.name}${notes ? ` - ${notes.trim()}` : ''}`
+          });
+        }
       }
 
-      alert('¡Cobro registrado con éxito!');
+      alert('¡Cobro registrado con éxito en base de datos!');
       resetForm();
+      // Clean query search params
+      window.history.replaceState(null, '', window.location.pathname);
       await loadData();
     } catch (error) {
       console.error('Error registrando cobro:', error);
-      alert('Ocurrió un error al registrar el cobro en la base de datos.');
+      alert('Ocurrió un error al registrar el cobro.');
     } finally {
       setIsSaving(false);
     }
@@ -202,7 +308,7 @@ export const AdminTpvPage: React.FC = () => {
       <PageHeader 
         icon={<Calculator size={28} />}
         title="TPV Virtual"
-        description="Gestiona y registra los cobros de servicios de forma rápida, simula vueltas de efectivo y gestiona pagos mixtos."
+        description="Gestiona cobros múltiples, asocia clientes, edita importes en tiempo real y simula vueltas de efectivo."
       />
 
       {isLoading ? (
@@ -213,8 +319,10 @@ export const AdminTpvPage: React.FC = () => {
       ) : (
         <div className="tpv-grid" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '24px', width: '100%' }}>
           
-          {/* Form and Simulator column */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '24px' }}>
+          {/* Main Left Column: Ticket Management & Calculator */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            
+            {/* 1. Ticket de Cobro Actual */}
             <div className="tpv-card" style={{
               background: '#ffffff',
               border: '1px solid #E2E8F0',
@@ -223,49 +331,266 @@ export const AdminTpvPage: React.FC = () => {
               padding: '24px',
               display: 'flex',
               flexDirection: 'column',
-              gap: '20px'
+              gap: '16px'
             }}>
-              <h2 style={{ margin: '0 0 10px 0', fontSize: '1.25rem', fontWeight: 600, color: 'var(--text-color, #0F172A)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Euro size={20} style={{ color: primaryColor }} /> Nuevo Cobro
-              </h2>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F1F5F9', paddingBottom: '12px' }}>
+                <h3 style={{ margin: '0', fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-color, #0F172A)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Euro size={18} style={{ color: primaryColor }} /> Ticket de Venta
+                </h3>
+                {ticket.length > 0 && (
+                  <button 
+                    onClick={resetForm}
+                    style={{ background: 'none', border: 'none', color: '#EF4444', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer' }}
+                  >
+                    Vaciar
+                  </button>
+                )}
+              </div>
 
-              <form onSubmit={handleCharge} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* Items List */}
+              {ticket.length === 0 ? (
+                <div style={{ padding: '30px 10px', textAlign: 'center', color: '#94A3B8' }}>
+                  <Calculator size={40} style={{ margin: '0 auto 8px auto', opacity: 0.25 }} />
+                  <p style={{ margin: 0, fontSize: '0.85rem' }}>El ticket está vacío. Añade servicios o cobros manuales a continuación.</p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '250px', overflowY: 'auto', paddingRight: '4px' }}>
+                  {ticket.map((item) => (
+                    <div key={item.id} style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '10px 12px',
+                      background: '#F8FAFC',
+                      borderRadius: '8px',
+                      border: '1px solid #E2E8F0',
+                      gap: '12px'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden', flex: 1 }}>
+                        {item.serviceId ? (
+                          <Briefcase size={16} style={{ color: primaryColor, flexShrink: 0 }} />
+                        ) : (
+                          <Euro size={16} style={{ color: '#E2B93B', flexShrink: 0 }} />
+                        )}
+                        <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#1E293B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {item.name}
+                        </span>
+                      </div>
+
+                      {/* Real time Price Editor */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ position: 'relative', width: '90px' }}>
+                          <span style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.85rem', fontWeight: 700, color: '#64748B' }}>€</span>
+                          <input
+                            type="number"
+                            step="any"
+                            min="0"
+                            value={item.price === 0 ? '' : item.price}
+                            onChange={(e) => handleUpdateItemPrice(item.id, e.target.value)}
+                            placeholder="0.00"
+                            style={{
+                              width: '100%',
+                              padding: '6px 20px 6px 8px',
+                              border: '1px solid #CBD5E1',
+                              borderRadius: '6px',
+                              fontSize: '0.9rem',
+                              fontWeight: 700,
+                              textAlign: 'right',
+                              boxSizing: 'border-box',
+                              color: '#0F172A',
+                              outline: 'none'
+                            }}
+                          />
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveItemFromTicket(item.id)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: '#94A3B8',
+                            cursor: 'pointer',
+                            padding: '4px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            transition: 'color 0.2s'
+                          }}
+                          onMouseOver={e => e.currentTarget.style.color = '#EF4444'}
+                          onMouseOut={e => e.currentTarget.style.color = '#94A3B8'}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Total Display */}
+              <div style={{
+                marginTop: '8px',
+                padding: '16px',
+                borderRadius: '12px',
+                background: `color-mix(in srgb, ${primaryColor} 5%, #F8FAFC)`,
+                border: `1px solid color-mix(in srgb, ${primaryColor} 12%, #E2E8F0)`,
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <span style={{ fontSize: '0.95rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>Total a Cobrar</span>
+                <strong style={{ fontSize: '1.75rem', fontWeight: 900, color: primaryColor }}>
+                  {totalAmount.toFixed(2)}€
+                </strong>
+              </div>
+            </div>
+
+            {/* 2. Añadir Conceptos / Servicios */}
+            <div className="tpv-card" style={{
+              background: '#ffffff',
+              border: '1px solid #E2E8F0',
+              borderRadius: '16px',
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.03)',
+              padding: '20px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px'
+            }}>
+              <h4 style={{ margin: '0', fontSize: '0.95rem', fontWeight: 700, color: '#334155' }}>Añadir al Ticket</h4>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
                 
-                {/* 1. Selector de Servicio */}
-                <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label style={{ fontSize: '0.875rem', fontWeight: 600, color: '#475569' }}>Servicio Asociado (Opcional)</label>
-                  <div style={{ position: 'relative' }}>
-                    <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', display: 'flex', alignItems: 'center' }}>
-                      <Briefcase size={18} />
-                    </span>
-                    <select
-                      value={selectedServiceId}
-                      onChange={(e) => handleServiceChange(e.target.value)}
+                {/* A. Añadir Servicio Catálogo */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#64748B' }}>Añadir Servicio del Catálogo</label>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <div style={{ position: 'relative', flex: 1 }}>
+                      <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', display: 'flex' }}>
+                        <Briefcase size={16} />
+                      </span>
+                      <select
+                        value={selectedServiceId}
+                        onChange={(e) => setSelectedServiceId(e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '10px 10px 10px 32px',
+                          border: '1px solid #CBD5E1',
+                          borderRadius: '8px',
+                          fontSize: '0.875rem',
+                          background: '#fff',
+                          outline: 'none',
+                          color: selectedServiceId ? '#0F172A' : '#94A3B8'
+                        }}
+                      >
+                        <option value="">Selecciona servicio...</option>
+                        {services.map(s => (
+                          <option key={s.id} value={s.id} style={{ color: '#0F172A' }}>
+                            {s.name} ({s.price}€)
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleAddServiceToTicket}
                       style={{
-                        width: '100%',
-                        padding: '12px 12px 12px 38px',
-                        border: '1px solid #CBD5E1',
+                        padding: '10px 14px',
                         borderRadius: '8px',
-                        fontSize: '0.95rem',
-                        background: '#fff',
-                        outline: 'none',
-                        transition: 'border-color 0.2s',
-                        color: selectedServiceId ? '#0F172A' : '#94A3B8'
+                        background: primaryColor,
+                        color: '#fff',
+                        border: 'none',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: 600,
+                        fontSize: '0.875rem'
                       }}
                     >
-                      <option value="" style={{ color: '#94A3B8' }}>-- Ningún servicio (Cobro directo) --</option>
-                      {services.map(s => (
-                        <option key={s.id} value={s.id} style={{ color: '#0F172A' }}>
-                          {s.name} {s.price !== undefined ? `(${s.price}€)` : ''}
-                        </option>
-                      ))}
-                    </select>
+                      <Plus size={16} style={{ marginRight: '4px' }} /> Añadir
+                    </button>
                   </div>
                 </div>
 
-                {/* 2. Selector de Cliente */}
+                {/* B. Añadir Concepto Manual Personalizado */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', borderTop: '1px dashed #E2E8F0', paddingTop: '14px' }}>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#64748B' }}>Añadir Concepto / Venta Manual</label>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 100px auto', gap: '8px' }}>
+                    <input
+                      type="text"
+                      placeholder="Concepto (Ej: Champú, Recargo...)"
+                      value={manualConcept}
+                      onChange={(e) => setManualConcept(e.target.value)}
+                      style={{
+                        padding: '10px',
+                        border: '1px solid #CBD5E1',
+                        borderRadius: '8px',
+                        fontSize: '0.875rem',
+                        outline: 'none'
+                      }}
+                    />
+                    <div style={{ position: 'relative' }}>
+                      <span style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.85rem', fontWeight: 700, color: '#94A3B8' }}>€</span>
+                      <input
+                        type="number"
+                        step="any"
+                        placeholder="0.00"
+                        value={manualPrice}
+                        onChange={(e) => setManualPrice(e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '10px 20px 10px 10px',
+                          border: '1px solid #CBD5E1',
+                          borderRadius: '8px',
+                          fontSize: '0.875rem',
+                          fontWeight: 700,
+                          textAlign: 'right',
+                          outline: 'none',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleAddManualConceptToTicket}
+                      style={{
+                        padding: '10px 14px',
+                        borderRadius: '8px',
+                        background: '#334155',
+                        color: '#fff',
+                        border: 'none',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: 600,
+                        fontSize: '0.875rem'
+                      }}
+                    >
+                      <Plus size={16} />
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            {/* 3. Datos de Cobro, Métodos y Simulaciones */}
+            <div className="tpv-card" style={{
+              background: '#ffffff',
+              border: '1px solid #E2E8F0',
+              borderRadius: '16px',
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.03)',
+              padding: '24px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px'
+            }}>
+              <form onSubmit={handleCharge} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                
+                {/* Cliente */}
                 <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label style={{ fontSize: '0.875rem', fontWeight: 600, color: '#475569' }}>Cliente Asociado (Opcional)</label>
+                  <label style={{ fontSize: '0.875rem', fontWeight: 600, color: '#475569' }}>Cliente del Cobro</label>
                   <div style={{ position: 'relative' }}>
                     <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', display: 'flex', alignItems: 'center' }}>
                       <UserIcon size={18} />
@@ -281,13 +606,12 @@ export const AdminTpvPage: React.FC = () => {
                         fontSize: '0.95rem',
                         background: '#fff',
                         outline: 'none',
-                        transition: 'border-color 0.2s',
                         color: selectedCustomerId ? '#0F172A' : '#94A3B8'
                       }}
                     >
-                      <option value="" style={{ color: '#94A3B8' }}>-- Cliente no identificado (Venta rápida) --</option>
+                      <option value="">-- Cliente no identificado (Venta rápida) --</option>
                       {customers.map(c => (
-                        <option key={c.id} value={c.id} style={{ color: '#0F172A' }}>
+                        <option key={c.id} value={c.id}>
                           {c.name} {c.phone ? `(${c.phone})` : ''}
                         </option>
                       ))}
@@ -295,44 +619,9 @@ export const AdminTpvPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* 3. Importe a cobrar */}
-                <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label style={{ fontSize: '0.875rem', fontWeight: 600, color: '#475569' }}>Importe Total a Cobrar (€) *</label>
-                  <div style={{ position: 'relative' }}>
-                    <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#475569', fontWeight: 700, fontSize: '1.1rem' }}>
-                      €
-                    </span>
-                    <input
-                      type="number"
-                      step="any"
-                      min="0.01"
-                      required
-                      placeholder="0.00"
-                      value={amount}
-                      onChange={(e) => {
-                        setAmount(e.target.value);
-                        // Reset mixed amounts
-                        setMixedCashAmount('');
-                        setMixedCardAmount('');
-                      }}
-                      style={{
-                        width: '100%',
-                        padding: '12px 12px 12px 32px',
-                        border: '1px solid #CBD5E1',
-                        borderRadius: '8px',
-                        fontSize: '1.25rem',
-                        fontWeight: '700',
-                        color: primaryColor,
-                        outline: 'none',
-                        boxSizing: 'border-box'
-                      }}
-                    />
-                  </div>
-                </div>
-
-                {/* 4. Método de pago */}
+                {/* Métodos de Pago */}
                 <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <label style={{ fontSize: '0.875rem', fontWeight: 600, color: '#475569' }}>Método de Pago</label>
+                  <label style={{ fontSize: '0.875rem', fontWeight: 600, color: '#475569' }}>Forma de Pago</label>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
                     <button
                       type="button"
@@ -384,9 +673,7 @@ export const AdminTpvPage: React.FC = () => {
                       type="button"
                       onClick={() => {
                         setPaymentMethod('mixto');
-                        // Auto split 50/50 initially
-                        const total = Number(amount) || 0;
-                        setMixedCashAmount((total / 2).toFixed(2));
+                        setMixedCashAmount((totalAmount / 2).toFixed(2));
                       }}
                       style={{
                         display: 'flex',
@@ -414,7 +701,7 @@ export const AdminTpvPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* 5. Pago Mixto Desglose (si aplica) */}
+                {/* Pago Mixto Desglose */}
                 {paymentMethod === 'mixto' && (
                   <div style={{
                     background: '#F8FAFC',
@@ -434,7 +721,7 @@ export const AdminTpvPage: React.FC = () => {
                           type="number"
                           step="any"
                           min="0"
-                          max={amount || undefined}
+                          max={totalAmount || undefined}
                           value={mixedCashAmount}
                           onChange={(e) => setMixedCashAmount(e.target.value)}
                           style={{
@@ -469,8 +756,8 @@ export const AdminTpvPage: React.FC = () => {
                   </div>
                 )}
 
-                {/* 6. Simulador de Cambio (Efectivo o Mixto) */}
-                {paymentMethod !== 'tarjeta' && (Number(amount) > 0) && (
+                {/* Calculadora de Vueltas */}
+                {paymentMethod !== 'tarjeta' && (totalAmount > 0) && (
                   <div style={{
                     background: '#F0FDF4',
                     border: '1px solid #DCFCE7',
@@ -489,7 +776,7 @@ export const AdminTpvPage: React.FC = () => {
                       <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#166534' }}>
                         {paymentMethod === 'mixto' 
                           ? `Dinero Entregado en Efectivo (Total a pagar: ${Number(mixedCashAmount).toFixed(2)}€)` 
-                          : `Dinero Entregado en Efectivo (Total a pagar: ${Number(amount).toFixed(2)}€)`
+                          : `Dinero Entregado en Efectivo (Total a pagar: ${totalAmount.toFixed(2)}€)`
                         }
                       </label>
                       <div style={{ position: 'relative' }}>
@@ -538,11 +825,11 @@ export const AdminTpvPage: React.FC = () => {
                   </div>
                 )}
 
-                {/* 7. Notas adicionales */}
+                {/* Notas */}
                 <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label style={{ fontSize: '0.875rem', fontWeight: 600, color: '#475569' }}>Notas / Concepto (Opcional)</label>
+                  <label style={{ fontSize: '0.875rem', fontWeight: 600, color: '#475569' }}>Notas / Concepto Global (Opcional)</label>
                   <textarea
-                    placeholder="Notas internas del cobro..."
+                    placeholder="Notas internas globales del cobro..."
                     rows={2}
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
@@ -560,7 +847,7 @@ export const AdminTpvPage: React.FC = () => {
                   />
                 </div>
 
-                {/* Button Charge */}
+                {/* Botón Cobrar */}
                 <button
                   type="submit"
                   disabled={isSaving}
@@ -596,9 +883,10 @@ export const AdminTpvPage: React.FC = () => {
                 </button>
               </form>
             </div>
+
           </div>
 
-          {/* Recent transactions column */}
+          {/* Right Column: Recent Transactions list */}
           <div className="tpv-card" style={{
             background: '#ffffff',
             border: '1px solid #E2E8F0',
@@ -739,7 +1027,7 @@ export const AdminTpvPage: React.FC = () => {
         }
         @media(min-width: 992px) {
           .tpv-grid {
-            grid-template-columns: 480px 1fr !important;
+            grid-template-columns: 500px 1fr !important;
           }
         }
       `}</style>
