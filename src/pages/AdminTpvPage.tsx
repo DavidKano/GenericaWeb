@@ -599,7 +599,7 @@ export const AdminTpvPage: React.FC = () => {
   const primaryColor = design?.primaryColor || '#008080';
 
   return (
-    <div className="admin-tpv-container animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
+    <div className="admin-tpv-container animate-fade-in">
       <PageHeader 
         icon={<Calculator size={28} />}
         title="TPV Virtual"
@@ -793,28 +793,17 @@ export const AdminTpvPage: React.FC = () => {
           </div>
         </div>
       ) : (
-        <div className="tpv-layout-grid">
+        <div className="tpv-grid">
           <style>{`
-            .tpv-layout-grid {
+            .tpv-grid {
               display: grid;
               grid-template-columns: 1fr;
               gap: 20px;
               width: 100%;
               box-sizing: border-box;
             }
-            @media (min-width: 1024px) {
-              .tpv-layout-grid {
-                grid-template-columns: 1.15fr 1fr;
-                align-items: start;
-              }
-            }
-            .tpv-column-left, .tpv-column-right {
-              display: flex;
-              flex-direction: column;
-              gap: 20px;
-            }
             .tpv-scrollable-items {
-              max-height: 200px;
+              max-height: 180px;
               overflow-y: auto;
               padding-right: 4px;
             }
@@ -826,7 +815,7 @@ export const AdminTpvPage: React.FC = () => {
               border-radius: 3px;
             }
             .tpv-scrollable-transactions {
-              max-height: 250px;
+              max-height: 480px;
               overflow-y: auto;
               padding-right: 4px;
             }
@@ -837,14 +826,155 @@ export const AdminTpvPage: React.FC = () => {
               background: #CBD5E1;
               border-radius: 3px;
             }
+            .admin-tpv-container {
+              padding: 0;
+              display: flex;
+              flex-direction: column;
+              gap: 16px;
+              box-sizing: border-box;
+              width: 100%;
+            }
+            @media (min-width: 1200px) {
+              .tpv-grid {
+                grid-template-columns: 420px 1fr 320px !important;
+                align-items: start;
+              }
+            }
+            @media (min-width: 992px) and (max-width: 1199px) {
+              .tpv-grid {
+                grid-template-columns: 420px 1fr !important;
+                align-items: start;
+              }
+            }
           `}</style>
-
-          {/* ========================================== */}
-          {/* COLUMNA IZQUIERDA: Añadir e Items del Cart */}
-          {/* ========================================== */}
-          <div className="tpv-column-left">
+          
+          {/* Column 1: Ticket Management & Calculator */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             
-            {/* CARD 1: Añadir al Ticket (Services & Custom concepts) */}
+            {/* Ticket de Cobro Actual */}
+            <div className="tpv-card" style={{
+              background: '#ffffff',
+              border: '1px solid #E2E8F0',
+              borderRadius: '16px',
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.03)',
+              padding: '24px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F1F5F9', paddingBottom: '12px' }}>
+                <h3 style={{ margin: '0', fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-color, #0F172A)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Euro size={18} style={{ color: primaryColor }} /> Ticket de Venta
+                </h3>
+                {ticket.length > 0 && (
+                  <button 
+                    onClick={resetForm}
+                    style={{ background: 'none', border: 'none', color: '#EF4444', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer' }}
+                  >
+                    Vaciar
+                  </button>
+                )}
+              </div>
+
+              {/* Items List */}
+              {ticket.length === 0 ? (
+                <div style={{ padding: '30px 10px', textAlign: 'center', color: '#94A3B8' }}>
+                  <Calculator size={40} style={{ margin: '0 auto 8px auto', opacity: 0.25 }} />
+                  <p style={{ margin: 0, fontSize: '0.85rem' }}>El ticket está vacío. Añade servicios o cobros manuales a continuación.</p>
+                </div>
+              ) : (
+                <div className="tpv-scrollable-items" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {ticket.map((item) => (
+                    <div key={item.id} style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '10px 12px',
+                      background: '#F8FAFC',
+                      borderRadius: '8px',
+                      border: '1px solid #E2E8F0',
+                      gap: '12px'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden', flex: 1 }}>
+                        {item.serviceId ? (
+                          <Briefcase size={16} style={{ color: primaryColor, flexShrink: 0 }} />
+                        ) : (
+                          <Euro size={16} style={{ color: '#E2B93B', flexShrink: 0 }} />
+                        )}
+                        <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#1E293B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {item.name}
+                        </span>
+                      </div>
+
+                      {/* Real time Price Editor */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ position: 'relative', width: '90px' }}>
+                          <span style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.85rem', fontWeight: 700, color: '#64748B' }}>€</span>
+                          <input
+                            type="number"
+                            step="any"
+                            min="0"
+                            value={item.price === 0 ? '' : item.price}
+                            onChange={(e) => handleUpdateItemPrice(item.id, e.target.value)}
+                            placeholder="0.00"
+                            style={{
+                              width: '100%',
+                              padding: '6px 20px 6px 8px',
+                              border: '1px solid #CBD5E1',
+                              borderRadius: '6px',
+                              fontSize: '0.9rem',
+                              fontWeight: 700,
+                              textAlign: 'right',
+                              boxSizing: 'border-box',
+                              color: '#0F172A',
+                              outline: 'none'
+                            }}
+                          />
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveItemFromTicket(item.id)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: '#94A3B8',
+                            cursor: 'pointer',
+                            padding: '4px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            transition: 'color 0.2s'
+                          }}
+                          onMouseOver={e => e.currentTarget.style.color = '#EF4444'}
+                          onMouseOut={e => e.currentTarget.style.color = '#94A3B8'}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Total Display */}
+              <div style={{
+                marginTop: '8px',
+                padding: '16px',
+                borderRadius: '12px',
+                background: `color-mix(in srgb, ${primaryColor} 5%, #F8FAFC)`,
+                border: `1px solid color-mix(in srgb, ${primaryColor} 12%, #E2E8F0)`,
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <span style={{ fontSize: '0.95rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>Total a Cobrar</span>
+                <strong style={{ fontSize: '1.75rem', fontWeight: 900, color: primaryColor }}>
+                  {totalAmount.toFixed(2)}€
+                </strong>
+              </div>
+            </div>
+
+            {/* Añadir Conceptos / Servicios */}
             <div className="tpv-card" style={{
               background: '#ffffff',
               border: '1px solid #E2E8F0',
@@ -974,137 +1104,7 @@ export const AdminTpvPage: React.FC = () => {
               </div>
             </div>
 
-            {/* CARD 2: Ticket de Cobro Actual (Cart) */}
-            <div className="tpv-card" style={{
-              background: '#ffffff',
-              border: '1px solid #E2E8F0',
-              borderRadius: '16px',
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.03)',
-              padding: '24px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '16px'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F1F5F9', paddingBottom: '12px' }}>
-                <h3 style={{ margin: '0', fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-color, #0F172A)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Euro size={18} style={{ color: primaryColor }} /> Ticket de Venta
-                </h3>
-                {ticket.length > 0 && (
-                  <button 
-                    onClick={resetForm}
-                    style={{ background: 'none', border: 'none', color: '#EF4444', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer' }}
-                  >
-                    Vaciar
-                  </button>
-                )}
-              </div>
-
-              {/* Items List (Scrollable to prevent page vertical expansion) */}
-              {ticket.length === 0 ? (
-                <div style={{ padding: '40px 10px', textAlign: 'center', color: '#94A3B8' }}>
-                  <Calculator size={40} style={{ margin: '0 auto 8px auto', opacity: 0.25 }} />
-                  <p style={{ margin: 0, fontSize: '0.85rem' }}>El ticket está vacío. Añade servicios o cobros manuales arriba.</p>
-                </div>
-              ) : (
-                <div className="tpv-scrollable-items" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {ticket.map((item) => (
-                    <div key={item.id} style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '10px 12px',
-                      background: '#F8FAFC',
-                      borderRadius: '8px',
-                      border: '1px solid #E2E8F0',
-                      gap: '12px'
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden', flex: 1 }}>
-                        {item.serviceId ? (
-                          <Briefcase size={16} style={{ color: primaryColor, flexShrink: 0 }} />
-                        ) : (
-                          <Euro size={16} style={{ color: '#E2B93B', flexShrink: 0 }} />
-                        )}
-                        <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#1E293B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {item.name}
-                        </span>
-                      </div>
-
-                      {/* Real time Price Editor */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <div style={{ position: 'relative', width: '90px' }}>
-                          <span style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.85rem', fontWeight: 700, color: '#64748B' }}>€</span>
-                          <input
-                            type="number"
-                            step="any"
-                            min="0"
-                            value={item.price === 0 ? '' : item.price}
-                            onChange={(e) => handleUpdateItemPrice(item.id, e.target.value)}
-                            placeholder="0.00"
-                            style={{
-                              width: '100%',
-                              padding: '6px 20px 6px 8px',
-                              border: '1px solid #CBD5E1',
-                              borderRadius: '6px',
-                              fontSize: '0.9rem',
-                              fontWeight: 700,
-                              textAlign: 'right',
-                              boxSizing: 'border-box',
-                              color: '#0F172A',
-                              outline: 'none'
-                            }}
-                          />
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveItemFromTicket(item.id)}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            color: '#94A3B8',
-                            cursor: 'pointer',
-                            padding: '4px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            transition: 'color 0.2s'
-                          }}
-                          onMouseOver={e => e.currentTarget.style.color = '#EF4444'}
-                          onMouseOut={e => e.currentTarget.style.color = '#94A3B8'}
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Total Display */}
-              <div style={{
-                marginTop: '8px',
-                padding: '16px',
-                borderRadius: '12px',
-                background: `color-mix(in srgb, ${primaryColor} 5%, #F8FAFC)`,
-                border: `1px solid color-mix(in srgb, ${primaryColor} 12%, #E2E8F0)`,
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-              }}>
-                <span style={{ fontSize: '0.95rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>Total a Cobrar</span>
-                <strong style={{ fontSize: '1.75rem', fontWeight: 900, color: primaryColor }}>
-                  {totalAmount.toFixed(2)}€
-                </strong>
-              </div>
-            </div>
-
-          </div>
-
-          {/* ========================================== */}
-          {/* COLUMNA DERECHA: Cobro, Caja y Transacciones */}
-          {/* ========================================== */}
-          <div className="tpv-column-right">
-            
-            {/* CARD 3: Datos de Cobro, Métodos y Simulaciones */}
+            {/* Datos de Cobro, Métodos y Simulaciones */}
             <div className="tpv-card" style={{
               background: '#ffffff',
               border: '1px solid #E2E8F0',
@@ -1219,7 +1219,7 @@ export const AdminTpvPage: React.FC = () => {
                                   color: '#0F172A',
                                   cursor: 'pointer',
                                   display: 'flex',
-                                  justifyContent: 'between',
+                                  justifyContent: 'space-between',
                                   alignItems: 'center',
                                   borderBottom: '1px solid #F8FAFC',
                                   fontWeight: isSelected ? '700' : 'normal',
@@ -1508,310 +1508,318 @@ export const AdminTpvPage: React.FC = () => {
               </form>
             </div>
 
-            {/* CARD 4: Gestión de Caja Privada */}
-            <div className="tpv-card" style={{
-              background: '#ffffff',
-              border: '1px solid #E2E8F0',
-              borderRadius: '16px',
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.03)',
-              padding: '24px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '16px',
-              alignSelf: 'stretch'
-            }}>
-              <h3 style={{ margin: '0', fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-color, #0F172A)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <TrendingUp size={20} style={{ color: primaryColor }} /> Gestión de Caja
-              </h3>
-              <p style={{ margin: '0 0 10px 0', fontSize: '0.85rem', color: '#64748B', lineHeight: 1.5 }}>
-                Administra cierres de caja y genera análisis financieros de forma segura sin revelar datos en pantalla a tus clientes.
-              </p>
+          </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                
-                {/* Button: Cierre de Caja */}
-                <button
-                  type="button"
-                  onClick={() => setShowCloseBoxModal(true)}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    borderRadius: '8px',
-                    background: `color-mix(in srgb, ${primaryColor} 8%, #fff)`,
-                    color: primaryColor,
-                    border: `1px solid color-mix(in srgb, ${primaryColor} 20%, #E2E8F0)`,
-                    fontSize: '0.9rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    transition: 'background 0.2s'
-                  }}
-                  onMouseOver={(e) => e.currentTarget.style.background = `color-mix(in srgb, ${primaryColor} 12%, #fff)`}
-                  onMouseOut={(e) => e.currentTarget.style.background = `color-mix(in srgb, ${primaryColor} 8%, #fff)`}
-                >
-                  <Archive size={16} /> Cierre de Caja Diario
-                </button>
-
-                {/* Button: Consultar Cierres de Caja */}
-                <button
-                  type="button"
-                  onClick={() => setActiveView('cierres')}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    borderRadius: '8px',
-                    background: '#FFFFFF',
-                    color: '#475569',
-                    border: '1px solid #CBD5E1',
-                    fontSize: '0.9rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    transition: 'background 0.2s'
-                  }}
-                  onMouseOver={(e) => e.currentTarget.style.background = '#F8FAFC'}
-                  onMouseOut={(e) => e.currentTarget.style.background = '#FFFFFF'}
-                >
-                  <History size={16} /> Consultar Cierres de Caja
-                </button>
-
-                {/* Button: Métricas y Estadísticas */}
-                <button
-                  type="button"
-                  onClick={() => setShowAnalyticsModal(true)}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    borderRadius: '8px',
-                    background: '#F1F5F9',
-                    color: '#334155',
-                    border: '1px solid #E2E8F0',
-                    fontSize: '0.9rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    transition: 'background 0.2s'
-                  }}
-                  onMouseOver={(e) => e.currentTarget.style.background = '#E2E8F0'}
-                  onMouseOut={(e) => e.currentTarget.style.background = '#F1F5F9'}
-                >
-                  <BarChart3 size={16} /> Estadísticas y Métricas
-                </button>
-
-                {/* Button: Exportar Movimientos */}
-                <button
-                  type="button"
-                  onClick={() => setShowExportPanel(!showExportPanel)}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    borderRadius: '8px',
-                    background: '#FFFFFF',
-                    color: '#475569',
-                    border: '1px solid #CBD5E1',
-                    fontSize: '0.9rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    transition: 'background 0.2s'
-                  }}
-                  onMouseOver={(e) => e.currentTarget.style.background = '#F8FAFC'}
-                  onMouseOut={(e) => e.currentTarget.style.background = '#FFFFFF'}
-                >
-                  <Download size={16} /> Exportar Movimientos (.csv)
-                </button>
-
-                {/* Export CSV Collapsible Panel */}
-                {showExportPanel && (
-                  <div style={{
-                    background: '#F8FAFC',
-                    border: '1px solid #E2E8F0',
-                    borderRadius: '8px',
-                    padding: '12px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '10px',
-                    marginTop: '4px',
-                    animation: 'fadeIn 0.2s ease'
-                  }}>
-                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#334155' }}>Rango de fechas para exportar:</span>
-                    
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                        <span style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: 600 }}>Desde:</span>
-                        <input 
-                          type="date"
-                          value={exportStartDate}
-                          onChange={(e) => setExportStartDate(e.target.value)}
-                          style={{ padding: '6px', border: '1px solid #CBD5E1', borderRadius: '4px', fontSize: '0.8rem' }}
-                        />
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                        <span style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: 600 }}>Hasta:</span>
-                        <input 
-                          type="date"
-                          value={exportEndDate}
-                          onChange={(e) => setExportEndDate(e.target.value)}
-                          style={{ padding: '6px', border: '1px solid #CBD5E1', borderRadius: '4px', fontSize: '0.8rem' }}
-                        />
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={handleExportCSV}
-                      style={{
-                        padding: '8px',
-                        borderRadius: '6px',
-                        background: '#334155',
-                        color: '#fff',
-                        border: 'none',
-                        fontSize: '0.8rem',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '4px'
-                      }}
-                    >
-                      <Download size={14} /> Descargar CSV
-                    </button>
-                  </div>
-                )}
-
-              </div>
+          {/* Column 2: Recent Transactions list */}
+          <div className="tpv-card" style={{
+            background: '#ffffff',
+            border: '1px solid #E2E8F0',
+            borderRadius: '16px',
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.03)',
+            padding: '24px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ margin: '0', fontSize: '1.25rem', fontWeight: 600, color: 'var(--text-color, #0F172A)' }}>
+                Últimos Cobros Realizados
+              </h2>
+              <button 
+                onClick={loadData}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: primaryColor,
+                  fontWeight: 600,
+                  fontSize: '0.85rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                <RefreshCw size={14} /> Actualizar
+              </button>
             </div>
 
-            {/* CARD 5: Últimos Cobros Realizados (Scrollable list to prevent screen stretching) */}
-            <div className="tpv-card" style={{
-              background: '#ffffff',
-              border: '1px solid #E2E8F0',
-              borderRadius: '16px',
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.03)',
-              padding: '24px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '16px'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h2 style={{ margin: '0', fontSize: '1.25rem', fontWeight: 600, color: 'var(--text-color, #0F172A)' }}>
-                  Últimos Cobros Realizados
-                </h2>
-                <button 
-                  onClick={loadData}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: primaryColor,
-                    fontWeight: 600,
-                    fontSize: '0.85rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}
-                >
-                  <RefreshCw size={14} /> Actualizar
-                </button>
+            {transactions.length === 0 ? (
+              <div style={{ padding: '40px 20px', textAlign: 'center', color: '#94A3B8' }}>
+                <Calculator size={48} style={{ margin: '0 auto 12px auto', opacity: 0.3 }} />
+                <p style={{ margin: 0, fontSize: '0.95rem' }}>No se han registrado cobros todavía hoy.</p>
               </div>
+            ) : (
+              <div className="tpv-scrollable-transactions" style={{ width: '100%' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '550px' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '2px solid #F1F5F9' }}>
+                      <th style={{ padding: '12px 8px', fontSize: '0.8rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Fecha / Hora</th>
+                      <th style={{ padding: '12px 8px', fontSize: '0.8rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Cliente</th>
+                      <th style={{ padding: '12px 8px', fontSize: '0.8rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Concepto / Servicio</th>
+                      <th style={{ padding: '12px 8px', fontSize: '0.8rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Método</th>
+                      <th style={{ padding: '12px 8px', fontSize: '0.8rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', textAlign: 'right' }}>Importe</th>
+                      <th style={{ padding: '12px 8px', width: '40px' }}></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {transactions.map((tx) => {
+                      const clientName = customers.find(c => c.id === tx.customerId)?.name || 'Venta rápida (Sin cliente)';
+                      const serviceName = services.find(s => s.id === tx.serviceId)?.name || tx.notes || 'Cobro manual';
+                      const formattedDate = new Date(tx.date).toLocaleDateString('es-ES', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      });
 
-              {transactions.length === 0 ? (
-                <div style={{ padding: '40px 20px', textAlign: 'center', color: '#94A3B8' }}>
-                  <Calculator size={48} style={{ margin: '0 auto 12px auto', opacity: 0.3 }} />
-                  <p style={{ margin: 0, fontSize: '0.95rem' }}>No se han registrado cobros todavía hoy.</p>
-                </div>
-              ) : (
-                <div className="tpv-scrollable-transactions" style={{ overflowX: 'auto', width: '100%' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '500px' }}>
-                    <thead>
-                      <tr style={{ borderBottom: '2px solid #F1F5F9' }}>
-                        <th style={{ padding: '12px 8px', fontSize: '0.8rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Fecha / Hora</th>
-                        <th style={{ padding: '12px 8px', fontSize: '0.8rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Cliente</th>
-                        <th style={{ padding: '12px 8px', fontSize: '0.8rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Método</th>
-                        <th style={{ padding: '12px 8px', fontSize: '0.8rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', textAlign: 'right' }}>Importe</th>
-                        <th style={{ padding: '12px 8px', width: '40px' }}></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {transactions.map((tx) => {
-                        const clientName = customers.find(c => c.id === tx.customerId)?.name || 'Venta rápida (Sin cliente)';
-                        const formattedDate = new Date(tx.date).toLocaleDateString('es-ES', {
-                          day: '2-digit',
-                          month: '2-digit',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        });
-
-                        return (
-                          <tr key={tx.id} style={{ borderBottom: '1px solid #F1F5F9', transition: 'background 0.2s' }} className="tx-row">
-                            <td style={{ padding: '14px 8px', fontSize: '0.85rem', color: '#475569' }}>
-                              {formattedDate}
-                            </td>
-                            <td style={{ padding: '14px 8px', fontSize: '0.85rem', fontWeight: 600, color: '#0F172A' }}>
-                              <div style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '120px' }} title={clientName}>
-                                {clientName}
-                              </div>
-                            </td>
-                            <td style={{ padding: '14px 8px' }}>
-                              <span style={{
-                                display: 'inline-flex',
+                      return (
+                        <tr key={tx.id} style={{ borderBottom: '1px solid #F1F5F9', transition: 'background 0.2s' }} className="tx-row">
+                          <td style={{ padding: '14px 8px', fontSize: '0.9rem', color: '#475569' }}>
+                            {formattedDate}
+                          </td>
+                          <td style={{ padding: '14px 8px', fontSize: '0.9rem', fontWeight: 600, color: '#0F172A' }}>
+                            <div style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '120px' }} title={clientName}>
+                              {clientName}
+                            </div>
+                          </td>
+                          <td style={{ padding: '14px 8px', fontSize: '0.9rem', color: '#475569' }}>
+                            <div style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '160px' }} title={serviceName}>
+                              {serviceName}
+                            </div>
+                          </td>
+                          <td style={{ padding: '14px 8px' }}>
+                            <span style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '4px 8px',
+                              borderRadius: '100px',
+                              fontSize: '0.75rem',
+                              fontWeight: 700,
+                              background: tx.paymentMethod === 'tarjeta' ? '#EEF2FF' : '#F0FDF4',
+                              color: tx.paymentMethod === 'tarjeta' ? '#4F46E5' : '#16A34A'
+                            }}>
+                              {tx.paymentMethod === 'tarjeta' ? <CreditCard size={12} /> : <Coins size={12} />}
+                              {tx.paymentMethod === 'tarjeta' ? 'Tarjeta' : 'Efec.'}
+                            </span>
+                          </td>
+                          <td style={{ padding: '14px 8px', fontSize: '1rem', fontWeight: 700, color: '#0F172A', textAlign: 'right' }}>
+                            {tx.amount.toFixed(2)}€
+                          </td>
+                          <td style={{ padding: '14px 8px', textAlign: 'center' }}>
+                            <button
+                              onClick={() => handleDeleteTransaction(tx.id)}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                color: '#EF4444',
+                                cursor: 'pointer',
+                                padding: '4px',
+                                borderRadius: '4px',
+                                display: 'flex',
                                 alignItems: 'center',
-                                gap: '4px',
-                                padding: '2px 6px',
-                                borderRadius: '100px',
-                                fontSize: '0.7rem',
-                                fontWeight: 700,
-                                background: tx.paymentMethod === 'tarjeta' ? '#EEF2FF' : '#F0FDF4',
-                                color: tx.paymentMethod === 'tarjeta' ? '#4F46E5' : '#16A34A'
-                              }}>
-                                {tx.paymentMethod === 'tarjeta' ? <CreditCard size={10} /> : <Coins size={10} />}
-                                {tx.paymentMethod === 'tarjeta' ? 'Tarjeta' : 'Efec.'}
-                              </span>
-                            </td>
-                            <td style={{ padding: '14px 8px', fontSize: '0.9rem', fontWeight: 700, color: '#0F172A', textAlign: 'right' }}>
-                              {tx.amount.toFixed(2)}€
-                            </td>
-                            <td style={{ padding: '14px 8px', textAlign: 'center' }}>
-                              <button
-                                onClick={() => handleDeleteTransaction(tx.id)}
-                                style={{
-                                  background: 'none',
-                                  border: 'none',
-                                  color: '#EF4444',
-                                  cursor: 'pointer',
-                                  padding: '4px',
-                                  borderRadius: '4px',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center'
-                                }}
-                                title="Eliminar cobro"
-                              >
-                                <Trash2 size={15} />
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                                justifyContent: 'center'
+                              }}
+                              title="Eliminar cobro"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* Column 3: Cash Management & Analysis Dashboard (No sensitive figures by default) */}
+          <div className="tpv-card" style={{
+            background: '#ffffff',
+            border: '1px solid #E2E8F0',
+            borderRadius: '16px',
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.03)',
+            padding: '24px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px',
+            alignSelf: 'start'
+          }}>
+            <h3 style={{ margin: '0', fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-color, #0F172A)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <TrendingUp size={20} style={{ color: primaryColor }} /> Gestión de Caja
+            </h3>
+            <p style={{ margin: '0 0 10px 0', fontSize: '0.85rem', color: '#64748B', lineHeight: 1.5 }}>
+              Administra cierres de caja y genera análisis financieros de forma segura sin revelar datos en pantalla a tus clientes.
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              
+              {/* Button: Cierre de Caja */}
+              <button
+                type="button"
+                onClick={() => setShowCloseBoxModal(true)}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  background: `color-mix(in srgb, ${primaryColor} 8%, #fff)`,
+                  color: primaryColor,
+                  border: `1px solid color-mix(in srgb, ${primaryColor} 20%, #E2E8F0)`,
+                  fontSize: '0.9rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  transition: 'background 0.2s'
+                }}
+                onMouseOver={(e) => e.currentTarget.style.background = `color-mix(in srgb, ${primaryColor} 12%, #fff)`}
+                onMouseOut={(e) => e.currentTarget.style.background = `color-mix(in srgb, ${primaryColor} 8%, #fff)`}
+              >
+                <Archive size={16} /> Cierre de Caja Diario
+              </button>
+
+              {/* Button: Consultar Cierres de Caja */}
+              <button
+                type="button"
+                onClick={() => setActiveView('cierres')}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  background: '#FFFFFF',
+                  color: '#475569',
+                  border: '1px solid #CBD5E1',
+                  fontSize: '0.9rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  transition: 'background 0.2s'
+                }}
+                onMouseOver={(e) => e.currentTarget.style.background = '#F8FAFC'}
+                onMouseOut={(e) => e.currentTarget.style.background = '#FFFFFF'}
+              >
+                <History size={16} /> Consultar Cierres de Caja
+              </button>
+
+              {/* Button: Métricas y Estadísticas */}
+              <button
+                type="button"
+                onClick={() => setShowAnalyticsModal(true)}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  background: '#F1F5F9',
+                  color: '#334155',
+                  border: '1px solid #E2E8F0',
+                  fontSize: '0.9rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  transition: 'background 0.2s'
+                }}
+                onMouseOver={(e) => e.currentTarget.style.background = '#E2E8F0'}
+                onMouseOut={(e) => e.currentTarget.style.background = '#F1F5F9'}
+              >
+                <BarChart3 size={16} /> Estadísticas y Métricas
+              </button>
+
+              {/* Button: Exportar Movimientos */}
+              <button
+                type="button"
+                onClick={() => setShowExportPanel(!showExportPanel)}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  background: '#FFFFFF',
+                  color: '#475569',
+                  border: '1px solid #CBD5E1',
+                  fontSize: '0.9rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  transition: 'background 0.2s'
+                }}
+                onMouseOver={(e) => e.currentTarget.style.background = '#F8FAFC'}
+                onMouseOut={(e) => e.currentTarget.style.background = '#FFFFFF'}
+              >
+                <Download size={16} /> Exportar Movimientos (.csv)
+              </button>
+
+              {/* Export CSV Collapsible Panel */}
+              {showExportPanel && (
+                <div style={{
+                  background: '#F8FAFC',
+                  border: '1px solid #E2E8F0',
+                  borderRadius: '8px',
+                  padding: '12px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px',
+                  marginTop: '4px',
+                  animation: 'fadeIn 0.2s ease'
+                }}>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#334155' }}>Rango de fechas para exportar:</span>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                      <span style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: 600 }}>Desde:</span>
+                      <input 
+                        type="date"
+                        value={exportStartDate}
+                        onChange={(e) => setExportStartDate(e.target.value)}
+                        style={{ padding: '6px', border: '1px solid #CBD5E1', borderRadius: '4px', fontSize: '0.8rem' }}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                      <span style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: 600 }}>Hasta:</span>
+                      <input 
+                        type="date"
+                        value={exportEndDate}
+                        onChange={(e) => setExportEndDate(e.target.value)}
+                        style={{ padding: '6px', border: '1px solid #CBD5E1', borderRadius: '4px', fontSize: '0.8rem' }}
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleExportCSV}
+                    style={{
+                      padding: '8px',
+                      borderRadius: '6px',
+                      background: '#334155',
+                      color: '#fff',
+                      border: 'none',
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    <Download size={14} /> Descargar CSV
+                  </button>
                 </div>
               )}
-            </div>
 
+            </div>
           </div>
         </div>
       )}
@@ -2252,16 +2260,6 @@ export const AdminTpvPage: React.FC = () => {
         }
         .dropdown-item-hover:hover {
           background-color: color-mix(in srgb, ${primaryColor} 6%, #F8FAFC) !important;
-        }
-        @media(min-width: 1200px) {
-          .tpv-grid {
-            grid-template-columns: 400px 1fr 300px !important;
-          }
-        }
-        @media(min-width: 992px) and (max-width: 1199px) {
-          .tpv-grid {
-            grid-template-columns: 450px 1fr !important;
-          }
         }
       `}</style>
     </div>
