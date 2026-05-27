@@ -1098,7 +1098,7 @@ export const AdminDashboard: React.FC = () => {
                 </div>
 
                 {/* Campo: Nombre */}
-                <div className="form-group" style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: '0.2rem', width: '100%' }}>
+                <div className="form-group" style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: '0.2rem', width: '100%', zIndex: 10 }}>
                   <label style={{ fontSize: '0.75rem', fontWeight: '500', color: '#475569' }}>Nombre del Cliente</label>
                   <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                     <span style={{ position: 'absolute', left: '10px', color: '#94A3B8', pointerEvents: 'none', display: 'flex', alignItems: 'center' }}>
@@ -1130,7 +1130,7 @@ export const AdminDashboard: React.FC = () => {
                       }}
                     />
                   </div>
-                  {mName && mName.length >= 2 && (
+                  {mName && mName.length >= 1 && (
                     <ul style={{
                       position: 'absolute',
                       top: '100%',
