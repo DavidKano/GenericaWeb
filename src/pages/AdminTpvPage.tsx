@@ -4,7 +4,7 @@ import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
 import type { BookingService, User, Transaction, DesignConfig, CashClose } from '../services/models';
 import { PageHeader } from '../components/ui/PageHeader';
-import { CreditCard, Coins, Check, Trash2, User as UserIcon, Briefcase, Calculator, RefreshCw, Euro, Plus, X, BarChart3, Download, Archive, History, Search, ArrowLeft, CalendarDays, FileText } from 'lucide-react';
+import { CreditCard, Coins, Check, Trash2, User as UserIcon, Briefcase, Calculator, RefreshCw, Euro, Plus, X, BarChart3, Archive, History, Search, ArrowLeft, CalendarDays, FileText } from 'lucide-react';
 
 interface TicketItem {
   id: string; // Unique ID inside the current ticket
@@ -53,9 +53,6 @@ export const AdminTpvPage: React.FC = () => {
   const [manualPrice, setManualPrice] = useState<number | string>('');
 
   // Export & Modals State
-  const [showExportPanel, setShowExportPanel] = useState(false);
-  const [exportStartDate, setExportStartDate] = useState(new Date().toISOString().split('T')[0]);
-  const [exportEndDate, setExportEndDate] = useState(new Date().toISOString().split('T')[0]);
   
   const [showCloseBoxModal, setShowCloseBoxModal] = useState(false);
   const [closeNotes, setCloseNotes] = useState('');
@@ -569,44 +566,7 @@ export const AdminTpvPage: React.FC = () => {
     }
   };
 
-  // CSV Exporter for movements
-  const handleExportCSV = () => {
-    const start = new Date(exportStartDate + 'T00:00:00').getTime();
-    const end = new Date(exportEndDate + 'T23:59:59').getTime();
-    
-    const filtered = transactions.filter(tx => tx.date >= start && tx.date <= end);
-    
-    if (filtered.length === 0) {
-      alert('No se encontraron movimientos de caja en el rango de fechas seleccionado.');
-      return;
-    }
-    
-    // Generate CSV UTF-8 string with BOM (for Excel Spanish encoding compatibility)
-    let csvContent = "\uFEFFFecha,Hora,Cliente,Concepto/Servicio,Metodo de Pago,Importe\n";
-    
-    filtered.forEach(tx => {
-      const dateObj = new Date(tx.date);
-      const dateStr = dateObj.toLocaleDateString('es-ES');
-      const timeStr = dateObj.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-      const clientName = customers.find(c => c.id === tx.customerId)?.name || "Venta rapida";
-      const serviceName = services.find(s => s.id === tx.serviceId)?.name || tx.notes || "Cobro manual";
-      const method = tx.paymentMethod === 'tarjeta' ? "Tarjeta" : "Efectivo";
-      
-      const cleanConcept = serviceName.replace(/"/g, '""').replace(/,/g, ' ');
-      const cleanClient = clientName.replace(/"/g, '""').replace(/,/g, ' ');
-      
-      csvContent += `${dateStr},${timeStr},"${cleanClient}","${cleanConcept}",${method},${tx.amount.toFixed(2)}\n`;
-    });
-    
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", `movimientos_caja_${exportStartDate}_a_${exportEndDate}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
+
 
   // Helper to calculate close data for any given date
   const getCloseDataForDate = (date: Date) => {
@@ -1735,11 +1695,12 @@ export const AdminTpvPage: React.FC = () => {
 
             {/* Bloque Inferior - Gestión de Caja */}
             <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(4, 1fr)',
+              display: 'flex',
+              flexWrap: 'wrap',
               gap: '12px',
-              marginTop: '4px',
-              flexShrink: 0
+              marginTop: '8px',
+              flexShrink: 0,
+              width: '100%'
             }}>
               
               {/* Button: Cierre de Caja */}
@@ -1747,6 +1708,7 @@ export const AdminTpvPage: React.FC = () => {
                 type="button"
                 onClick={() => setShowCloseBoxModal(true)}
                 style={{
+                  flex: '1 1 160px',
                   padding: '10px',
                   borderRadius: '8px',
                   background: `color-mix(in srgb, ${primaryColor} 8%, #fff)`,
@@ -1773,6 +1735,7 @@ export const AdminTpvPage: React.FC = () => {
                 type="button"
                 onClick={() => setActiveView('cierres')}
                 style={{
+                  flex: '1 1 160px',
                   padding: '10px',
                   borderRadius: '8px',
                   background: '#FFFFFF',
@@ -1799,6 +1762,7 @@ export const AdminTpvPage: React.FC = () => {
                 type="button"
                 onClick={() => setActiveView('ventas')}
                 style={{
+                  flex: '1 1 160px',
                   padding: '10px',
                   borderRadius: '8px',
                   background: '#FFFFFF',
@@ -1819,98 +1783,6 @@ export const AdminTpvPage: React.FC = () => {
               >
                 <BarChart3 size={14} /> Estadísticas y Métricas
               </button>
-
-              {/* Button: Exportar Movimientos */}
-              <div style={{ position: 'relative' }}>
-                <button
-                  type="button"
-                  onClick={() => setShowExportPanel(!showExportPanel)}
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    borderRadius: '8px',
-                    background: '#FFFFFF',
-                    color: '#475569',
-                    border: '1px solid #CBD5E1',
-                    fontSize: '0.85rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px',
-                    transition: 'background 0.2s',
-                    whiteSpace: 'nowrap'
-                  }}
-                  onMouseOver={(e) => e.currentTarget.style.background = '#F8FAFC'}
-                  onMouseOut={(e) => e.currentTarget.style.background = '#FFFFFF'}
-                >
-                  <Download size={14} /> Exportar Movimientos
-                </button>
-
-                {showExportPanel && (
-                  <div style={{
-                    position: 'absolute',
-                    bottom: 'calc(100% + 8px)',
-                    right: '0',
-                    width: '260px',
-                    background: '#ffffff',
-                    border: '1px solid #E2E8F0',
-                    borderRadius: '8px',
-                    padding: '12px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '10px',
-                    boxShadow: '0 -10px 15px -3px rgba(0, 0, 0, 0.1), 0 -4px 6px -2px rgba(0, 0, 0, 0.05)',
-                    zIndex: '100',
-                    animation: 'fadeIn 0.2s ease',
-                    boxSizing: 'border-box'
-                  }}>
-                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#334155' }}>Rango de fechas para exportar:</span>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                        <span style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: 600 }}>Desde:</span>
-                        <input 
-                          type="date"
-                          value={exportStartDate}
-                          onChange={(e) => setExportStartDate(e.target.value)}
-                          style={{ padding: '6px', border: '1px solid #CBD5E1', borderRadius: '4px', fontSize: '0.8rem' }}
-                        />
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                        <span style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: 600 }}>Hasta:</span>
-                        <input 
-                          type="date"
-                          value={exportEndDate}
-                          onChange={(e) => setExportEndDate(e.target.value)}
-                          style={{ padding: '6px', border: '1px solid #CBD5E1', borderRadius: '4px', fontSize: '0.8rem' }}
-                        />
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleExportCSV}
-                      style={{
-                        padding: '8px',
-                        borderRadius: '6px',
-                        background: '#334155',
-                        color: '#fff',
-                        border: 'none',
-                        fontSize: '0.8rem',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '4px',
-                        width: '100%'
-                      }}
-                    >
-                      <Download size={14} /> Descargar CSV
-                    </button>
-                  </div>
-                )}
-              </div>
 
             </div>
           </div>
