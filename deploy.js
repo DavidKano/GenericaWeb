@@ -23,7 +23,29 @@ if (!projectId) {
   process.exit(1);
 }
 
-const businessName = PROJECT_NAMES[projectId] || projectId.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+// Lógica de formateo inteligente para instalaciones nuevas sin configuración previa
+const getBusinessName = (id) => {
+  if (PROJECT_NAMES[id]) return PROJECT_NAMES[id];
+  
+  // Remover sufijos comunes de test/entornos como -dp, -gr, etc.
+  let cleanId = id.replace(/-(dp|gr)$/i, '');
+  
+  // Dividir por guiones y capitalizar
+  return cleanId.split('-').map(word => {
+    const lower = word.toLowerCase();
+    // Diccionario rápido de palabras con tilde comunes en nombres de negocios
+    if (lower === 'clinica') return 'Clínica';
+    if (lower === 'peluqueria') return 'Peluquería';
+    if (lower === 'estetica') return 'Estética';
+    if (lower === 'gestion') return 'Gestión';
+    if (lower === 'optica') return 'Óptica';
+    if (lower === 'medico') return 'Médico';
+    if (lower === 'fisioterapia') return 'Fisioterapia';
+    return word.charAt(0).toUpperCase() + word.slice(1);
+  }).join(' ');
+};
+
+const businessName = getBusinessName(projectId);
 
 console.log(`\n🚀 Iniciando despliegue personalizado para: ${businessName} (${projectId})`);
 
