@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../context/DataContext';
-import type { User, Appointment, BookingService, DaySchedule, BusinessConfig, CompanyData, BlockedDay } from '../services/models';
+import type { User, Appointment, BookingService, DaySchedule, BusinessConfig, CompanyData, BlockedDay, TeamMember } from '../services/models';
 import { INITIAL_SCHEDULES } from '../services/scheduleDefaults';
 import { INITIAL_BUSINESS_CONFIG } from '../services/configDefaults';
 import { generateTimeSlots } from '../utils/timeSlots';
@@ -61,6 +61,7 @@ export const AdminDashboard: React.FC = () => {
   const [blockedDays, setBlockedDays] = useState<BlockedDay[]>([]);
   const [config, setConfig] = useState<BusinessConfig | null>(null);
   const [companyData, setCompanyData] = useState<CompanyData | null>(null);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   
   // Controles de Vista de Calendario
   const [currentView, setCurrentView] = useState<any>(window.innerWidth <= 768 ? 'day' : 'week');
@@ -186,7 +187,7 @@ export const AdminDashboard: React.FC = () => {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [appts, svcs, usrs, schs, bDays, cfg, comp] = await Promise.all([
+      const [appts, svcs, usrs, schs, bDays, cfg, comp, members] = await Promise.all([
         repo.getAppointments(),
         repo.getServices(),
         repo.getUsers(),
@@ -194,8 +195,8 @@ export const AdminDashboard: React.FC = () => {
         repo.getBlockedDays(),
         repo.getConfig(),
         repo.getCompanyData(),
+        repo.getTeamMembers(),
       ]);
- 
       setAppointments(appts);
       setServices(svcs);
       setUsers(usrs);
@@ -203,6 +204,7 @@ export const AdminDashboard: React.FC = () => {
       setBlockedDays(bDays);
       setConfig(cfg || INITIAL_BUSINESS_CONFIG);
       setCompanyData(comp);
+      setTeamMembers(members);
     } catch (err: any) {
       console.error('Error cargando panel de administrador:', err);
       setErrorMessage(err.message || 'Error de conexión con Firestore');
@@ -226,11 +228,20 @@ export const AdminDashboard: React.FC = () => {
   const resources = useMemo(() => {
     const count = config?.concurrentSlots || 1;
     if (count <= 1) return undefined;
-    return Array.from({ length: count }, (_, i) => ({
-      id: `slot-${i + 1}`,
-      title: `Puesto ${i + 1}`,
-    }));
-  }, [config?.concurrentSlots]);
+    const ownerName = companyData?.personaContacto || 'Gestor';
+    return Array.from({ length: count }, (_, i) => {
+      let title = `Puesto ${i + 1}`;
+      if (i === 0) {
+        title = ownerName;
+      } else if (teamMembers[i - 1]) {
+        title = teamMembers[i - 1].name;
+      }
+      return {
+        id: `slot-${i + 1}`,
+        title: title.toUpperCase(),
+      };
+    });
+  }, [config?.concurrentSlots, companyData, teamMembers]);
 
   const events = useMemo(() => {
     const numSlots = config?.concurrentSlots || 1;
