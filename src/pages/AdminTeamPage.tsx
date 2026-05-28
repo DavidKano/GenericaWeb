@@ -33,7 +33,17 @@ export const AdminTeamPage: React.FC = () => {
         repo.getDesignConfig(),
         repo.getTeamMembers(),
       ]);
-      setConfig(cfg || INITIAL_BUSINESS_CONFIG);
+      
+      const activeConfig = cfg || INITIAL_BUSINESS_CONFIG;
+      const expectedCapacity = members.length + 1; // 1 for the owner
+
+      // Auto-correct capacity on page load if it differs from the expected capacity
+      if (activeConfig.concurrentSlots !== expectedCapacity) {
+        activeConfig.concurrentSlots = expectedCapacity;
+        await repo.saveConfig(activeConfig);
+      }
+
+      setConfig(activeConfig);
       setCompanyData(company);
       setDesign(designCfg);
       setTeamMembers(members);
