@@ -760,6 +760,408 @@ export const AdminTpvPage: React.FC = () => {
 
   const primaryColor = design?.primaryColor || '#008080';
 
+  const handlePrintCashCloseReport = (overrideDate?: Date) => {
+    const closeDate = overrideDate || selectedCloseDate || new Date();
+    const start = new Date(closeDate.getFullYear(), closeDate.getMonth(), closeDate.getDate()).getTime();
+    const end = start + 24 * 60 * 60 * 1000 - 1;
+    const dayTxs = transactions.filter(tx => tx.date >= start && tx.date <= end);
+
+    const cashTotal = dayTxs.filter(tx => tx.paymentMethod === 'metalico').reduce((s, tx) => s + tx.amount, 0);
+    const cardTotal = dayTxs.filter(tx => tx.paymentMethod === 'tarjeta').reduce((s, tx) => s + tx.amount, 0);
+    const grandTotal = cashTotal + cardTotal;
+
+    const dateOptions: Intl.DateTimeFormatOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    const dateStr = closeDate.toLocaleDateString('es-ES', dateOptions);
+    const formattedDateStr = dateStr.charAt(0).toUpperCase() + dateStr.slice(1);
+
+    // Grouping
+    const grouped: Record<string, { memberName: string, txs: Transaction[], total: number }> = {};
+    dayTxs.forEach(tx => {
+      const memberId = tx.teamMemberId && tx.teamMemberId !== 'owner' && teamMembers.some(m => m.id === tx.teamMemberId)
+        ? tx.teamMemberId
+        : 'owner';
+      const memberName = memberId === 'owner'
+        ? (companyData?.personaContacto || 'Gestor Principal')
+        : (teamMembers.find(m => m.id === memberId)?.name || 'Miembro del Equipo');
+
+      if (!grouped[memberId]) {
+        grouped[memberId] = { memberName, txs: [], total: 0 };
+      }
+      grouped[memberId].txs.push(tx);
+      grouped[memberId].total = Number((grouped[memberId].total + tx.amount).toFixed(2));
+    });
+
+    const hasMultipleMembers = teamMembers.length > 0;
+    const sortedGroupKeys = Object.keys(grouped).sort((a, b) => {
+      if (a === 'owner') return -1;
+      if (b === 'owner') return 1;
+      return grouped[a].memberName.localeCompare(grouped[b].memberName);
+    });
+
+    // We build the HTML report inside a hidden iframe
+    const iframeId = 'print-report-iframe';
+    let iframe = document.getElementById(iframeId) as HTMLIFrameElement;
+    if (iframe) {
+      iframe.remove();
+    }
+    iframe = document.createElement('iframe');
+    iframe.id = iframeId;
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentDocument || iframe.contentWindow?.document;
+    if (!doc) return;
+
+    // Generate tables
+    let tablesHtml = '';
+    if (hasMultipleMembers) {
+      if (dayTxs.length === 0) {
+        tablesHtml += `
+          <div class="section-title">
+            <span>Detalle de Apuntes</span>
+          </div>
+          <table>
+            <tbody>
+              <tr>
+                <td style="text-align: center; color: #94a3b8; padding: 24px;">No hay movimientos registrados en este día.</td>
+              </tr>
+            </tbody>
+          </table>
+        `;
+      } else {
+        sortedGroupKeys.forEach(key => {
+          const group = grouped[key];
+          tablesHtml += `
+            <div class="section-title">
+              <span>👤 ${group.memberName}</span>
+              <span class="section-subtotal">Subtotal: ${group.total.toFixed(2)}€</span>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 80px;">Hora</th>
+                  <th>Cliente</th>
+                  <th>Concepto / Servicio</th>
+                  <th style="width: 100px;">Pago</th>
+                  <th style="width: 100px; text-align: right;">Importe</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${group.txs.map(tx => {
+                  const client = customers.find(c => c.id === tx.customerId)?.name || 'Venta rápida (Sin cliente)';
+                  const service = services.find(s => s.id === tx.serviceId)?.name || tx.notes || 'Cobro manual';
+                  const time = new Date(tx.date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+                  const methodLabel = tx.paymentMethod === 'metalico' ? 'Efectivo' : 'Tarjeta';
+                  return `
+                    <tr>
+                      <td>${time}</td>
+                      <td style="font-weight: 500;">${client}</td>
+                      <td>${service}</td>
+                      <td><span class="method-badge badge-${tx.paymentMethod}">${methodLabel}</span></td>
+                      <td class="amount-col">${tx.amount.toFixed(2)}€</td>
+                    </tr>
+                  `;
+                }).join('')}
+                <tr class="subtotal-row">
+                  <td colspan="4" style="text-align: right;">Total ${group.memberName}:</td>
+                  <td class="amount-col">${group.total.toFixed(2)}€</td>
+                </tr>
+              </tbody>
+            </table>
+          `;
+        });
+      }
+    } else {
+      tablesHtml += `
+        <div class="section-title">
+          <span>Detalle de Apuntes</span>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 80px;">Hora</th>
+              <th>Cliente</th>
+              <th>Concepto / Servicio</th>
+              <th style="width: 100px;">Pago</th>
+              <th style="width: 100px; text-align: right;">Importe</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${dayTxs.length === 0 ? `
+              <tr>
+                <td colspan="5" style="text-align: center; color: #94a3b8; padding: 24px;">No hay movimientos registrados en este día.</td>
+              </tr>
+            ` : dayTxs.map(tx => {
+              const client = customers.find(c => c.id === tx.customerId)?.name || 'Venta rápida (Sin cliente)';
+              const service = services.find(s => s.id === tx.serviceId)?.name || tx.notes || 'Cobro manual';
+              const time = new Date(tx.date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+              const methodLabel = tx.paymentMethod === 'metalico' ? 'Efectivo' : 'Tarjeta';
+              return `
+                <tr>
+                  <td>${time}</td>
+                  <td style="font-weight: 500;">${client}</td>
+                  <td>${service}</td>
+                  <td><span class="method-badge badge-${tx.paymentMethod}">${methodLabel}</span></td>
+                  <td class="amount-col">${tx.amount.toFixed(2)}€</td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Desglose de Caja - ${formattedDateStr}</title>
+        <style>
+          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+          body {
+            font-family: 'Inter', sans-serif;
+            color: #1e293b;
+            margin: 0;
+            padding: 30px;
+            background-color: #fff;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          .header {
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 16px;
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+          }
+          .company-title {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: ${primaryColor};
+            margin: 0 0 4px 0;
+          }
+          .company-info {
+            font-size: 0.8rem;
+            color: #64748b;
+            margin: 0;
+            line-height: 1.4;
+          }
+          .report-title {
+            text-align: right;
+          }
+          .report-title h1 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin: 0 0 4px 0;
+            color: #0f172a;
+          }
+          .report-date {
+            font-size: 0.85rem;
+            color: #64748b;
+            font-weight: 500;
+          }
+          .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+          }
+          .card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 12px 14px;
+          }
+          .card-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 4px;
+          }
+          .card-value {
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: #0f172a;
+          }
+          .card-value.highlight {
+            color: ${primaryColor};
+          }
+          .section-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin: 24px 0 12px 0;
+            padding-bottom: 6px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          }
+          .section-subtotal {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: ${primaryColor};
+            background: ${primaryColor}15;
+            padding: 3px 8px;
+            border-radius: 4px;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+          }
+          th {
+            background-color: #f8fafc;
+            color: #475569;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            text-align: left;
+            padding: 8px 10px;
+            border-bottom: 2px solid #e2e8f0;
+          }
+          td {
+            padding: 8px 10px;
+            font-size: 0.8rem;
+            color: #334155;
+            border-bottom: 1px solid #f1f5f9;
+          }
+          .amount-col {
+            text-align: right;
+            font-weight: 600;
+          }
+          .method-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+          }
+          .badge-tarjeta {
+            background-color: #eff6ff;
+            color: #1d4ed8;
+          }
+          .badge-metalico {
+            background-color: #ecfdf5;
+            color: #047857;
+          }
+          .subtotal-row td {
+            font-weight: 700;
+            background-color: #f8fafc;
+            color: #0f172a;
+            border-top: 1px solid #e2e8f0;
+            border-bottom: 2px solid #e2e8f0;
+          }
+          .grand-total-section {
+            margin-top: 30px;
+            border-top: 2px solid #0f172a;
+            padding-top: 16px;
+            display: flex;
+            justify-content: flex-end;
+          }
+          .grand-total-box {
+            width: 260px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 12px;
+          }
+          .grand-total-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            font-size: 0.8rem;
+          }
+          .grand-total-row:last-child {
+            margin-bottom: 0;
+            padding-top: 6px;
+            border-top: 1px dashed #cbd5e1;
+            font-weight: 800;
+            font-size: 1.05rem;
+            color: ${primaryColor};
+          }
+          @media print {
+            body {
+              padding: 0;
+            }
+            tr {
+              page-break-inside: avoid;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div>
+            <h2 class="company-title">${companyData?.nombreEmpresa || 'Cierre de Caja'}</h2>
+            <p class="company-info">Persona de contacto: ${companyData?.personaContacto || 'Gestor Principal'}</p>
+            ${companyData?.telefono ? `<p class="company-info">Teléfono: ${companyData.telefono}</p>` : ''}
+          </div>
+          <div class="report-title">
+            <h1>Desglose Diario de Caja</h1>
+            <div class="report-date">${formattedDateStr}</div>
+          </div>
+        </div>
+
+        <div class="summary-cards">
+          <div class="card">
+            <div class="card-label">Total Tarjeta</div>
+            <div class="card-value">${cardTotal.toFixed(2)}€</div>
+          </div>
+          <div class="card">
+            <div class="card-label">Total Efectivo</div>
+            <div class="card-value">${cashTotal.toFixed(2)}€</div>
+          </div>
+          <div class="card">
+            <div class="card-label">Total Recaudado</div>
+            <div class="card-value highlight">${grandTotal.toFixed(2)}€</div>
+          </div>
+        </div>
+
+        ${tablesHtml}
+
+        <div class="grand-total-section">
+          <div class="grand-total-box">
+            <div class="grand-total-row">
+              <span>Total Tarjeta:</span>
+              <strong>${cardTotal.toFixed(2)}€</strong>
+            </div>
+            <div class="grand-total-row">
+              <span>Total Efectivo:</span>
+              <strong>${cashTotal.toFixed(2)}€</strong>
+            </div>
+            <div class="grand-total-row">
+              <span>Total General:</span>
+              <strong>${grandTotal.toFixed(2)}€</strong>
+            </div>
+          </div>
+        </div>
+
+        <script>
+          window.onload = function() {
+            window.print();
+          };
+        </script>
+      </body>
+      </html>
+    `;
+
+    doc.open();
+    doc.write(htmlContent);
+    doc.close();
+  };
+
   return (
     <div className="admin-tpv-container animate-fade-in">
       <PageHeader 
@@ -929,14 +1331,25 @@ export const AdminTpvPage: React.FC = () => {
                         <td style={{ padding: '16px 20px', fontSize: '0.9rem', color: '#475569' }}>{close.totalCash.toFixed(2)}€</td>
                         <td style={{ padding: '16px 20px', fontSize: '0.95rem', color: primaryColor, fontWeight: 700 }}>{close.totalAmount.toFixed(2)}€</td>
                         <td style={{ padding: '16px 20px' }}>
-                          <button 
-                            onClick={() => setSelectedCloseForDetail(close)}
-                            style={{ background: 'transparent', border: '1px solid #CBD5E1', borderRadius: '6px', padding: '6px 10px', fontSize: '0.8rem', fontWeight: 600, color: '#475569', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', transition: 'all 0.2s' }}
-                            onMouseOver={(e) => e.currentTarget.style.background = '#F1F5F9'}
-                            onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
-                          >
-                            <FileText size={14} /> Detalles
-                          </button>
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <button 
+                              onClick={() => setSelectedCloseForDetail(close)}
+                              style={{ background: 'transparent', border: '1px solid #CBD5E1', borderRadius: '6px', padding: '6px 10px', fontSize: '0.8rem', fontWeight: 600, color: '#475569', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', transition: 'all 0.2s' }}
+                              onMouseOver={(e) => e.currentTarget.style.background = '#F1F5F9'}
+                              onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                            >
+                              <FileText size={14} /> Detalles
+                            </button>
+                            <button 
+                              onClick={() => handlePrintCashCloseReport(new Date(close.date))}
+                              style={{ background: 'transparent', border: `1px solid ${primaryColor}`, borderRadius: '6px', padding: '6px 10px', fontSize: '0.8rem', fontWeight: 600, color: primaryColor, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', transition: 'all 0.2s' }}
+                              onMouseOver={(e) => e.currentTarget.style.background = `${primaryColor}15`}
+                              onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                              title="Imprimir informe en PDF"
+                            >
+                              <FileText size={14} /> Informe
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -2521,6 +2934,39 @@ export const AdminTpvPage: React.FC = () => {
                     }}
                   />
                 </div>
+
+                <button
+                  type="button"
+                  onClick={() => handlePrintCashCloseReport()}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    border: `1.5px solid ${primaryColor}`,
+                    background: '#FFFFFF',
+                    color: primaryColor,
+                    fontSize: '0.85rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                    boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = `${primaryColor}0C`;
+                    e.currentTarget.style.transform = 'translateY(-1px)';
+                    e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = '#FFFFFF';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 1px 2px 0 rgba(0, 0, 0, 0.05)';
+                  }}
+                >
+                  <FileText size={16} /> Generar PDF Desglose
+                </button>
 
                 <button
                   type="button"
