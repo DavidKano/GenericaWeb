@@ -1421,13 +1421,21 @@ export const AdminTpvPage: React.FC = () => {
           <style>{`
             .admin-tpv-container {
               height: calc(100vh - 130px);
-              overflow: hidden;
+              min-height: 680px;
+              overflow-y: auto;
               display: flex;
               flex-direction: column;
               gap: 12px;
               box-sizing: border-box;
               width: 100%;
-              padding: 0;
+              padding: 0 4px 0 0;
+            }
+            .admin-tpv-container::-webkit-scrollbar {
+              width: 6px;
+            }
+            .admin-tpv-container::-webkit-scrollbar-thumb {
+              background: #CBD5E1;
+              border-radius: 3px;
             }
             .tpv-grid {
               display: flex;
