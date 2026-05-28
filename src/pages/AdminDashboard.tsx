@@ -5,7 +5,7 @@ import type { User, Appointment, BookingService, DaySchedule, BusinessConfig, Co
 import { INITIAL_SCHEDULES } from '../services/scheduleDefaults';
 import { INITIAL_BUSINESS_CONFIG } from '../services/configDefaults';
 import { generateTimeSlots } from '../utils/timeSlots';
-import { Plus, XCircle, User as UserIcon, ChevronLeft, ChevronRight, Columns, Minus, MessageCircle, Bell, Clock, Briefcase, Calendar as LucideCalendar, Phone, Mail, Tag, LayoutDashboard, CreditCard } from 'lucide-react';
+import { Plus, XCircle, User as UserIcon, UserCheck, ChevronLeft, ChevronRight, Columns, Minus, MessageCircle, Bell, Clock, Briefcase, Calendar as LucideCalendar, Phone, Mail, Tag, LayoutDashboard, CreditCard } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
@@ -81,9 +81,9 @@ export const AdminDashboard: React.FC = () => {
   const [eventTime, setEventTime] = useState('');
   const [eventServiceId, setEventServiceId] = useState('');
   const [eventStatus, setEventStatus] = useState<any>('PENDING');
+  const [eventTeamMemberId, setEventTeamMemberId] = useState('');
 
   // New manual appointment states
-  const [showNewApptModal, setShowNewApptModal] = useState(false);
   const [mName, setMName] = useState('');
   const [mPhone, setMPhone] = useState('');
   const [mEmail, setMEmail] = useState('');
@@ -91,6 +91,8 @@ export const AdminDashboard: React.FC = () => {
   const [mDate, setMDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [mTime, setMTime] = useState('10:00');
   const [mNotes, setMNotes] = useState('');
+  const [mTeamMemberId, setMTeamMemberId] = useState('');
+  const [showNewApptModal, setShowNewApptModal] = useState(false);
 
   // Subscription notification logic
   const [showSubPopup, setShowSubPopup] = useState<'15_days' | '5_days' | null>(null);
@@ -250,9 +252,15 @@ export const AdminDashboard: React.FC = () => {
       .filter(a => a.status !== 'CANCELLED')
       .sort((a, b) => a.dateTimeStart - b.dateTimeStart);
 
+    // Prioritize placing manually assigned appointments first so they occupy their columns,
+    // then allow dynamically assigned appointments to fill in remaining slots.
+    const manualAppts = sortedAppointments.filter(a => !!a.teamMemberId);
+    const dynamicAppts = sortedAppointments.filter(a => !a.teamMemberId);
+    const orderedAppointments = [...manualAppts, ...dynamicAppts];
+
     const assignedEvents: any[] = [];
 
-    sortedAppointments.forEach(app => {
+    orderedAppointments.forEach(app => {
       const service = services.find(s => s.id === app.serviceId);
       const customer = users.find(u => u.id === app.customerId);
       const duration = service?.durationMin || 30;
@@ -261,8 +269,20 @@ export const AdminDashboard: React.FC = () => {
       
       let assignedSlot = 'slot-1';
       
-      if (numSlots > 1) {
-        // Find the first available slot that doesn't overlap
+      if (app.teamMemberId) {
+        // 1. Manual / explicit assignment
+        if (app.teamMemberId === 'owner') {
+          assignedSlot = 'slot-1';
+        } else {
+          const idx = teamMembers.findIndex(m => m.id === app.teamMemberId);
+          if (idx >= 0) {
+            assignedSlot = `slot-${idx + 2}`;
+          } else {
+            assignedSlot = 'slot-1';
+          }
+        }
+      } else if (numSlots > 1) {
+        // 2. Automatic / dynamic assignment: find first available slot with no overlap
         for (let i = 1; i <= numSlots; i++) {
           const slotId = `slot-${i}`;
           const hasOverlap = assignedEvents.some(e => 
@@ -289,7 +309,7 @@ export const AdminDashboard: React.FC = () => {
     });
 
     return assignedEvents;
-  }, [appointments, services, users, config?.concurrentSlots]);
+  }, [appointments, services, users, config?.concurrentSlots, teamMembers]);
 
   const calendarBounds = useMemo(() => {
     let minH = 24;
@@ -373,6 +393,7 @@ export const AdminDashboard: React.FC = () => {
     setEventNotes(event.resource.adminNotes || '');
     setEventServiceId(event.resource.serviceId);
     setEventStatus(event.resource.status);
+    setEventTeamMemberId(event.resource.teamMemberId || '');
     
     const d = new Date(event.start);
     const yyyy = d.getFullYear();
@@ -387,14 +408,125 @@ export const AdminDashboard: React.FC = () => {
     setShowEventModal(true);
   };
 
+  // Helper method to check if a specific team member is already booked at a given interval
+  const checkAssignmentOverlap = (
+    apptId: string | undefined, // undefined if new
+    dateTimeStart: number,
+    serviceId: string,
+    targetTeamMemberId: string
+  ): boolean => {
+    if (!targetTeamMemberId) return false;
+
+    const selectedService = services.find(s => s.id === serviceId);
+    if (!selectedService) return false;
+    const duration = selectedService.durationMin || 30;
+    const newStart = dateTimeStart;
+    const newEnd = newStart + duration * 60000;
+
+    const numSlots = config?.concurrentSlots || 1;
+
+    // Filter out all other active appointments
+    const otherAppts = appointments
+      .filter(a => a.id !== apptId && a.status !== 'CANCELLED')
+      .sort((a, b) => a.dateTimeStart - b.dateTimeStart);
+
+    const assignedSlots: Record<string, string> = {}; // apptId -> slotId
+
+    otherAppts.forEach(app => {
+      const svc = services.find(s => s.id === app.serviceId);
+      const appDuration = svc?.durationMin || 30;
+      const appStart = app.dateTimeStart;
+      const appEnd = appStart + appDuration * 60000;
+
+      let assignedSlot = 'slot-1';
+
+      if (app.teamMemberId) {
+        if (app.teamMemberId === 'owner') {
+          assignedSlot = 'slot-1';
+        } else {
+          const idx = teamMembers.findIndex(m => m.id === app.teamMemberId);
+          if (idx >= 0) {
+            assignedSlot = `slot-${idx + 2}`;
+          } else {
+            assignedSlot = 'slot-1';
+          }
+        }
+      } else if (numSlots > 1) {
+        for (let i = 1; i <= numSlots; i++) {
+          const slotId = `slot-${i}`;
+          const hasOverlap = otherAppts.some(other => {
+            if (other.id === app.id) return false;
+            if (!assignedSlots[other.id] || assignedSlots[other.id] !== slotId) return false;
+            
+            const otherSvc = services.find(s => s.id === other.serviceId);
+            const otherDuration = otherSvc?.durationMin || 30;
+            const otherStart = other.dateTimeStart;
+            const otherEnd = otherStart + otherDuration * 60000;
+
+            return (appStart < otherEnd && appEnd > otherStart);
+          });
+
+          if (!hasOverlap) {
+            assignedSlot = slotId;
+            break;
+          }
+        }
+      }
+      assignedSlots[app.id] = assignedSlot;
+    });
+
+    let targetSlot = 'slot-1';
+    if (targetTeamMemberId === 'owner') {
+      targetSlot = 'slot-1';
+    } else {
+      const idx = teamMembers.findIndex(m => m.id === targetTeamMemberId);
+      if (idx >= 0) {
+        targetSlot = `slot-${idx + 2}`;
+      } else {
+        return false;
+      }
+    }
+
+    const hasOverlap = otherAppts.some(app => {
+      if (assignedSlots[app.id] !== targetSlot) return false;
+
+      const svc = services.find(s => s.id === app.serviceId);
+      const appDuration = svc?.durationMin || 30;
+      const appStart = app.dateTimeStart;
+      const appEnd = appStart + appDuration * 60000;
+
+      return (newStart < appEnd && newEnd > appStart);
+    });
+
+    return hasOverlap;
+  };
+
   const handleSaveEventEdits = () => {
     if (!selectedEvent) return;
     const newDate = new Date(`${eventDate}T${eventTime}`);
+    
+    if (eventTeamMemberId) {
+      const isOverlap = checkAssignmentOverlap(
+        selectedEvent.resource.id,
+        newDate.getTime(),
+        eventServiceId,
+        eventTeamMemberId
+      );
+      if (isOverlap) {
+        const memberName = eventTeamMemberId === 'owner' 
+          ? (companyData?.personaContacto || 'Gestor')
+          : (teamMembers.find(m => m.id === eventTeamMemberId)?.name || 'esta persona');
+        alert(`Conflicto de agenda: ${memberName} ya tiene otra cita asignada que se solapa con esta franja horaria.`);
+        return;
+      }
+    }
+
     updateAppointment({
       serviceId: eventServiceId,
       dateTimeStart: newDate.getTime(),
       adminNotes: eventNotes,
-      status: eventStatus
+      status: eventStatus,
+      teamMemberId: eventTeamMemberId || undefined
     });
   };
 
@@ -415,6 +547,25 @@ export const AdminDashboard: React.FC = () => {
     if (!mName || !mPhone || !mServiceId || !mDate || !mTime) {
       alert('Por favor, completa nombre, teléfono, servicio, fecha y hora.');
       return;
+    }
+
+    const startDateTime = new Date(`${mDate}T${mTime}`).getTime();
+
+    // Check overlap if we assigned a specific team member
+    if (mTeamMemberId) {
+      const isOverlap = checkAssignmentOverlap(
+        undefined, // new appointment
+        startDateTime,
+        mServiceId,
+        mTeamMemberId
+      );
+      if (isOverlap) {
+        const memberName = mTeamMemberId === 'owner' 
+          ? (companyData?.personaContacto || 'Gestor')
+          : (teamMembers.find(m => m.id === mTeamMemberId)?.name || 'esta persona');
+        alert(`Conflicto de agenda: ${memberName} ya tiene otra cita asignada que se solapa con esta franja horaria.`);
+        return;
+      }
     }
 
     try {
@@ -438,14 +589,14 @@ export const AdminDashboard: React.FC = () => {
         await repo.saveUser(newUser);
       }
 
-      const startDateTime = new Date(`${mDate}T${mTime}`).getTime();
       const newAppt: Appointment = {
         id: 'appt-' + Date.now(),
         customerId: userId,
         serviceId: mServiceId,
         dateTimeStart: startDateTime,
         status: 'CONFIRMED',
-        adminNotes: mNotes
+        adminNotes: mNotes,
+        teamMemberId: mTeamMemberId || undefined
       };
 
       await repo.saveAppointment(newAppt);
@@ -458,6 +609,7 @@ export const AdminDashboard: React.FC = () => {
       setMServiceId('');
       setMNotes('');
       setMTime('10:00');
+      setMTeamMemberId('');
       
       loadData();
     } catch (error) {
@@ -1026,6 +1178,21 @@ export const AdminDashboard: React.FC = () => {
             </div>
 
             <div className="form-group" style={{ marginTop: '1.25rem' }}>
+              <label>Asignar Profesional</label>
+              <select 
+                value={eventTeamMemberId} 
+                onChange={e => setEventTeamMemberId(e.target.value)}
+                style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', background: 'var(--surface-color)', border: '1px solid var(--glass-border)', color: 'var(--text-primary)' }}
+              >
+                <option value="">Asignación Automática</option>
+                <option value="owner">{companyData?.personaContacto || 'Gestor (Principal)'}</option>
+                {teamMembers.map(member => (
+                  <option key={member.id} value={member.id}>{member.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-group" style={{ marginTop: '1.25rem' }}>
               <label>Notas Privadas (Administración)</label>
               <textarea 
                 value={eventNotes} 
@@ -1404,6 +1571,50 @@ export const AdminDashboard: React.FC = () => {
                         ))}
                       </select>
                     </div>
+                  </div>
+                </div>
+
+                {/* Campo: Asignar Profesional */}
+                <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', width: '100%' }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: '500', color: '#475569' }}>Asignar Profesional</label>
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <span style={{ position: 'absolute', left: '10px', color: '#94A3B8', pointerEvents: 'none', display: 'flex', alignItems: 'center' }}>
+                      <UserCheck size={14} strokeWidth={1.5} />
+                    </span>
+                    <select
+                      value={mTeamMemberId}
+                      onChange={e => setMTeamMemberId(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '0.45rem 2rem 0.45rem 2.2rem',
+                        borderRadius: '6px',
+                        background: '#FFFFFF',
+                        border: '1px solid #CBD5E1',
+                        color: '#1E293B',
+                        fontSize: '0.85rem',
+                        outline: 'none',
+                        appearance: 'none',
+                        backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                        backgroundRepeat: 'no-repeat',
+                        backgroundPosition: 'right 10px center',
+                        backgroundSize: '14px',
+                        transition: 'border-color 0.2s, box-shadow 0.2s'
+                      }}
+                      onFocus={e => {
+                        e.currentTarget.style.borderColor = 'var(--primary-color)';
+                        e.currentTarget.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.1)';
+                      }}
+                      onBlur={e => {
+                        e.currentTarget.style.borderColor = '#CBD5E1';
+                        e.currentTarget.style.boxShadow = 'none';
+                      }}
+                    >
+                      <option value="">Asignación Automática</option>
+                      <option value="owner">{companyData?.personaContacto || 'Gestor (Principal)'}</option>
+                      {teamMembers.map(member => (
+                        <option key={member.id} value={member.id}>{member.name}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
 

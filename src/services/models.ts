@@ -67,6 +67,7 @@ export interface Appointment {
   dateTimeStart: number; // timestamp
   status: 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED';
   adminNotes?: string;
+  teamMemberId?: string;
 }
 
 export interface BusinessConfig {
