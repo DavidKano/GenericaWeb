@@ -1210,7 +1210,7 @@ export const AdminDashboard: React.FC = () => {
                 onClick={() => {
                   const customerId = selectedEvent.resource.customerId;
                   const serviceId = eventServiceId;
-                  navigate(`/admin/tpv?customerId=${customerId}&serviceId=${serviceId}`);
+                  navigate(`/admin/tpv?customerId=${customerId}&serviceId=${serviceId}&teamMemberId=${eventTeamMemberId || ''}`);
                 }}
                 style={{
                   marginRight: 'auto',

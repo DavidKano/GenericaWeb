@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
-import type { BookingService, User, Transaction, DesignConfig, CashClose } from '../services/models';
+import type { BookingService, User, Transaction, DesignConfig, CashClose, TeamMember, CompanyData } from '../services/models';
 import { PageHeader } from '../components/ui/PageHeader';
 import { CreditCard, Coins, Check, Trash2, User as UserIcon, Briefcase, Calculator, RefreshCw, Euro, Plus, X, BarChart3, Archive, History, Search, ArrowLeft, CalendarDays, FileText, Phone, Mail } from 'lucide-react';
 
@@ -25,6 +25,9 @@ export const AdminTpvPage: React.FC = () => {
   const [customers, setCustomers] = useState<User[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [cashCloses, setCashCloses] = useState<CashClose[]>([]);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [companyData, setCompanyData] = useState<CompanyData | null>(null);
+  const [selectedTeamMemberId, setSelectedTeamMemberId] = useState('owner');
 
   // TPV Ticket State
   const [ticket, setTicket] = useState<TicketItem[]>([]);
@@ -46,6 +49,11 @@ export const AdminTpvPage: React.FC = () => {
 
   // Notes
   const [notes, setNotes] = useState('');
+
+  // Memoized team members sorted alphabetically
+  const sortedMembers = useMemo(() => {
+    return [...teamMembers].sort((a, b) => a.name.localeCompare(b.name));
+  }, [teamMembers]);
 
   // Dropdown / Form selectors to ADD items
   const [selectedServiceId, setSelectedServiceId] = useState('');
@@ -218,15 +226,19 @@ export const AdminTpvPage: React.FC = () => {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [svcs, usrs, txs, cfg, closes] = await Promise.all([
+      const [svcs, usrs, txs, cfg, closes, members, comp] = await Promise.all([
         repo.getServices(),
         repo.getUsers(),
         repo.getTransactions(),
         repo.getDesignConfig(),
         repo.getCashCloses(),
+        repo.getTeamMembers(),
+        repo.getCompanyData(),
       ]);
       setServices(svcs.filter(s => s.isActive));
       setCustomers(usrs.filter(u => u.role === 'CUSTOMER'));
+      setTeamMembers(members || []);
+      setCompanyData(comp);
       
       // Sort transactions by date descending
       const sortedTxs = [...txs].sort((a, b) => b.date - a.date);
@@ -295,6 +307,7 @@ export const AdminTpvPage: React.FC = () => {
       const query = new URLSearchParams(location.search);
       const paramCustomerId = query.get('customerId') || '';
       const paramServiceId = query.get('serviceId') || '';
+      const paramTeamMemberId = query.get('teamMemberId') || '';
 
       if (paramCustomerId) {
         setSelectedCustomerId(paramCustomerId);
@@ -311,6 +324,12 @@ export const AdminTpvPage: React.FC = () => {
             price: found.price || 0
           }]);
         }
+      }
+
+      if (paramTeamMemberId) {
+        setSelectedTeamMemberId(paramTeamMemberId);
+      } else {
+        setSelectedTeamMemberId('owner');
       }
     }
   }, [services, location.search]);
@@ -462,6 +481,7 @@ export const AdminTpvPage: React.FC = () => {
     setCashGiven('');
     setChangeAmount(0);
     setNotes('');
+    setSelectedTeamMemberId('owner');
   };
 
   // Submit charge
@@ -514,7 +534,8 @@ export const AdminTpvPage: React.FC = () => {
               paymentMethod: 'metalico',
               serviceId: item.serviceId || undefined,
               customerId: selectedCustomerId || undefined,
-              notes: item.serviceId ? (notes ? notes.trim() : undefined) : `${item.name}${notes ? ` - ${notes.trim()}` : ''}`
+              notes: item.serviceId ? (notes ? notes.trim() : undefined) : `${item.name}${notes ? ` - ${notes.trim()}` : ''}`,
+              teamMemberId: selectedTeamMemberId || undefined
             });
           }
 
@@ -526,7 +547,8 @@ export const AdminTpvPage: React.FC = () => {
               paymentMethod: 'tarjeta',
               serviceId: item.serviceId || undefined,
               customerId: selectedCustomerId || undefined,
-              notes: item.serviceId ? (notes ? notes.trim() : undefined) : `${item.name}${notes ? ` - ${notes.trim()}` : ''}`
+              notes: item.serviceId ? (notes ? notes.trim() : undefined) : `${item.name}${notes ? ` - ${notes.trim()}` : ''}`,
+              teamMemberId: selectedTeamMemberId || undefined
             });
           }
         }
@@ -543,7 +565,8 @@ export const AdminTpvPage: React.FC = () => {
             paymentMethod: paymentMethod === 'tarjeta' ? 'tarjeta' : 'metalico',
             serviceId: item.serviceId || undefined,
             customerId: selectedCustomerId || undefined,
-            notes: item.serviceId ? (notes ? notes.trim() : undefined) : `${item.name}${notes ? ` - ${notes.trim()}` : ''}`
+            notes: item.serviceId ? (notes ? notes.trim() : undefined) : `${item.name}${notes ? ` - ${notes.trim()}` : ''}`,
+            teamMemberId: selectedTeamMemberId || undefined
           });
         }
       }
@@ -1676,6 +1699,10 @@ export const AdminTpvPage: React.FC = () => {
                           minute: '2-digit'
                         });
 
+                        const memberName = tx.teamMemberId && tx.teamMemberId !== 'owner'
+                          ? (teamMembers.find(m => m.id === tx.teamMemberId)?.name || 'Gestor')
+                          : (companyData?.personaContacto || 'Gestor');
+
                         return (
                           <tr key={tx.id} style={{ borderBottom: '1px solid #F1F5F9', transition: 'background 0.2s' }} className="tx-row">
                             <td style={{ padding: '14px 8px', fontSize: '0.9rem', color: '#475569' }}>
@@ -1689,6 +1716,9 @@ export const AdminTpvPage: React.FC = () => {
                             <td style={{ padding: '14px 8px', fontSize: '0.9rem', color: '#475569' }}>
                               <div style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '160px' }} title={serviceName}>
                                 {serviceName}
+                              </div>
+                              <div style={{ fontSize: '0.75rem', color: 'var(--primary-color)', opacity: 0.8, marginTop: '2px', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                <span style={{ fontSize: '0.7rem' }}>👤</span> {memberName}
                               </div>
                             </td>
                             <td style={{ padding: '14px 8px' }}>
@@ -2295,6 +2325,42 @@ export const AdminTpvPage: React.FC = () => {
                   </div>
                 </div>
               )}
+
+              {/* Miembro del Equipo */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569' }}>Miembro del Equipo</label>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <span style={{ position: 'absolute', left: '10px', color: '#94A3B8', pointerEvents: 'none', display: 'flex', alignItems: 'center' }}>
+                    <UserIcon size={14} strokeWidth={1.5} />
+                  </span>
+                  <select
+                    value={selectedTeamMemberId}
+                    onChange={e => setSelectedTeamMemberId(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '8px 10px 8px 30px',
+                      borderRadius: '8px',
+                      background: '#FFFFFF',
+                      border: '1px solid #CBD5E1',
+                      color: '#1E293B',
+                      fontSize: '0.85rem',
+                      outline: 'none',
+                      appearance: 'none',
+                      backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                      backgroundRepeat: 'no-repeat',
+                      backgroundPosition: 'right 10px center',
+                      backgroundSize: '14px',
+                      height: '36px',
+                      boxSizing: 'border-box'
+                    }}
+                  >
+                    <option value="owner">{companyData?.personaContacto || 'Gestor (Principal)'}</option>
+                    {sortedMembers.map(member => (
+                      <option key={member.id} value={member.id}>{member.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
 
               {/* Notas (1 sola línea de altura inicial) */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>

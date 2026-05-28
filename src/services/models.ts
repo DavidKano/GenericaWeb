@@ -131,6 +131,7 @@ export interface Transaction {
   serviceId?: string; // Optional
   customerId?: string; // Optional
   notes?: string;
+  teamMemberId?: string;
 }
 
 export interface CashClose {
