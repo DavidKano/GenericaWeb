@@ -1975,6 +1975,42 @@ export const AdminTpvPage: React.FC = () => {
             {/* Formulario de Checkout */}
             <form onSubmit={handleCharge} style={{ display: 'flex', flexDirection: 'column', gap: '10px', flexShrink: 0, marginTop: '4px' }}>
               
+              {/* Miembro del Equipo */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569' }}>Miembro del Equipo</label>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <span style={{ position: 'absolute', left: '10px', color: '#94A3B8', pointerEvents: 'none', display: 'flex', alignItems: 'center' }}>
+                    <UserIcon size={14} strokeWidth={1.5} />
+                  </span>
+                  <select
+                    value={selectedTeamMemberId}
+                    onChange={e => setSelectedTeamMemberId(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '8px 10px 8px 30px',
+                      borderRadius: '8px',
+                      background: '#FFFFFF',
+                      border: '1px solid #CBD5E1',
+                      color: '#1E293B',
+                      fontSize: '0.85rem',
+                      outline: 'none',
+                      appearance: 'none',
+                      backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                      backgroundRepeat: 'no-repeat',
+                      backgroundPosition: 'right 10px center',
+                      backgroundSize: '14px',
+                      height: '36px',
+                      boxSizing: 'border-box'
+                    }}
+                  >
+                    <option value="owner">{companyData?.personaContacto || 'Gestor (Principal)'}</option>
+                    {sortedMembers.map(member => (
+                      <option key={member.id} value={member.id}>{member.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
               {/* Cliente del Cobro */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569' }}>Cliente del Cobro</label>
@@ -2127,6 +2163,29 @@ export const AdminTpvPage: React.FC = () => {
                   </button>
 
                 </div>
+              </div>
+
+              {/* Notas (1 sola línea de altura inicial) */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569' }}>Notas (Opcional)</label>
+                <textarea
+                  placeholder="Notas globales..."
+                  rows={1}
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 10px',
+                    border: '1px solid #CBD5E1',
+                    borderRadius: '8px',
+                    fontSize: '0.85rem',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                    fontFamily: 'inherit',
+                    resize: 'none',
+                    height: '36px'
+                  }}
+                />
               </div>
 
               {/* Forma de Pago */}
@@ -2325,65 +2384,6 @@ export const AdminTpvPage: React.FC = () => {
                   </div>
                 </div>
               )}
-
-              {/* Miembro del Equipo */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569' }}>Miembro del Equipo</label>
-                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                  <span style={{ position: 'absolute', left: '10px', color: '#94A3B8', pointerEvents: 'none', display: 'flex', alignItems: 'center' }}>
-                    <UserIcon size={14} strokeWidth={1.5} />
-                  </span>
-                  <select
-                    value={selectedTeamMemberId}
-                    onChange={e => setSelectedTeamMemberId(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '8px 10px 8px 30px',
-                      borderRadius: '8px',
-                      background: '#FFFFFF',
-                      border: '1px solid #CBD5E1',
-                      color: '#1E293B',
-                      fontSize: '0.85rem',
-                      outline: 'none',
-                      appearance: 'none',
-                      backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`,
-                      backgroundRepeat: 'no-repeat',
-                      backgroundPosition: 'right 10px center',
-                      backgroundSize: '14px',
-                      height: '36px',
-                      boxSizing: 'border-box'
-                    }}
-                  >
-                    <option value="owner">{companyData?.personaContacto || 'Gestor (Principal)'}</option>
-                    {sortedMembers.map(member => (
-                      <option key={member.id} value={member.id}>{member.name}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Notas (1 sola línea de altura inicial) */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569' }}>Notas (Opcional)</label>
-                <textarea
-                  placeholder="Notas globales..."
-                  rows={1}
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 10px',
-                    border: '1px solid #CBD5E1',
-                    borderRadius: '8px',
-                    fontSize: '0.85rem',
-                    outline: 'none',
-                    boxSizing: 'border-box',
-                    fontFamily: 'inherit',
-                    resize: 'none',
-                    height: '36px'
-                  }}
-                />
-              </div>
 
               {/* Botón Cobrar (Anclado siempre abajo del todo) */}
               <button
