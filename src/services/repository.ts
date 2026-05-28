@@ -1,4 +1,4 @@
-import type { User, BookingService, Appointment, BusinessConfig, DaySchedule, BlockedDay, CompanyData, DesignConfig, PromoOffer, EmailLog, Transaction, CashClose } from './models';
+import type { User, BookingService, Appointment, BusinessConfig, DaySchedule, BlockedDay, CompanyData, DesignConfig, PromoOffer, EmailLog, Transaction, CashClose, TeamMember } from './models';
 
 export interface DataRepository {
   // Users
@@ -56,4 +56,9 @@ export interface DataRepository {
   // Cash Closes
   getCashCloses(): Promise<CashClose[]>;
   saveCashClose(close: CashClose): Promise<void>;
+
+  // Team Members
+  getTeamMembers(): Promise<TeamMember[]>;
+  saveTeamMember(member: TeamMember): Promise<void>;
+  deleteTeamMember(id: string): Promise<void>;
 }

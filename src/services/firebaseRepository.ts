@@ -1,5 +1,5 @@
 import type { DataRepository } from './repository';
-import type { User, BookingService, Appointment, BusinessConfig, DaySchedule, BlockedDay, CompanyData, DesignConfig, PromoOffer, EmailLog, Transaction, CashClose } from './models';
+import type { User, BookingService, Appointment, BusinessConfig, DaySchedule, BlockedDay, CompanyData, DesignConfig, PromoOffer, EmailLog, Transaction, CashClose, TeamMember } from './models';
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import type { FirebaseOptions } from 'firebase/app';
 import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc, getDoc, onSnapshot } from 'firebase/firestore';
@@ -177,5 +177,19 @@ export class FirebaseRepository implements DataRepository {
 
   async saveCashClose(close: CashClose): Promise<void> {
     await setDoc(doc(this.db, 'cashCloses', close.id), cleanData(close));
+  }
+
+  // --- Team Members ---
+  async getTeamMembers(): Promise<TeamMember[]> {
+    const snapshot = await getDocs(collection(this.db, 'team'));
+    return snapshot.docs.map(doc => doc.data() as TeamMember);
+  }
+
+  async saveTeamMember(member: TeamMember): Promise<void> {
+    await setDoc(doc(this.db, 'team', member.id), cleanData(member));
+  }
+
+  async deleteTeamMember(id: string): Promise<void> {
+    await deleteDoc(doc(this.db, 'team', id));
   }
 }

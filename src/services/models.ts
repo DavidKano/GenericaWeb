@@ -141,3 +141,11 @@ export interface CashClose {
   closedBy: string; // Admin who performed the close
   notes?: string;
 }
+
+export interface TeamMember {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+}
+

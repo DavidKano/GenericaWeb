@@ -63,6 +63,11 @@ service cloud.firestore {
       allow write: if isSignedIn() && getRole() in ['ADMIN', 'SUPER_ADMIN'];
     }
 
+    match /team/{document=**} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && getRole() in ['ADMIN', 'SUPER_ADMIN'];
+    }
+
     match /services/{document=**} {
       allow read: if isSignedIn();
       allow write: if isSignedIn() && getRole() in ['ADMIN', 'SUPER_ADMIN'];

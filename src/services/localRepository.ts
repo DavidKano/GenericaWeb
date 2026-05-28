@@ -1,5 +1,5 @@
 import type { DataRepository } from './repository';
-import type { User, BookingService, Appointment, BusinessConfig, DaySchedule, BlockedDay, CompanyData, DesignConfig, PromoOffer, EmailLog, Transaction, CashClose } from './models';
+import type { User, BookingService, Appointment, BusinessConfig, DaySchedule, BlockedDay, CompanyData, DesignConfig, PromoOffer, EmailLog, Transaction, CashClose, TeamMember } from './models';
 
 // Utilidad simple para leer/escribir JSON en localStorage
 const getLocal = <T>(key: string): T[] => JSON.parse(localStorage.getItem(key) || '[]');
@@ -190,5 +190,23 @@ export class LocalRepository implements DataRepository {
     const filtered = closes.filter(c => c.id !== close.id);
     filtered.push(close);
     setLocal('cashCloses', filtered);
+  }
+
+  // --- TEAM MEMBERS ---
+  async getTeamMembers(): Promise<TeamMember[]> {
+    return getLocal<TeamMember>('team_members');
+  }
+
+  async saveTeamMember(member: TeamMember): Promise<void> {
+    const members = getLocal<TeamMember>('team_members');
+    const idx = members.findIndex(m => m.id === member.id);
+    if (idx >= 0) members[idx] = member;
+    else members.push(member);
+    setLocal('team_members', members);
+  }
+
+  async deleteTeamMember(id: string): Promise<void> {
+    const members = getLocal<TeamMember>('team_members');
+    setLocal('team_members', members.filter(m => m.id !== id));
   }
 }

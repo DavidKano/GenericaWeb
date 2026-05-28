@@ -24,6 +24,7 @@ import { AdminOffersPage } from './pages/AdminOffersPage';
 import { AdminServicesPage } from './pages/AdminServicesPage';
 import { AdminSettingsPage } from './pages/AdminSettingsPage';
 import { AdminTpvPage } from './pages/AdminTpvPage';
+import { AdminTeamPage } from './pages/AdminTeamPage';
 import { UpdateNotification } from './components/ui/UpdateNotification';
 
 import './App.css';
@@ -242,6 +243,7 @@ function App() {
             <Route index element={<AdminDashboard />} />
             <Route path="services" element={<AdminServicesPage />} />
             <Route path="users" element={<AdminUsersPage />} />
+            <Route path="team" element={<AdminTeamPage />} />
             <Route path="promote" element={<AdminPromotePage />} />
             <Route path="schedule" element={<AdminSchedulePage />} />
             <Route path="offers" element={<AdminOffersPage />} />

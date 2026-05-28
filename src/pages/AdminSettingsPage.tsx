@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import type { BusinessConfig } from '../services/models';
 import { INITIAL_BUSINESS_CONFIG } from '../services/configDefaults';
@@ -7,6 +8,7 @@ import { PageHeader } from '../components/ui/PageHeader';
 
 export const AdminSettingsPage: React.FC = () => {
   const { repo } = useData();
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [config, setConfig] = useState<BusinessConfig | null>(null);
@@ -67,15 +69,39 @@ export const AdminSettingsPage: React.FC = () => {
           <div className="form-group settings-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1.5rem', padding: '16px 0', borderBottom: '1px solid #F1F5F9' }}>
             <div style={{ flex: 1 }}>
               <label style={{ margin: 0, fontWeight: '600', color: 'var(--text-primary)' }}>Servicios simultáneos (Capacidad)</label>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0.25rem 0 0 0' }}>Define cuántas citas se pueden realizar a la vez en la misma franja horaria (Ej: número de puestos o empleados).</p>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0.25rem 0 0 0' }}>
+                La capacidad se calcula automáticamente según el número de miembros en tu Equipo.{' '}
+                <button
+                  type="button"
+                  onClick={() => navigate('/admin/team')}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    padding: 0,
+                    color: 'var(--primary-color, #008080)',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    textDecoration: 'underline',
+                    fontFamily: 'inherit',
+                    fontSize: 'inherit'
+                  }}
+                >
+                  [Gestionar Equipo]
+                </button>
+              </p>
             </div>
-            <input 
-              type="number" 
-              min="1"
-              value={config.concurrentSlots || 1} 
-              onChange={(e) => setConfig(prev => prev ? { ...prev, concurrentSlots: Math.max(1, parseInt(e.target.value) || 1) } : null)}
-              style={{ width: '90px', textAlign: 'center', padding: '0.5rem', borderRadius: '6px', border: '1px solid #E2E8F0', background: '#FFF', color: 'var(--text-color)' }}
-            />
+            <div style={{
+              background: 'rgba(0, 128, 128, 0.08)',
+              color: 'var(--primary-color, #008080)',
+              padding: '6px 14px',
+              borderRadius: '16px',
+              fontSize: '0.85rem',
+              fontWeight: 700,
+              border: '1px solid rgba(0, 128, 128, 0.15)',
+              whiteSpace: 'nowrap'
+            }}>
+              Capacidad: {config.concurrentSlots || 1} reservas/hora
+            </div>
           </div>
 
           {/* Row 2: Cancelaciones */}

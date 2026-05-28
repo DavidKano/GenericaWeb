@@ -83,6 +83,7 @@ export const AdminLayout: React.FC = () => {
     { to: "/admin", icon: <LayoutDashboard size={20} strokeWidth={2} />, label: "Panel Control", end: true },
     { to: "/admin/services", icon: <Sliders size={20} strokeWidth={2} />, label: "Gestión Servicios" },
     { to: "/admin/users", icon: <Users size={20} strokeWidth={2} />, label: "Gestión Clientes" },
+    { to: "/admin/team", icon: <Users size={20} strokeWidth={2} />, label: "Equipo" },
     { to: "/admin/schedule", icon: <Clock size={20} strokeWidth={2} />, label: "Horarios y Bloqueos" },
     { to: "/admin/offers", icon: <Megaphone size={20} strokeWidth={2} />, label: "Ofertas y Promos" },
     { to: "/admin/tpv", icon: <CreditCard size={20} strokeWidth={2} />, label: "TPV" },
