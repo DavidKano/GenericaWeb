@@ -2585,6 +2585,21 @@ export const AdminTpvPage: React.FC = () => {
                 padding: 16px !important;
                 border-radius: 12px !important;
               }
+              .tpv-left-panel {
+                display: contents !important;
+              }
+              .tpv-add-items-card {
+                order: 1 !important;
+                width: 100% !important;
+              }
+              .tpv-right-panel {
+                order: 2 !important;
+                width: 100% !important;
+              }
+              .tpv-bottom-buttons-row {
+                order: 3 !important;
+                width: 100% !important;
+              }
             }
           `}</style>
           
@@ -2592,7 +2607,7 @@ export const AdminTpvPage: React.FC = () => {
           <div className="tpv-left-panel">
             
             {/* Unificada Tarjeta de Añadir Elementos */}
-            <div className="tpv-card" style={{
+            <div className="tpv-card tpv-add-items-card" style={{
               background: '#ffffff',
               border: '1px solid #E2E8F0',
               borderRadius: '16px',
@@ -2862,7 +2877,7 @@ export const AdminTpvPage: React.FC = () => {
             </div>
 
             {/* Bloque Inferior - Gestión de Caja */}
-            <div style={{
+            <div className="tpv-bottom-buttons-row" style={{
               display: 'flex',
               flexWrap: 'wrap',
               gap: '12px',
