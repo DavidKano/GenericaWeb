@@ -1,4 +1,5 @@
 import React from 'react';
+import { APP_VERSION } from '../../version';
 
 interface ConnessiaFooterProps {
   isDark?: boolean;
@@ -55,6 +56,15 @@ export const ConnessiaFooter: React.FC<ConnessiaFooterProps> = ({ isDark, compac
             CONNESSIA
           </span>
         </a>
+        <span style={{ 
+          fontSize: '0.75rem', 
+          opacity: 0.5, 
+          color: isDark ? '#9ca3af' : '#64748b',
+          fontWeight: 600,
+          marginLeft: '4px'
+        }}>
+          {APP_VERSION}
+        </span>
       </div>
     );
   }
@@ -116,6 +126,16 @@ export const ConnessiaFooter: React.FC<ConnessiaFooterProps> = ({ isDark, compac
           CONNESSIA
         </span>
       </a>
+      
+      <span style={{ 
+        fontSize: '0.75rem', 
+        opacity: 0.5, 
+        color: isDark ? 'rgba(255,255,255,0.6)' : '#64748b',
+        fontWeight: 600,
+        marginTop: '2px'
+      }}>
+        {APP_VERSION}
+      </span>
     </footer>
   );
 };
