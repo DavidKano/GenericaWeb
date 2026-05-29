@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
-import type { Appointment, BookingService, BusinessConfig, User } from '../services/models';
+import type { Appointment, BookingService, BusinessConfig, User, CompanyData } from '../services/models';
 import { INITIAL_BUSINESS_CONFIG } from '../services/configDefaults';
 import { 
   Calendar, 
@@ -29,6 +29,7 @@ export const ProfilePage: React.FC = () => {
   const [name, setName] = useState(user?.name || '');
   const [phone, setPhone] = useState(user?.phone || '');
   const [address, setAddress] = useState(user?.address || '');
+  const [company, setCompany] = useState<CompanyData | null>(null);
 
   // Modal personalizado Premium para alertas y confirmaciones sin URL
   const [customModal, setCustomModal] = useState<{
@@ -47,15 +48,17 @@ export const ProfilePage: React.FC = () => {
 
   const loadData = async () => {
     if (!user) return;
-    const [appts, svcs, cfg] = await Promise.all([
+    const [appts, svcs, cfg, comp] = await Promise.all([
       repo.getAppointments(),
       repo.getServices(),
-      repo.getConfig()
+      repo.getConfig(),
+      repo.getCompanyData().catch(e => { console.error('Error company:', e); return null; })
     ]);
     // Filtrar citas solo de este usuario
     setAppointments(appts.filter(a => a.customerId === user.id));
     setServices(svcs);
     setConfig(cfg || INITIAL_BUSINESS_CONFIG);
+    setCompany(comp);
   };
 
   const sortedAppointments = useMemo(() => {
@@ -76,7 +79,7 @@ export const ProfilePage: React.FC = () => {
     await repo.saveUser(updatedUser);
     setCustomModal({
       isOpen: true,
-      title: config?.name || 'Mi Negocio',
+      title: company?.nombreEmpresa || config?.name || 'Aviso',
       message: 'Perfil actualizado correctamente.',
       isAlert: true,
       confirmText: 'Aceptar'
@@ -93,7 +96,7 @@ export const ProfilePage: React.FC = () => {
     const marginHours = config?.cancellationMarginHours !== undefined ? config.cancellationMarginHours : 24;
     const limitMs = marginHours * 60 * 60 * 1000;
     const isWithinMargin = (appt.dateTimeStart - Date.now()) < limitMs;
-    const businessName = config?.name || 'Mi Negocio';
+    const businessName = company?.nombreEmpresa || config?.name || 'Aviso';
 
     if (isWithinMargin) {
       setCustomModal({
@@ -485,7 +488,7 @@ export const ProfilePage: React.FC = () => {
               justifyContent: 'center',
               gap: '6px'
             }}>
-              ✨ {customModal.title}
+              {customModal.title}
             </h3>
             
             <p style={{
