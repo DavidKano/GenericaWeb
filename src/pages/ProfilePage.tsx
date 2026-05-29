@@ -30,6 +30,17 @@ export const ProfilePage: React.FC = () => {
   const [phone, setPhone] = useState(user?.phone || '');
   const [address, setAddress] = useState(user?.address || '');
 
+  // Modal personalizado Premium para alertas y confirmaciones sin URL
+  const [customModal, setCustomModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm?: () => void;
+    confirmText?: string;
+    cancelText?: string;
+    isAlert?: boolean;
+  } | null>(null);
+
   useEffect(() => {
     loadData();
   }, [repo, user]);
@@ -63,7 +74,13 @@ export const ProfilePage: React.FC = () => {
       address
     };
     await repo.saveUser(updatedUser);
-    alert('Perfil actualizado correctamente');
+    setCustomModal({
+      isOpen: true,
+      title: config?.name || 'Mi Negocio',
+      message: 'Perfil actualizado correctamente.',
+      isAlert: true,
+      confirmText: 'Aceptar'
+    });
   };
 
   const handleCancelAppointment = async (apptId: string) => {
@@ -76,16 +93,31 @@ export const ProfilePage: React.FC = () => {
     const marginHours = config?.cancellationMarginHours !== undefined ? config.cancellationMarginHours : 24;
     const limitMs = marginHours * 60 * 60 * 1000;
     const isWithinMargin = (appt.dateTimeStart - Date.now()) < limitMs;
+    const businessName = config?.name || 'Mi Negocio';
 
     if (isWithinMargin) {
-      alert(`No se puede cancelar la cita desde la app porque quedan menos de ${marginHours} horas para tu cita y no está permitido. Por favor, ponte en contacto con nosotros directamente si necesitas realizar cambios.`);
+      setCustomModal({
+        isOpen: true,
+        title: businessName,
+        message: `No se puede cancelar la cita desde la app porque quedan menos de ${marginHours} horas para tu cita y no está permitido. Por favor, ponte en contacto con nosotros directamente si necesitas realizar cambios.`,
+        isAlert: true,
+        confirmText: 'Aceptar'
+      });
       return;
     }
 
-    if (!window.confirm('¿Estás seguro de que deseas cancelar esta reserva?')) return;
-    
-    await repo.saveAppointment({ ...appt, status: 'CANCELLED' });
-    loadData();
+    setCustomModal({
+      isOpen: true,
+      title: businessName,
+      message: '¿Estás seguro de que deseas cancelar esta reserva?',
+      confirmText: 'Sí, cancelar',
+      cancelText: 'Volver',
+      onConfirm: async () => {
+        await repo.saveAppointment({ ...appt, status: 'CANCELLED' });
+        loadData();
+        setCustomModal(null);
+      }
+    });
   };
 
   if (!user) return null;
@@ -407,6 +439,123 @@ export const ProfilePage: React.FC = () => {
             <button className="btn-primary" onClick={handleUpdateProfile} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
               <Save size={18} /> Guardar Cambios
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Personalizado Premium */}
+      {customModal && customModal.isOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          background: 'rgba(15, 23, 42, 0.6)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '1.5rem',
+          boxSizing: 'border-box',
+          animation: 'fadeIn 0.25s ease'
+        }}>
+          <div className="card glass-panel" style={{
+            maxWidth: '450px',
+            width: '100%',
+            padding: '2rem',
+            background: '#ffffff',
+            borderRadius: '20px',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+            border: '1px solid rgba(0, 128, 128, 0.08)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1.25rem',
+            textAlign: 'center',
+            boxSizing: 'border-box'
+          }}>
+            <h3 style={{
+              margin: 0,
+              fontSize: '1.35rem',
+              fontWeight: 800,
+              color: 'var(--primary-color, #008080)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px'
+            }}>
+              ✨ {customModal.title}
+            </h3>
+            
+            <p style={{
+              margin: 0,
+              fontSize: '0.95rem',
+              color: 'var(--text-secondary, #475569)',
+              lineHeight: '1.5',
+              fontWeight: 500
+            }}>
+              {customModal.message}
+            </p>
+            
+            <div style={{
+              display: 'flex',
+              gap: '12px',
+              marginTop: '0.5rem',
+              justifyContent: 'center',
+              width: '100%'
+            }}>
+              {!customModal.isAlert && (
+                <button
+                  type="button"
+                  onClick={() => setCustomModal(null)}
+                  style={{
+                    flex: 1,
+                    padding: '10px 16px',
+                    borderRadius: '10px',
+                    background: '#FFFFFF',
+                    color: '#475569',
+                    border: '1px solid #CBD5E1',
+                    fontSize: '0.875rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseOver={(e) => e.currentTarget.style.background = '#F8FAFC'}
+                  onMouseOut={(e) => e.currentTarget.style.background = '#FFFFFF'}
+                >
+                  {customModal.cancelText || 'Cancelar'}
+                </button>
+              )}
+              
+              <button
+                type="button"
+                onClick={() => {
+                  if (customModal.onConfirm) {
+                    customModal.onConfirm();
+                  } else {
+                    setCustomModal(null);
+                  }
+                }}
+                style={{
+                  flex: 1,
+                  padding: '10px 16px',
+                  borderRadius: '10px',
+                  background: 'var(--primary-color, #008080)',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  fontSize: '0.875rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  boxShadow: '0 4px 12px rgba(0, 128, 128, 0.15)'
+                }}
+                onMouseOver={(e) => e.currentTarget.style.background = 'color-mix(in srgb, var(--primary-color, #008080) 90%, #000)'}
+                onMouseOut={(e) => e.currentTarget.style.background = 'var(--primary-color, #008080)'}
+              >
+                {customModal.confirmText || 'Aceptar'}
+              </button>
+            </div>
           </div>
         </div>
       )}
