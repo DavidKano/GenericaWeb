@@ -2485,9 +2485,55 @@ export const AdminTpvPage: React.FC = () => {
             .tx-row:hover {
               background-color: #F8FAFC;
             }
+            .tpv-add-items-grid {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 20px;
+            }
             @keyframes fadeIn {
               from { opacity: 0; transform: translateY(-4px); }
               to { opacity: 1; transform: translateY(0); }
+            }
+            @media (max-width: 768px) {
+              .admin-tpv-container {
+                height: auto !important;
+                min-height: 0 !important;
+                overflow-y: visible !important;
+                padding-bottom: 24px !important;
+              }
+              .tpv-grid {
+                flex-direction: column !important;
+                height: auto !important;
+                min-height: 0 !important;
+                gap: 16px !important;
+              }
+              .tpv-left-panel, .tpv-right-panel {
+                width: 100% !important;
+                height: auto !important;
+                min-height: 0 !important;
+              }
+              .tpv-add-items-grid {
+                grid-template-columns: 1fr !important;
+                gap: 12px !important;
+              }
+              .tpv-recent-transactions-card {
+                display: none !important;
+              }
+              .tpv-mobile-hide-btn {
+                display: none !important;
+              }
+              .tpv-close-box-btn {
+                flex: 1 1 100% !important;
+                width: 100% !important;
+              }
+              .tpv-scrollable-items {
+                max-height: 200px !important;
+                overflow-y: auto !important;
+              }
+              .tpv-right-panel {
+                padding: 16px !important;
+                border-radius: 12px !important;
+              }
             }
           `}</style>
           
@@ -2505,7 +2551,7 @@ export const AdminTpvPage: React.FC = () => {
               flexDirection: 'column',
               gap: '12px'
             }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+              <div className="tpv-add-items-grid">
                 {/* Añadir Servicio del Catálogo */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#64748B' }}>Servicio del Catálogo</label>
@@ -2627,7 +2673,7 @@ export const AdminTpvPage: React.FC = () => {
             </div>
 
             {/* Column 2: Recent Transactions list */}
-            <div className="tpv-card" style={{
+            <div className="tpv-card tpv-recent-transactions-card" style={{
               background: '#ffffff',
               border: '1px solid #E2E8F0',
               borderRadius: '16px',
@@ -2774,6 +2820,7 @@ export const AdminTpvPage: React.FC = () => {
               {/* Button: Cierre de Caja */}
               <button
                 type="button"
+                className="tpv-close-box-btn"
                 onClick={() => setShowCloseBoxModal(true)}
                 style={{
                   flex: '1 1 160px',
@@ -2801,6 +2848,7 @@ export const AdminTpvPage: React.FC = () => {
               {/* Button: Consultar Cierres de Caja */}
               <button
                 type="button"
+                className="tpv-mobile-hide-btn"
                 onClick={() => setActiveView('cierres')}
                 style={{
                   flex: '1 1 160px',
@@ -2828,6 +2876,7 @@ export const AdminTpvPage: React.FC = () => {
               {/* Button: Métricas y Estadísticas */}
               <button
                 type="button"
+                className="tpv-mobile-hide-btn"
                 onClick={() => setActiveView('ventas')}
                 style={{
                   flex: '1 1 160px',
