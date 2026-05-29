@@ -6,6 +6,7 @@ export const INITIAL_BUSINESS_CONFIG: BusinessConfig = {
   contactEmail: '',
   bookingEnabled: true,
   allowClientCancellation: true,
+  cancellationMarginHours: 24,
   concurrentSlots: 1,
   whatsappEnabled: true
 };

@@ -76,6 +76,7 @@ export interface BusinessConfig {
   contactEmail: string;
   bookingEnabled: boolean;
   allowClientCancellation: boolean;
+  cancellationMarginHours?: number;
   concurrentSlots: number;
   whatsappEnabled: boolean;
   serviceFolders?: string[];

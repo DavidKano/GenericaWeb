@@ -67,16 +67,25 @@ export const ProfilePage: React.FC = () => {
   };
 
   const handleCancelAppointment = async (apptId: string) => {
-    if (!window.confirm('¿Estás seguro de que deseas cancelar esta reserva?')) return;
-    
     // Buscar la cita original
     const appts = await repo.getAppointments();
     const appt = appts.find(a => a.id === apptId);
     
-    if (appt) {
-      await repo.saveAppointment({ ...appt, status: 'CANCELLED' });
-      loadData();
+    if (!appt) return;
+
+    const marginHours = config?.cancellationMarginHours !== undefined ? config.cancellationMarginHours : 24;
+    const limitMs = marginHours * 60 * 60 * 1000;
+    const isWithinMargin = (appt.dateTimeStart - Date.now()) < limitMs;
+
+    if (isWithinMargin) {
+      alert(`No se puede cancelar la cita desde la app porque quedan menos de ${marginHours} horas para tu cita y no está permitido. Por favor, ponte en contacto con nosotros directamente si necesitas realizar cambios.`);
+      return;
     }
+
+    if (!window.confirm('¿Estás seguro de que deseas cancelar esta reserva?')) return;
+    
+    await repo.saveAppointment({ ...appt, status: 'CANCELLED' });
+    loadData();
   };
 
   if (!user) return null;
@@ -218,35 +227,46 @@ export const ProfilePage: React.FC = () => {
                           </div>
                         </div>
                         <div>
-                          {(config?.allowClientCancellation !== false) && (
-                            <button 
-                              className="btn-icon" 
-                              onClick={() => handleCancelAppointment(appt.id)}
-                              style={{ 
-                                color: '#94A3B8', 
-                                background: 'transparent', 
-                                border: 'none',
-                                padding: '8px',
-                                borderRadius: '8px',
-                                cursor: 'pointer',
-                                transition: 'all 0.2s ease',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center'
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.color = '#EF4444';
-                                e.currentTarget.style.background = 'rgba(239, 68, 68, 0.06)';
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.color = '#94A3B8';
-                                e.currentTarget.style.background = 'transparent';
-                              }}
-                              title="Cancelar reserva"
-                            >
-                              <Trash2 size={18} />
-                            </button>
-                          )}
+                          {(config?.allowClientCancellation !== false) && (() => {
+                            const marginHours = config?.cancellationMarginHours !== undefined ? config.cancellationMarginHours : 24;
+                            const limitMs = marginHours * 60 * 60 * 1000;
+                            const apptIsWithinMargin = (appt.dateTimeStart - Date.now()) < limitMs;
+
+                            return (
+                              <button 
+                                className="btn-icon" 
+                                onClick={() => handleCancelAppointment(appt.id)}
+                                style={{ 
+                                  color: apptIsWithinMargin ? '#E2E8F0' : '#94A3B8', 
+                                  background: 'transparent', 
+                                  border: 'none',
+                                  padding: '8px',
+                                  borderRadius: '8px',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.2s ease',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center'
+                                }}
+                                onMouseEnter={(e) => {
+                                  if (apptIsWithinMargin) {
+                                    e.currentTarget.style.color = '#EAB308';
+                                    e.currentTarget.style.background = 'rgba(234, 179, 8, 0.06)';
+                                  } else {
+                                    e.currentTarget.style.color = '#EF4444';
+                                    e.currentTarget.style.background = 'rgba(239, 68, 68, 0.06)';
+                                  }
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.color = apptIsWithinMargin ? '#E2E8F0' : '#94A3B8';
+                                  e.currentTarget.style.background = 'transparent';
+                                }}
+                                title={apptIsWithinMargin ? `Plazo de cancelación de ${marginHours}h expirado (Requiere llamada)` : "Cancelar reserva"}
+                              >
+                                <Trash2 size={18} />
+                              </button>
+                            );
+                          })()}
                         </div>
                       </div>
                     );

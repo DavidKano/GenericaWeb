@@ -105,24 +105,87 @@ export const AdminSettingsPage: React.FC = () => {
           </div>
 
           {/* Row 2: Cancelaciones */}
-          <div className="form-group settings-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1.5rem', padding: '16px 0', borderBottom: '1px solid #F1F5F9' }}>
-            <div style={{ flex: 1 }}>
-              <strong style={{ fontWeight: '600', color: 'var(--text-primary)' }}>Permitir cancelaciones por clientes</strong>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0.25rem 0 0 0' }}>Si se activa, los clientes podrán cancelar citas desde su perfil.</p>
+          <div style={{ borderBottom: '1px solid #F1F5F9' }}>
+            <div className="form-group settings-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1.5rem', padding: '16px 0' }}>
+              <div style={{ flex: 1 }}>
+                <strong style={{ fontWeight: '600', color: 'var(--text-primary)' }}>Permitir cancelaciones por clientes</strong>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0.25rem 0 0 0' }}>Si se activa, los clientes podrán cancelar citas desde su perfil.</p>
+              </div>
+              <label className="toggle-switch-container">
+                <input 
+                  type="checkbox" 
+                  className="toggle-switch-input"
+                  id="allow-cancellation"
+                  checked={config.allowClientCancellation !== false} 
+                  onChange={(e) => setConfig(prev => {
+                    const base = prev || INITIAL_BUSINESS_CONFIG;
+                    return { ...base, allowClientCancellation: e.target.checked };
+                  })}
+                />
+                <span className="toggle-switch-slider"></span>
+              </label>
             </div>
-            <label className="toggle-switch-container">
-              <input 
-                type="checkbox" 
-                className="toggle-switch-input"
-                id="allow-cancellation"
-                checked={config.allowClientCancellation !== false} 
-                onChange={(e) => setConfig(prev => {
-                  const base = prev || INITIAL_BUSINESS_CONFIG;
-                  return { ...base, allowClientCancellation: e.target.checked };
-                })}
-              />
-              <span className="toggle-switch-slider"></span>
-            </label>
+            
+            {(config.allowClientCancellation !== false) && (
+              <div className="form-group animate-fade-in" style={{ 
+                padding: '12px 16px', 
+                background: 'rgba(0, 128, 128, 0.03)', 
+                borderRadius: '12px', 
+                border: '1px dashed rgba(0, 128, 128, 0.15)',
+                marginBottom: '16px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px'
+              }}>
+                <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                  Plazo mínimo de cancelación previo a la cita (en horas)
+                </label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                  <input 
+                    type="number"
+                    min="0"
+                    max="720"
+                    value={config.cancellationMarginHours !== undefined ? config.cancellationMarginHours : 24}
+                    onChange={(e) => {
+                      const val = Math.max(0, parseInt(e.target.value) || 0);
+                      setConfig(prev => ({
+                        ...(prev || INITIAL_BUSINESS_CONFIG),
+                        cancellationMarginHours: val
+                      }));
+                    }}
+                    style={{
+                      width: '80px',
+                      padding: '8px',
+                      borderRadius: '8px',
+                      border: '1px solid #CBD5E1',
+                      fontSize: '0.9rem',
+                      fontWeight: 700,
+                      textAlign: 'center',
+                      background: '#ffffff',
+                      color: 'var(--text-primary)'
+                    }}
+                  />
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
+                    {(() => {
+                      const hours = config.cancellationMarginHours !== undefined ? config.cancellationMarginHours : 24;
+                      if (hours === 0) {
+                        return <span style={{ color: 'var(--primary-color)', fontWeight: 700 }}>Permitido cancelar en cualquier momento (0 horas)</span>;
+                      }
+                      if (hours === 1) {
+                        return 'Hasta 1 hora antes de la cita';
+                      }
+                      if (hours % 24 === 0) {
+                        return `Hasta ${hours / 24} día(s) antes (${hours} horas)`;
+                      }
+                      return `Hasta ${hours} horas antes de la cita`;
+                    })()}
+                  </span>
+                </div>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: 0 }}>
+                  Los clientes no podrán cancelar de forma autónoma a través de la aplicación si queda menos tiempo del indicado.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Row 3: WhatsApp */}
