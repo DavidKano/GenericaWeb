@@ -4,7 +4,7 @@ Este archivo registra cronológicamente todas las versiones desplegadas en la pl
 
 ---
 
-## [v1.1.1] - 2026-05-29
+## [v4.1.1] - 2026-05-29
 ### Modificado
 - **Unificación de Línea en Pie de Página**: Rediseño de ConnessiaFooter para alinear horizontalmente todos los elementos (`powered by`, logotipo, nombre de marca y versión) en una sola línea responsiva fluida, tanto para web como para móviles.
 - **Retoque de Cabeceras de Modales**: Retirado el emoji decorativo `✨` al lado del nombre de negocio en la cabecera de los modales de alerta y confirmación.
@@ -12,7 +12,9 @@ Este archivo registra cronológicamente todas las versiones desplegadas en la pl
 ### Corregido
 - **Contraste en Superadmin**: Removida la propiedad `isDark` en el footer de `SuperAdminLayout` para corregir la falta de contraste y permitir que el logotipo, marca y versión de Connessia se visualicen correctamente en color oscuro sobre el fondo claro del panel.
 
-## [v1.1.0] - 2026-05-29
+---
+
+## [v4.1.0] - 2026-05-29
 ### Añadido
 - **Plazo de Cancelación Parametrizable**: Añadido selector numérico en Ajustes Generales del administrador (`0` a `720` horas) con traducción dinámica a días/horas.
 - **Bloqueo de Cancelación en App**: Los clientes ya no pueden cancelar citas de forma autónoma si queda menos tiempo del plazo mínimo configurado por el gerente.
@@ -22,6 +24,28 @@ Este archivo registra cronológicamente todas las versiones desplegadas en la pl
 
 ### Modificado
 - **TPV Móvil Responsivo y Simplificado**: Reubicación del botón **"Cierre de Caja Diario"** al pie absoluto de la página en versión móvil mediante reordenación flexible (`display: contents` + Flex `order`). Ocultación de tablas e interfaces de consulta no esenciales en móvil para agilizar el proceso de cobro táctil al 100% de ancho.
+
+---
+
+## [v4.0.0] - Hito de Rediseño Estético Premium & Responsivo Móvil
+### Añadido
+- **Rediseño Estético Completo (Glassmorphic)**: Renovación estética total en todos los paneles utilizando una paleta de colores curada y armoniosa, efectos de cristal difuminado, sombras premium, bordes curvos y tipografía moderna en Google Fonts.
+- **TPV Responsive total**: Reorganización del TPV en una grilla líquida para apilarse de forma táctil en teléfonos móviles, permitiendo cobros instantáneos al 100% de ancho con botones e inputs optimizados.
+
+---
+
+## [v3.0.0] - Hito de Módulo TPV Completo
+### Añadido
+- **Módulo Terminal de Punto de Venta (TPV)**: Integración de cobros directos de servicios del catálogo y conceptos de venta manuales.
+- **Gestión de Caja**: Registro de transacciones del día, métodos de pago diferenciados (Tarjeta / Efectivo), y sistema integrado para **Cierre de Caja Diario** con reportes analíticos para el gerente.
+- **Métricas y Estadísticas**: Panel gráfico de análisis de ventas.
+
+---
+
+## [v2.0.0] - Hito de Gestión de Personal y Horarios
+### Añadido
+- **Control de Personal**: Asignación de citas a miembros individuales del equipo técnico.
+- **Horarios y Bloqueos Avanzados**: Configuración de jornadas de trabajo por empleado y bloqueo selectivo de días/horas en el calendario.
 
 ---
 
