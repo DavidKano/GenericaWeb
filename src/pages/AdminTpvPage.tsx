@@ -2490,6 +2490,38 @@ export const AdminTpvPage: React.FC = () => {
               grid-template-columns: 1fr 1fr;
               gap: 20px;
             }
+            .tpv-catalog-row {
+              display: flex;
+              gap: 8px;
+              width: 100%;
+            }
+            .tpv-catalog-select-container {
+              flex: 1;
+              min-width: 0;
+            }
+            .tpv-catalog-submit-btn {
+              flex-shrink: 0;
+            }
+            .tpv-manual-row {
+              display: flex;
+              gap: 8px;
+              width: 100%;
+            }
+            .tpv-manual-concept-input {
+              flex: 1;
+              min-width: 0;
+            }
+            .tpv-manual-price-container {
+              width: 95px;
+              flex-shrink: 0;
+            }
+            .tpv-manual-submit-btn {
+              width: 38px;
+              flex-shrink: 0;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+            }
             @keyframes fadeIn {
               from { opacity: 0; transform: translateY(-4px); }
               to { opacity: 1; transform: translateY(0); }
@@ -2515,6 +2547,25 @@ export const AdminTpvPage: React.FC = () => {
               .tpv-add-items-grid {
                 grid-template-columns: 1fr !important;
                 gap: 12px !important;
+              }
+              .tpv-catalog-row {
+                flex-direction: column !important;
+                gap: 8px !important;
+              }
+              .tpv-catalog-select-container,
+              .tpv-catalog-submit-btn {
+                width: 100% !important;
+                flex: none !important;
+              }
+              .tpv-manual-row {
+                flex-direction: column !important;
+                gap: 8px !important;
+              }
+              .tpv-manual-concept-input,
+              .tpv-manual-price-container,
+              .tpv-manual-submit-btn {
+                width: 100% !important;
+                flex: none !important;
               }
               .tpv-recent-transactions-card {
                 display: none !important;
@@ -2555,8 +2606,8 @@ export const AdminTpvPage: React.FC = () => {
                 {/* Añadir Servicio del Catálogo */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#64748B' }}>Servicio del Catálogo</label>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <div style={{ position: 'relative', flex: 1 }}>
+                  <div className="tpv-catalog-row">
+                    <div className="tpv-catalog-select-container" style={{ position: 'relative' }}>
                       <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', display: 'flex' }}>
                         <Briefcase size={16} />
                       </span>
@@ -2585,6 +2636,7 @@ export const AdminTpvPage: React.FC = () => {
                     </div>
                     <button
                       type="button"
+                      className="tpv-catalog-submit-btn"
                       onClick={handleAddServiceToTicket}
                       style={{
                         padding: '0 14px',
@@ -2609,9 +2661,10 @@ export const AdminTpvPage: React.FC = () => {
                 {/* Venta Manual */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#64748B' }}>Concepto / Venta Manual</label>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 90px auto', gap: '8px' }}>
+                  <div className="tpv-manual-row">
                     <input
                       type="text"
+                      className="tpv-manual-concept-input"
                       placeholder="Concepto (Ej: Champú, Recargo...)"
                       value={manualConcept}
                       onChange={(e) => setManualConcept(e.target.value)}
@@ -2625,7 +2678,7 @@ export const AdminTpvPage: React.FC = () => {
                         boxSizing: 'border-box'
                       }}
                     />
-                    <div style={{ position: 'relative' }}>
+                    <div className="tpv-manual-price-container" style={{ position: 'relative' }}>
                       <span style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.85rem', fontWeight: 700, color: '#94A3B8' }}>€</span>
                       <input
                         type="number"
@@ -2649,6 +2702,7 @@ export const AdminTpvPage: React.FC = () => {
                     </div>
                     <button
                       type="button"
+                      className="tpv-manual-submit-btn"
                       onClick={handleAddManualConceptToTicket}
                       style={{
                         padding: '0 14px',
