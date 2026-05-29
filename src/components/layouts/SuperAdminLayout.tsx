@@ -138,7 +138,7 @@ export const SuperAdminLayout: React.FC = () => {
           <div style={{ maxWidth: '100%', margin: '0 auto', flex: 1, width: '100%' }}>
             <Outlet />
           </div>
-          <ConnessiaFooter isDark />
+          <ConnessiaFooter />
         </main>
       </div>
 
