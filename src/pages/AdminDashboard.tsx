@@ -345,6 +345,28 @@ export const AdminDashboard: React.FC = () => {
   const slotPropGetter = (date: Date) => {
     if (currentView === 'month') return {};
 
+    const dateStr = format(date, 'yyyy-MM-dd');
+    const blockedDay = blockedDays.find(b => b.date === dateStr);
+    
+    if (blockedDay && blockedDay.isFullDay !== false) {
+      return { className: 'rbc-off-range-bg', style: { backgroundColor: 'rgba(148, 163, 184, 0.1)', opacity: 0.8, backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(148, 163, 184, 0.1) 10px, rgba(148, 163, 184, 0.1) 20px)' } };
+    }
+
+    const minutes = date.getHours() * 60 + date.getMinutes();
+    
+    if (blockedDay && blockedDay.isFullDay === false && blockedDay.blockedRanges) {
+      const isBlockedTime = blockedDay.blockedRanges.some(r => {
+        const [startH, startM] = r.start.split(':').map(Number);
+        const [endH, endM] = r.end.split(':').map(Number);
+        const startMin = startH * 60 + startM;
+        const endMin = endH * 60 + endM;
+        return minutes >= startMin && minutes < endMin;
+      });
+      if (isBlockedTime) {
+        return { className: 'rbc-off-range-bg', style: { backgroundColor: 'rgba(148, 163, 184, 0.1)', opacity: 0.8, backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(148, 163, 184, 0.1) 10px, rgba(148, 163, 184, 0.1) 20px)' } };
+      }
+    }
+
     const dayOfWeek = date.getDay();
     const daySchedule = schedules.find(s => s.dayOfWeek === dayOfWeek);
     
@@ -352,7 +374,6 @@ export const AdminDashboard: React.FC = () => {
       return { className: 'rbc-off-range-bg', style: { backgroundColor: 'var(--bg-color)', opacity: 0.5 } };
     }
 
-    const minutes = date.getHours() * 60 + date.getMinutes();
     const isWithinAnyRange = daySchedule.ranges.some(r => {
       const [startH, startM] = r.start.split(':').map(Number);
       const [endH, endM] = r.end.split(':').map(Number);
@@ -369,6 +390,12 @@ export const AdminDashboard: React.FC = () => {
   };
 
   const dayPropGetter = (date: Date) => {
+    const dateStr = format(date, 'yyyy-MM-dd');
+    const blockedDay = blockedDays.find(b => b.date === dateStr);
+    if (blockedDay && blockedDay.isFullDay !== false) {
+      return { className: 'rbc-off-range-bg', style: { backgroundColor: 'rgba(148, 163, 184, 0.1)', backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(148, 163, 184, 0.1) 10px, rgba(148, 163, 184, 0.1) 20px)' } };
+    }
+
     const daySchedule = schedules.find(s => s.dayOfWeek === date.getDay());
     if (!daySchedule || !daySchedule.isOpen) {
        return { className: 'rbc-off-range-bg', style: { backgroundColor: 'var(--bg-color)' } };
