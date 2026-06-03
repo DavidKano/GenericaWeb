@@ -4,6 +4,10 @@ Este archivo registra cronológicamente todas las versiones desplegadas en la pl
 
 ---
 
+## [v4.1.2] - 2026-06-03
+### Añadido
+- **Estilo Sombreado para Bloqueos en Calendario (por David)**: Añadido sombreado gris visual para destacar claramente los días y horas bloqueados en el calendario de administración (`AdminDashboard.tsx`).
+
 ## [v4.1.1] - 2026-05-29
 ### Modificado
 - **Unificación de Línea en Pie de Página**: Rediseño de ConnessiaFooter para alinear horizontalmente todos los elementos (`powered by`, logotipo, nombre de marca y versión) en una sola línea responsiva fluida, tanto para web como para móviles.
