@@ -4,6 +4,10 @@ Este archivo registra cronológicamente todas las versiones desplegadas en la pl
 
 ---
 
+## [v4.2.1] - 2026-06-15
+### Modificado
+- **Unificación de Botones de Ficha de Cita**: Aplicada la distribución apilada de botones (TPV en la línea superior al 100% de ancho, y "Cancelar"/"Guardar Cambios" en la línea inferior al 50% cada uno) también a la vista de ordenador (desktop) en `AdminDashboard.tsx`, para evitar desalineaciones y desbordes cuando el tamaño del modal resulta ajustado.
+
 ## [v4.2.0] - 2026-06-15
 ### Añadido
 - **Bloqueo de Panel /admin por Suscripción Vencida**: Implementación de restricciones automáticas cuando la suscripción de un negocio expira (`días restantes <= 0`):

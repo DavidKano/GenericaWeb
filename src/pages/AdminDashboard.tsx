@@ -1253,9 +1253,8 @@ export const AdminDashboard: React.FC = () => {
             <div className="modal-actions" style={{ 
               marginTop: '2rem', 
               display: 'flex', 
-              flexDirection: isMobile ? 'column' : 'row', 
+              flexDirection: 'column', 
               gap: '10px', 
-              flexWrap: isMobile ? 'nowrap' : 'wrap',
               width: '100%' 
             }}>
               <button 
@@ -1267,8 +1266,7 @@ export const AdminDashboard: React.FC = () => {
                   navigate(`/admin/tpv?customerId=${customerId}&serviceId=${serviceId}&teamMemberId=${eventTeamMemberId || ''}`);
                 }}
                 style={{
-                  width: isMobile ? '100%' : 'auto',
-                  marginRight: isMobile ? '0' : 'auto',
+                  width: '100%',
                   borderColor: 'var(--primary-color)',
                   color: 'var(--primary-color)',
                   display: 'inline-flex',
@@ -1285,19 +1283,19 @@ export const AdminDashboard: React.FC = () => {
               <div style={{ 
                 display: 'flex', 
                 gap: '10px', 
-                width: isMobile ? '100%' : 'auto' 
+                width: '100%' 
               }}>
                 <button 
                   className="btn-secondary" 
                   onClick={() => setShowEventModal(false)}
-                  style={{ flex: isMobile ? 1 : 'none' }}
+                  style={{ flex: 1 }}
                 >
                   Cancelar
                 </button>
                 <button 
                   className="btn-primary" 
                   onClick={handleSaveEventEdits}
-                  style={{ flex: isMobile ? 1 : 'none' }}
+                  style={{ flex: 1 }}
                 >
                   Guardar Cambios
                 </button>
