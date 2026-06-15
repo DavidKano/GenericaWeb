@@ -1010,7 +1010,7 @@ export const AdminDashboard: React.FC = () => {
 
       {/* Modal Citas Pendientes */}
       {showPendingModal && (
-        <div className="modal-overlay" onClick={() => setShowPendingModal(false)}>
+        <div className="modal-overlay" onClick={() => setShowPendingModal(false)} style={{ zIndex: 1000 }}>
           <div className="modal-content animate-pop-in" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', width: '90%' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '1rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -1106,7 +1106,7 @@ export const AdminDashboard: React.FC = () => {
 
       {/* Modal Detalles Cita (Calendario) */}
       {showEventModal && selectedEvent && (
-        <div className="modal-overlay" onClick={() => setShowEventModal(false)}>
+        <div className="modal-overlay" onClick={() => setShowEventModal(false)} style={{ zIndex: 1000 }}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                 <h2>Detalles de Cita</h2>
@@ -1230,7 +1230,14 @@ export const AdminDashboard: React.FC = () => {
               />
             </div>
             
-            <div className="modal-actions" style={{ marginTop: '2rem', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+            <div className="modal-actions" style={{ 
+              marginTop: '2rem', 
+              display: 'flex', 
+              flexDirection: isMobile ? 'column' : 'row', 
+              gap: '10px', 
+              flexWrap: isMobile ? 'nowrap' : 'wrap',
+              width: '100%' 
+            }}>
               <button 
                 type="button"
                 className="btn-secondary" 
@@ -1240,11 +1247,13 @@ export const AdminDashboard: React.FC = () => {
                   navigate(`/admin/tpv?customerId=${customerId}&serviceId=${serviceId}&teamMemberId=${eventTeamMemberId || ''}`);
                 }}
                 style={{
-                  marginRight: 'auto',
+                  width: isMobile ? '100%' : 'auto',
+                  marginRight: isMobile ? '0' : 'auto',
                   borderColor: 'var(--primary-color)',
                   color: 'var(--primary-color)',
                   display: 'inline-flex',
                   alignItems: 'center',
+                  justifyContent: 'center',
                   gap: '6px',
                   fontWeight: 600,
                   background: 'transparent',
@@ -1253,8 +1262,26 @@ export const AdminDashboard: React.FC = () => {
               >
                 <CreditCard size={16} /> TPV
               </button>
-              <button className="btn-secondary" onClick={() => setShowEventModal(false)}>Cancelar</button>
-              <button className="btn-primary" onClick={handleSaveEventEdits}>Guardar Cambios</button>
+              <div style={{ 
+                display: 'flex', 
+                gap: '10px', 
+                width: isMobile ? '100%' : 'auto' 
+              }}>
+                <button 
+                  className="btn-secondary" 
+                  onClick={() => setShowEventModal(false)}
+                  style={{ flex: isMobile ? 1 : 'none' }}
+                >
+                  Cancelar
+                </button>
+                <button 
+                  className="btn-primary" 
+                  onClick={handleSaveEventEdits}
+                  style={{ flex: isMobile ? 1 : 'none' }}
+                >
+                  Guardar Cambios
+                </button>
+              </div>
             </div>
           </div>
         </div>

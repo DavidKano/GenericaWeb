@@ -4,6 +4,13 @@ Este archivo registra cronológicamente todas las versiones desplegadas en la pl
 
 ---
 
+## [v4.1.3] - 2026-06-15
+### Modificado
+- **Rediseño de Botones en Ficha de Cita para Vista Móvil**: Reubicación de la opción "TPV" a una línea superior (ancho 100%) y agrupación horizontal de "Cancelar" y "Guardar Cambios" (50% de ancho cada uno) en la parte inferior para mejorar la usabilidad en dispositivos móviles.
+
+### Corregido
+- **Superposición de Botón Flotante (+)**: Incrementado el `z-index` de `.modal-overlay` a `1000` y añadido explícitamente en los modales de citas pendientes y detalles del calendario en `AdminDashboard.tsx` para evitar que el botón FAB de crear cita se dibuje por encima de los modales abiertos.
+
 ## [v4.1.2] - 2026-06-03
 ### Añadido
 - **Estilo Sombreado para Bloqueos en Calendario (por David)**: Añadido sombreado gris visual para destacar claramente los días y horas bloqueados en el calendario de administración (`AdminDashboard.tsx`).
