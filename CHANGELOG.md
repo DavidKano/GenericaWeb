@@ -4,6 +4,16 @@ Este archivo registra cronológicamente todas las versiones desplegadas en la pl
 
 ---
 
+## [v4.2.0] - 2026-06-15
+### Añadido
+- **Bloqueo de Panel /admin por Suscripción Vencida**: Implementación de restricciones automáticas cuando la suscripción de un negocio expira (`días restantes <= 0`):
+  - Bloqueo y redirección automática si se intenta acceder mediante URL directa a subpáginas del panel de administración (ej. `/admin/services`, `/admin/users`, etc.).
+  - Desactivación y atenuación visual de los accesos a menús restringidos en la barra lateral y barra móvil (excepto el "Panel de Control").
+  - Ocultación del botón flotante (+) para crear nuevas citas.
+  - Alerta restrictiva al hacer clic en las citas ya existentes, impidiendo abrir su ficha y realizar cualquier modificación.
+  - Desactivación del botón "Aceptar" para confirmar citas en la lista de solicitudes pendientes.
+- **Tarjeta de Suscripción Linkeable**: La tarjeta de suscripción de la barra lateral se convierte en un enlace interactivo directo al link de renovación (`paymentGatewayUrl`) configurado en el superadmin cuando la suscripción está vencida, manteniéndose informativa y estática si está al día.
+
 ## [v4.1.3] - 2026-06-15
 ### Modificado
 - **Rediseño de Botones en Ficha de Cita para Vista Móvil**: Reubicación de la opción "TPV" a una línea superior (ancho 100%) y agrupación horizontal de "Cancelar" y "Guardar Cambios" (50% de ancho cada uno) en la parte inferior para mejorar la usabilidad en dispositivos móviles.

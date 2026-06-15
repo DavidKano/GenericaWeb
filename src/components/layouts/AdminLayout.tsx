@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { LayoutDashboard, Users, User as UserIcon, LogOut, QrCode, Clock, Megaphone, Menu, X, Sliders, Settings, ChevronLeft, ChevronRight, CreditCard } from 'lucide-react';
 import { useData } from '../../context/DataContext';
@@ -43,6 +43,18 @@ export const AdminLayout: React.FC = () => {
   const navigate = useNavigate();
   const [design, setDesign] = React.useState<DesignConfig | null>(null);
   const [companyData, setCompanyData] = React.useState<CompanyData | null>(null);
+  const location = useLocation();
+
+  const isSubscriptionExpired = React.useMemo(() => {
+    if (!companyData?.fechaRenovacion) return false;
+    return getDaysRemaining(companyData.fechaRenovacion) <= 0;
+  }, [companyData]);
+
+  React.useEffect(() => {
+    if (isSubscriptionExpired && location.pathname !== '/admin' && location.pathname !== '/admin/') {
+      navigate('/admin', { replace: true });
+    }
+  }, [isSubscriptionExpired, location.pathname, navigate]);
 
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const [showSupportModal, setShowSupportModal] = React.useState(false);
@@ -226,36 +238,41 @@ export const AdminLayout: React.FC = () => {
 
           {/* Navigation Links */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-            {navItems.map(item => (
-              <NavLink 
-                key={item.to} 
-                to={item.to} 
-                className={({ isActive }) => `admin-sidebar-link ${isActive ? 'active' : ''}`}
-                data-tooltip={item.label}
-                style={({ isActive }) => ({
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: isCollapsed && !isMobile ? '0px' : '12px',                      // fixed 12px padding between icon and text
-                  padding: isCollapsed && !isMobile ? '12px 0' : '12px 16px',             // vertical padding of minimum 12px
-                  margin: isCollapsed && !isMobile ? '2px 8px' : '2px 12px',               // floats inside the sidebar as a pill
-                  justifyContent: isCollapsed && !isMobile ? 'center' : 'flex-start',
-                  borderRadius: '8px',              // pill container with rounded corners
-                  textDecoration: 'none',
-                  fontSize: '0.9rem',
-                  fontWeight: isActive ? 600 : 500, // active is semi-bold
-                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                  color: isActive 
-                    ? (design?.primaryColor || 'var(--primary-color)') 
-                    : 'var(--text-secondary)',
-                  background: isActive 
-                    ? `color-mix(in srgb, ${design?.primaryColor || 'var(--primary-color)'} 10%, transparent)` 
-                    : 'transparent',
-                  border: 'none',
-                  borderLeft: 'none'
-                })}
-                onClick={() => isMobile && setIsMenuOpen(false)}
-                end={item.end}
-              >
+            {navItems.map(item => {
+              const isDisabled = isSubscriptionExpired && item.to !== '/admin';
+              return (
+                <NavLink 
+                  key={item.to} 
+                  to={item.to} 
+                  className={({ isActive }) => `admin-sidebar-link ${isActive ? 'active' : ''}`}
+                  data-tooltip={item.label}
+                  style={({ isActive }) => ({
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: isCollapsed && !isMobile ? '0px' : '12px',                      // fixed 12px padding between icon and text
+                    padding: isCollapsed && !isMobile ? '12px 0' : '12px 16px',             // vertical padding of minimum 12px
+                    margin: isCollapsed && !isMobile ? '2px 8px' : '2px 12px',               // floats inside the sidebar as a pill
+                    justifyContent: isCollapsed && !isMobile ? 'center' : 'flex-start',
+                    borderRadius: '8px',              // pill container with rounded corners
+                    textDecoration: 'none',
+                    fontSize: '0.9rem',
+                    fontWeight: isActive ? 600 : 500, // active is semi-bold
+                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                    color: isActive 
+                      ? (design?.primaryColor || 'var(--primary-color)') 
+                      : 'var(--text-secondary)',
+                    background: isActive 
+                      ? `color-mix(in srgb, ${design?.primaryColor || 'var(--primary-color)'} 10%, transparent)` 
+                      : 'transparent',
+                    border: 'none',
+                    borderLeft: 'none',
+                    opacity: isDisabled ? 0.4 : 1,
+                    pointerEvents: isDisabled ? 'none' : 'auto',
+                    cursor: isDisabled ? 'not-allowed' : 'pointer'
+                  })}
+                  onClick={() => isMobile && setIsMenuOpen(false)}
+                  end={item.end}
+                >
                 <span className="sidebar-link-icon" style={{ 
                   display: 'flex', 
                   alignItems: 'center', 
@@ -269,49 +286,77 @@ export const AdminLayout: React.FC = () => {
                 </span>
                 <span className="sidebar-link-text">{item.label}</span>
               </NavLink>
-            ))}
+              );
+            })}
           </div>
           
           {/* Subscription Card (Encapsulated at the bottom of the sidebar) */}
-          {companyData?.fechaRenovacion && (
-             <div className="sub-card-container" style={{
-               marginTop: 'auto',
-               margin: '16px 12px',
-               padding: '12px 14px',
-               background: `color-mix(in srgb, ${design?.primaryColor || 'var(--primary-color)'} 4%, transparent)`,
-               border: `1px solid color-mix(in srgb, ${design?.primaryColor || 'var(--primary-color)'} 10%, transparent)`,
-               borderRadius: '8px',
-               display: 'flex',
-               flexDirection: 'column',
-               gap: '8px',
-               boxShadow: '0 2px 10px rgba(0,0,0,0.01)'
-             }}>
-               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem' }}>
-                 <span style={{ color: 'var(--text-secondary)', fontWeight: '600' }}>Suscripción</span>
-                 <span style={{ color: design?.primaryColor || 'var(--primary-color)', fontWeight: 700 }}>
-                   {getDaysRemaining(companyData.fechaRenovacion)} días
-                 </span>
-               </div>
-               
-               <div style={{ fontSize: '0.7rem', color: 'var(--text-color)', opacity: 0.85, display: 'flex', justifyContent: 'space-between' }}>
-                 <span>Expira el:</span>
-                 <strong>{format(new Date(companyData.fechaRenovacion), 'dd/MM/yyyy')}</strong>
-               </div>
-               
-               {/* Progress bar */}
-               <div style={{ height: '4px', width: '100%', background: 'rgba(0, 0, 0, 0.04)', borderRadius: '100px', overflow: 'hidden', marginTop: '2px' }}>
-                 <div style={{
-                   height: '100%',
-                   width: `${getSubscriptionProgress(companyData.fechaPuestaMarcha, companyData.fechaRenovacion)}%`,
-                   background: getSubscriptionProgress(companyData.fechaPuestaMarcha, companyData.fechaRenovacion) <= 15 
-                     ? '#ef4444' 
-                     : (design?.primaryColor || 'var(--primary-color)'),
-                   borderRadius: '100px',
-                   transition: 'width 0.8s ease-out'
-                 }} />
-               </div>
-             </div>
-          )}
+          {companyData?.fechaRenovacion && (() => {
+             const isExpired = getDaysRemaining(companyData.fechaRenovacion) <= 0;
+             const canLink = isExpired && companyData.paymentGatewayUrl;
+             const CardTag = canLink ? 'a' : 'div';
+             const linkProps = canLink ? {
+               href: companyData.paymentGatewayUrl,
+               target: '_blank',
+               rel: 'noopener noreferrer'
+             } : {};
+
+             return (
+               <CardTag 
+                 className="sub-card-container" 
+                 {...linkProps}
+                 style={{
+                   marginTop: 'auto',
+                   margin: '16px 12px',
+                   padding: '12px 14px',
+                   background: `color-mix(in srgb, ${design?.primaryColor || 'var(--primary-color)'} 4%, transparent)`,
+                   border: `1px solid color-mix(in srgb, ${design?.primaryColor || 'var(--primary-color)'} 10%, transparent)`,
+                   borderRadius: '8px',
+                   display: 'flex',
+                   flexDirection: 'column',
+                   gap: '8px',
+                   boxShadow: '0 2px 10px rgba(0,0,0,0.01)',
+                   textDecoration: 'none',
+                   color: 'inherit',
+                   cursor: canLink ? 'pointer' : 'default',
+                   transition: 'transform 0.2s ease, box-shadow 0.2s ease'
+                 }}
+               >
+                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem' }}>
+                   <span style={{ color: 'var(--text-secondary)', fontWeight: '600' }}>Suscripción</span>
+                   <span style={{ color: isExpired ? '#ef4444' : (design?.primaryColor || 'var(--primary-color)'), fontWeight: 700 }}>
+                     {isExpired ? 'Vencida' : `${getDaysRemaining(companyData.fechaRenovacion)} días`}
+                   </span>
+                 </div>
+                 
+                 <div style={{ fontSize: '0.7rem', color: 'var(--text-color)', opacity: 0.85, display: 'flex', justifyContent: 'space-between' }}>
+                   <span>{isExpired ? 'Venció el:' : 'Expira el:'}</span>
+                   <strong>{format(new Date(companyData.fechaRenovacion), 'dd/MM/yyyy')}</strong>
+                 </div>
+                 
+                 {/* Progress bar */}
+                 <div style={{ height: '4px', width: '100%', background: 'rgba(0, 0, 0, 0.04)', borderRadius: '100px', overflow: 'hidden', marginTop: '2px' }}>
+                   <div style={{
+                     height: '100%',
+                     width: `${getSubscriptionProgress(companyData.fechaPuestaMarcha, companyData.fechaRenovacion)}%`,
+                     background: isExpired 
+                       ? '#ef4444' 
+                       : getSubscriptionProgress(companyData.fechaPuestaMarcha, companyData.fechaRenovacion) <= 15 
+                         ? '#ef4444' 
+                         : (design?.primaryColor || 'var(--primary-color)'),
+                     borderRadius: '100px',
+                     transition: 'width 0.8s ease-out'
+                   }} />
+                 </div>
+
+                 {canLink && (
+                   <div style={{ fontSize: '0.65rem', color: '#ef4444', textAlign: 'center', fontWeight: 600, marginTop: '4px', textDecoration: 'underline' }}>
+                     Renovar suscripción aquí
+                   </div>
+                 )}
+               </CardTag>
+             );
+          })()}
 
           {/* Bottom Collapse Button for Desktop */}
           {!isMobile && (
@@ -349,12 +394,25 @@ export const AdminLayout: React.FC = () => {
 
       {isMobile && (
         <nav className="admin-bottom-nav">
-          {bottomNavItems.map(item => (
-            <NavLink key={item.to} to={item.to} className={({ isActive }) => isActive ? 'active' : ''} end={item.end}>
-              {item.icon}
-              <span>{item.label}</span>
-            </NavLink>
-          ))}
+          {bottomNavItems.map(item => {
+            const isDisabled = isSubscriptionExpired && item.to !== '/admin';
+            return (
+              <NavLink 
+                key={item.to} 
+                to={item.to} 
+                className={({ isActive }) => isActive ? 'active' : ''} 
+                end={item.end}
+                style={{
+                  opacity: isDisabled ? 0.4 : 1,
+                  pointerEvents: isDisabled ? 'none' : 'auto',
+                  cursor: isDisabled ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {item.icon}
+                <span>{item.label}</span>
+              </NavLink>
+            );
+          })}
         </nav>
       )}
 

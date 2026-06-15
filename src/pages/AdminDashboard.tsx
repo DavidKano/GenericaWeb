@@ -135,6 +135,19 @@ export const AdminDashboard: React.FC = () => {
     }
   }, [companyData]);
 
+  const isSubscriptionExpired = useMemo(() => {
+    if (!companyData?.fechaRenovacion) return false;
+    try {
+      const renewalDate = new Date(companyData.fechaRenovacion);
+      const today = new Date();
+      const diffTime = renewalDate.getTime() - today.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return diffDays <= 0;
+    } catch (e) {
+      return false;
+    }
+  }, [companyData]);
+
   const manualAvailableSlots = useMemo(() => {
     if (!mDate || !mServiceId) return [];
     
@@ -416,6 +429,10 @@ export const AdminDashboard: React.FC = () => {
   };
 
   const handleSelectEvent = (event: any) => {
+    if (isSubscriptionExpired) {
+      alert('Tu suscripción ha vencido. Ponte en contacto con soporte o realiza el pago para poder gestionar o ver los detalles de las citas.');
+      return;
+    }
     setSelectedEvent(event);
     setEventNotes(event.resource.adminNotes || '');
     setEventServiceId(event.resource.serviceId);
@@ -1063,12 +1080,13 @@ export const AdminDashboard: React.FC = () => {
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', flexShrink: 0 }}>
                         <button 
                           className="btn-primary" 
+                          disabled={isSubscriptionExpired}
                           style={{ 
                             padding: '8px 16px', 
                             fontSize: '0.85rem', 
                             fontWeight: 600, 
                             borderRadius: '8px',
-                            cursor: 'pointer',
+                            cursor: isSubscriptionExpired ? 'not-allowed' : 'pointer',
                             transition: 'all 0.2s ease',
                             boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)',
                             border: 'none',
@@ -1076,9 +1094,11 @@ export const AdminDashboard: React.FC = () => {
                             alignItems: 'center',
                             justifyContent: 'center',
                             backgroundColor: 'var(--primary-color)',
-                            color: '#FFFFFF'
+                            color: '#FFFFFF',
+                            opacity: isSubscriptionExpired ? 0.5 : 1
                           }}
                           onClick={async () => {
+                            if (isSubscriptionExpired) return;
                             try {
                               await repo.saveAppointment({ ...appt, status: 'CONFIRMED' });
                               loadData();
@@ -1776,29 +1796,31 @@ export const AdminDashboard: React.FC = () => {
       )}
 
       {/* Floating Action Button (FAB) for "+ Nueva Cita" */}
-      <button 
-        className="btn-primary hover-glow fab-button animate-fade-in" 
-        onClick={() => setShowNewApptModal(true)}
-        style={{ 
-          position: 'fixed',
-          bottom: isMobile ? '6.5rem' : '2.5rem',
-          right: isMobile ? '1.5rem' : '2.5rem',
-          width: '56px',
-          height: '56px',
-          borderRadius: '50%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          boxShadow: '0 8px 24px rgba(59, 130, 246, 0.45)',
-          zIndex: 999,
-          cursor: 'pointer',
-          border: 'none',
-          padding: 0
-        }}
-        title="Nueva Cita"
-      >
-        <Plus size={26} />
-      </button>
+      {!isSubscriptionExpired && (
+        <button 
+          className="btn-primary hover-glow fab-button animate-fade-in" 
+          onClick={() => setShowNewApptModal(true)}
+          style={{ 
+            position: 'fixed',
+            bottom: isMobile ? '6.5rem' : '2.5rem',
+            right: isMobile ? '1.5rem' : '2.5rem',
+            width: '56px',
+            height: '56px',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 8px 24px rgba(59, 130, 246, 0.45)',
+            zIndex: 999,
+            cursor: 'pointer',
+            border: 'none',
+            padding: 0
+          }}
+          title="Nueva Cita"
+        >
+          <Plus size={26} />
+        </button>
+      )}
     </div>
   );
 };
