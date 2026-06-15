@@ -4,6 +4,10 @@ Este archivo registra cronológicamente todas las versiones desplegadas en la pl
 
 ---
 
+## [v4.2.2] - 2026-06-15
+### Corregido
+- **Alineación de Botones en Ordenador**: Corregida la alineación horizontal de los botones de la ficha de cita en la versión de escritorio de `AdminDashboard.tsx`, empleando `flex-wrap: nowrap` y `white-space: nowrap` para evitar saltos de línea desordenados y asegurar que salgan correctamente alineados (TPV a la izquierda y Cancelar/Guardar Cambios a la derecha) sin importar el tamaño exacto del modal.
+
 ## [v4.2.1] - 2026-06-15
 ### Modificado
 - **Unificación de Botones de Ficha de Cita**: Aplicada la distribución apilada de botones (TPV en la línea superior al 100% de ancho, y "Cancelar"/"Guardar Cambios" en la línea inferior al 50% cada uno) también a la vista de ordenador (desktop) en `AdminDashboard.tsx`, para evitar desalineaciones y desbordes cuando el tamaño del modal resulta ajustado.

@@ -1253,8 +1253,10 @@ export const AdminDashboard: React.FC = () => {
             <div className="modal-actions" style={{ 
               marginTop: '2rem', 
               display: 'flex', 
-              flexDirection: 'column', 
+              flexDirection: isMobile ? 'column' : 'row', 
               gap: '10px', 
+              flexWrap: 'nowrap',
+              alignItems: 'center',
               width: '100%' 
             }}>
               <button 
@@ -1266,7 +1268,8 @@ export const AdminDashboard: React.FC = () => {
                   navigate(`/admin/tpv?customerId=${customerId}&serviceId=${serviceId}&teamMemberId=${eventTeamMemberId || ''}`);
                 }}
                 style={{
-                  width: '100%',
+                  width: isMobile ? '100%' : 'auto',
+                  marginRight: isMobile ? '0' : 'auto',
                   borderColor: 'var(--primary-color)',
                   color: 'var(--primary-color)',
                   display: 'inline-flex',
@@ -1275,7 +1278,8 @@ export const AdminDashboard: React.FC = () => {
                   gap: '6px',
                   fontWeight: 600,
                   background: 'transparent',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap'
                 }}
               >
                 <CreditCard size={16} /> TPV
@@ -1283,19 +1287,26 @@ export const AdminDashboard: React.FC = () => {
               <div style={{ 
                 display: 'flex', 
                 gap: '10px', 
-                width: '100%' 
+                width: isMobile ? '100%' : 'auto',
+                flexShrink: 0
               }}>
                 <button 
                   className="btn-secondary" 
                   onClick={() => setShowEventModal(false)}
-                  style={{ flex: 1 }}
+                  style={{ 
+                    flex: isMobile ? 1 : 'none',
+                    whiteSpace: 'nowrap'
+                  }}
                 >
                   Cancelar
                 </button>
                 <button 
                   className="btn-primary" 
                   onClick={handleSaveEventEdits}
-                  style={{ flex: 1 }}
+                  style={{ 
+                    flex: isMobile ? 1 : 'none',
+                    whiteSpace: 'nowrap'
+                  }}
                 >
                   Guardar Cambios
                 </button>
