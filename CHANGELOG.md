@@ -4,6 +4,18 @@ Este archivo registra cronológicamente todas las versiones desplegadas en la pl
 
 ---
 
+## [v4.3.0] - 2026-06-16
+### Añadido
+- **Restricción de Reserva por Días y Horas en Servicios**: Nueva configuración en la ficha de cada servicio para restringir las citas a determinados días de la semana y franjas horarias:
+  - Checkbox para activar/desactivar las restricciones de días y horas específicas.
+  - Visualización dinámica de los días de la semana que el negocio está abierto.
+  - Campos de entrada para hora de inicio y fin para acotar las reservas dentro de cada día.
+  - Horario de apertura del negocio visible como etiqueta de referencia para cada día (ej. `(09:00 - 20:00)`).
+  - Validación de seguridad que impide configurar horarios de servicio fuera del horario comercial o rangos invertidos.
+- **Integración de Filtros en Disponibilidad**:
+  - Reserva de clientes (`BookingPage`): Días inhabilitados por el servicio aparecen inactivos en el calendario de reservas y los slots horarios sugeridos se intersectan con las horas del servicio.
+  - Reserva manual de administrador (`AdminDashboard`): Horarios disponibles sugeridos al agendar de forma manual respetan las restricciones del servicio seleccionado.
+
 ## [v4.2.2] - 2026-06-15
 ### Corregido
 - **Alineación de Botones en Ordenador**: Corregida la alineación horizontal de los botones de la ficha de cita en la versión de escritorio de `AdminDashboard.tsx`, empleando `flex-wrap: nowrap` y `white-space: nowrap` para evitar saltos de línea desordenados y asegurar que salgan correctamente alineados (TPV a la izquierda y Cancelar/Guardar Cambios a la derecha) sin importar el tamaño exacto del modal.

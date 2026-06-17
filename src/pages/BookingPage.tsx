@@ -5,7 +5,7 @@ import type { BusinessConfig, BookingService, Appointment, DaySchedule, BlockedD
 import { Calendar } from '../components/Calendar';
 import { Calendar as CalendarIcon, Share2, CheckCircle2, ArrowLeft } from 'lucide-react';
 import { generateGoogleCalendarUrl, shareOrDownloadIcs } from '../utils/calendar';
-import { generateTimeSlots } from '../utils/timeSlots';
+import { generateTimeSlots, getIntersectedRanges } from '../utils/timeSlots';
 import { format, startOfDay, addDays, endOfDay, parse } from 'date-fns';
 import { INITIAL_SCHEDULES } from '../services/scheduleDefaults';
 import { INITIAL_BUSINESS_CONFIG } from '../services/configDefaults';
@@ -75,6 +75,16 @@ export const BookingPage: React.FC = () => {
     
     if (!schedule || !schedule.isOpen) return [];
 
+    const custom = selectedService.hasCustomSchedule
+      ? (selectedService.customSchedule?.[dayOfWeek] ?? selectedService.customSchedule?.[String(dayOfWeek)])
+      : undefined;
+
+    if (selectedService.hasCustomSchedule && (!custom || !custom.isOpen)) {
+      return [];
+    }
+
+    const activeRanges = getIntersectedRanges(schedule.ranges, custom);
+
     const dayStart = new Date(selectedDate);
     dayStart.setHours(0,0,0,0);
     const dayEnd = new Date(selectedDate);
@@ -101,14 +111,14 @@ export const BookingPage: React.FC = () => {
       : [];
 
     return generateTimeSlots(
-      schedule.ranges,
+      activeRanges,
       selectedService.durationMin,
       selectedDate,
       existingApptRanges,
       businessConfig?.concurrentSlots || 1,
       ptBlockedRanges
     );
-  }, [selectedDate, selectedService, schedules, appointments, services, businessConfig]);
+  }, [selectedDate, selectedService, schedules, appointments, services, businessConfig, blockedDays]);
 
   // Calcular qué días están COMPLETOS (sin huecos libres) para los próximos 2 meses
   const fullDates = useMemo(() => {
@@ -123,6 +133,18 @@ export const BookingPage: React.FC = () => {
         const schedule = schedules.find(s => s.dayOfWeek === dayOfWeek);
         
         if (!schedule || !schedule.isOpen) continue;
+
+        const custom = selectedService.hasCustomSchedule
+          ? (selectedService.customSchedule?.[dayOfWeek] ?? selectedService.customSchedule?.[String(dayOfWeek)])
+          : undefined;
+
+        if (selectedService.hasCustomSchedule && (!custom || !custom.isOpen)) {
+          results.push(format(date, 'yyyy-MM-dd'));
+          continue;
+        }
+
+        const activeRanges = getIntersectedRanges(schedule.ranges, custom);
+
         const dateKey = format(date, 'yyyy-MM-dd');
         if (blockedDays.some(b => b.date === dateKey && b.isFullDay !== false)) continue;
 
@@ -147,7 +169,7 @@ export const BookingPage: React.FC = () => {
             });
 
         const slots = generateTimeSlots(
-            schedule.ranges,
+            activeRanges,
             selectedService.durationMin,
             date,
             dayAppts,
@@ -161,6 +183,23 @@ export const BookingPage: React.FC = () => {
     }
     return results;
   }, [selectedService, schedules, appointments, services, businessConfig, blockedDays]);
+
+  const closedDays = useMemo(() => {
+    const businessClosed = schedules.filter(s => !s.isOpen).map(s => s.dayOfWeek);
+    if (!selectedService || !selectedService.hasCustomSchedule || !selectedService.customSchedule) {
+      return businessClosed;
+    }
+    const serviceClosed: number[] = [];
+    for (let d = 0; d <= 6; d++) {
+      const custom = selectedService.customSchedule[d] ?? selectedService.customSchedule[String(d)];
+      if (!custom || !custom.isOpen) {
+        if (!serviceClosed.includes(d)) {
+          serviceClosed.push(d);
+        }
+      }
+    }
+    return Array.from(new Set([...businessClosed, ...serviceClosed]));
+  }, [schedules, selectedService]);
 
   const handleConfirm = async () => {
     if (!selectedService || !selectedDate || !selectedTime || !user) return;
@@ -455,7 +494,7 @@ export const BookingPage: React.FC = () => {
             }}
             blockedDates={blockedDays.filter(b => b.isFullDay !== false).map(b => b.date)}
             fullDates={fullDates}
-            closedDays={schedules.filter(s => !s.isOpen).map(s => s.dayOfWeek)}
+            closedDays={closedDays}
           />
 
           <div style={{ marginTop: '1.5rem' }}>

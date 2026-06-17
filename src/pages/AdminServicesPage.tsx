@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useData } from '../context/DataContext';
-import type { BookingService, BusinessConfig } from '../services/models';
+import type { BookingService, BusinessConfig, DaySchedule } from '../services/models';
 import { INITIAL_BUSINESS_CONFIG } from '../services/configDefaults';
 import { Trash2, Clock, Euro, Edit3, Briefcase, Folder, X, Sliders } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
+
+const DAYS_OF_WEEK = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
 
 export const AdminServicesPage: React.FC = () => {
   const { repo } = useData();
@@ -14,6 +16,7 @@ export const AdminServicesPage: React.FC = () => {
   
   const [services, setServices] = useState<BookingService[]>([]);
   const [config, setConfig] = useState<BusinessConfig | null>(null);
+  const [schedules, setSchedules] = useState<DaySchedule[]>([]);
   
   const [showModal, setShowModal] = useState(false);
   const [newName, setNewName] = useState('');
@@ -24,21 +27,39 @@ export const AdminServicesPage: React.FC = () => {
   const [newColor, setNewColor] = useState('#3174ad');
   const [newIsActive, setNewIsActive] = useState(true);
   const [newFolderName, setNewFolderName] = useState('');
+  const [newHasCustomSchedule, setNewHasCustomSchedule] = useState(false);
+  const [newCustomSchedule, setNewCustomSchedule] = useState<Record<string, { isOpen: boolean; start?: string; end?: string }>>({});
   const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
 
   // Folder management
   const [showFolderModal, setShowFolderModal] = useState(false);
   const [newFolderInput, setNewFolderInput] = useState('');
 
+  const initDefaultCustomSchedule = (schedsList: DaySchedule[]) => {
+    const customScheds: Record<string, { isOpen: boolean; start: string; end: string }> = {};
+    for (let day = 0; day <= 6; day++) {
+      const daySched = schedsList.find(s => s.dayOfWeek === day);
+      customScheds[String(day)] = {
+        isOpen: daySched ? daySched.isOpen : false,
+        start: '',
+        end: ''
+      };
+    }
+    return customScheds;
+  };
+
+
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [svcs, cfg] = await Promise.all([
+      const [svcs, cfg, scheds] = await Promise.all([
         repo.getServices(),
         repo.getConfig(),
+        repo.getSchedules(),
       ]);
       setServices(svcs);
       setConfig(cfg || INITIAL_BUSINESS_CONFIG);
+      setSchedules(scheds || []);
     } catch (err: any) {
       console.error('Error cargando servicios:', err);
       setErrorMessage(err.message || 'Error de conexión con Firestore');
@@ -54,8 +75,52 @@ export const AdminServicesPage: React.FC = () => {
   const addOrUpdateService = async () => {
     if (!newName.trim()) return;
     
+    if (newHasCustomSchedule) {
+      for (const day of schedules) {
+        if (!day.isOpen) continue;
+        const dKey = String(day.dayOfWeek);
+        const custom = newCustomSchedule[dKey];
+        if (custom && custom.isOpen) {
+          const { start, end } = custom;
+          // Find min start and max end of business ranges
+          const minStart = day.ranges.reduce((min, r) => r.start < min ? r.start : min, "23:59");
+          const maxEnd = day.ranges.reduce((max, r) => r.end > max ? r.end : max, "00:00");
+          
+          if (start && (start < minStart || start > maxEnd)) {
+            alert(`La hora de inicio (${start}) para el día ${DAYS_OF_WEEK[day.dayOfWeek]} está fuera del horario de apertura del negocio (${minStart} - ${maxEnd}).`);
+            return;
+          }
+          if (end && (end < minStart || end > maxEnd)) {
+            alert(`La hora de fin (${end}) para el día ${DAYS_OF_WEEK[day.dayOfWeek]} está fuera del horario de apertura del negocio (${minStart} - ${maxEnd}).`);
+            return;
+          }
+          if (start && end && start >= end) {
+            alert(`La hora de inicio (${start}) debe ser menor que la hora de fin (${end}) para el día ${DAYS_OF_WEEK[day.dayOfWeek]}.`);
+            return;
+          }
+        }
+      }
+    }
+    
     try {
       const totalDuration = (newDays * 1440) + (newHours * 60) + newMinutes;
+      
+      const cleanedCustomSchedule: Record<string, any> = {};
+      if (newHasCustomSchedule) {
+        Object.keys(newCustomSchedule).forEach(k => {
+          const item = newCustomSchedule[k];
+          if (item && item.isOpen) {
+            cleanedCustomSchedule[k] = {
+              isOpen: true,
+              ...(item.start ? { start: item.start } : {}),
+              ...(item.end ? { end: item.end } : {}),
+            };
+          } else {
+            cleanedCustomSchedule[k] = { isOpen: false };
+          }
+        });
+      }
+
       const svc: BookingService = {
         id: editingServiceId || 'svc-' + Date.now(),
         name: newName,
@@ -63,6 +128,8 @@ export const AdminServicesPage: React.FC = () => {
         color: newColor,
         isActive: newIsActive,
         ...(newFolderName ? { folderName: newFolderName } : {}),
+        hasCustomSchedule: newHasCustomSchedule,
+        ...(newHasCustomSchedule ? { customSchedule: cleanedCustomSchedule } : {}),
       };
       
       if (newPrice !== '' && newPrice !== undefined && newPrice !== null) {
@@ -103,6 +170,8 @@ export const AdminServicesPage: React.FC = () => {
     setNewColor('#3174ad');
     setNewIsActive(true);
     setNewFolderName('');
+    setNewHasCustomSchedule(false);
+    setNewCustomSchedule({});
     setEditingServiceId(null);
   };
 
@@ -123,11 +192,36 @@ export const AdminServicesPage: React.FC = () => {
     setNewColor(svc.color || '#3174ad');
     setNewIsActive(svc.isActive !== false);
     setNewFolderName(svc.folderName || '');
+    
+    setNewHasCustomSchedule(svc.hasCustomSchedule || false);
+    
+    const initialCustom: Record<string, { isOpen: boolean; start: string; end: string }> = {};
+    for (let day = 0; day <= 6; day++) {
+      const dKey = String(day);
+      const customVal = svc.customSchedule?.[dKey] || svc.customSchedule?.[day];
+      if (customVal) {
+        initialCustom[dKey] = {
+          isOpen: customVal.isOpen,
+          start: customVal.start || '',
+          end: customVal.end || ''
+        };
+      } else {
+        const daySched = schedules.find(s => s.dayOfWeek === day);
+        initialCustom[dKey] = {
+          isOpen: daySched ? daySched.isOpen : false,
+          start: '',
+          end: ''
+        };
+      }
+    }
+    setNewCustomSchedule(initialCustom);
+    
     setShowModal(true);
   };
   
   const openNewService = () => {
     resetServiceForm();
+    setNewCustomSchedule(initDefaultCustomSchedule(schedules));
     setShowModal(true);
   };
 
@@ -712,7 +806,7 @@ export const AdminServicesPage: React.FC = () => {
               </div>
 
               {/* Checkbox: Servicio Activo */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.8rem', padding: '0.6rem 0.8rem', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '8px', marginBottom: '1.2rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.8rem', padding: '0.6rem 0.8rem', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '8px', marginBottom: '0.8rem' }}>
                 <input 
                   type="checkbox" 
                   id="svc-active" 
@@ -729,6 +823,113 @@ export const AdminServicesPage: React.FC = () => {
                 <label htmlFor="svc-active" style={{ margin: 0, cursor: 'pointer', fontSize: '0.8rem', color: '#475569', fontWeight: '500' }}>
                   Servicio Activo <span style={{ color: '#94A3B8', fontWeight: 'normal', fontSize: '0.75rem' }}>(Los clientes pueden reservarlo online)</span>
                 </label>
+              </div>
+
+              {/* Sección de restricción de días y horas */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.8rem', padding: '0.6rem 0.8rem', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '8px', marginBottom: '1.2rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <input 
+                    type="checkbox" 
+                    id="svc-custom-schedule" 
+                    checked={newHasCustomSchedule} 
+                    onChange={e => {
+                      setNewHasCustomSchedule(e.target.checked);
+                      if (e.target.checked && Object.keys(newCustomSchedule).length === 0) {
+                        setNewCustomSchedule(initDefaultCustomSchedule(schedules));
+                      }
+                    }} 
+                    style={{ 
+                      width: '15px', 
+                      height: '15px', 
+                      cursor: 'pointer',
+                      accentColor: 'var(--primary-color)',
+                      margin: 0
+                    }}
+                  />
+                  <label htmlFor="svc-custom-schedule" style={{ margin: 0, cursor: 'pointer', fontSize: '0.8rem', color: '#475569', fontWeight: '500' }}>
+                    Restringir días y horas de reserva
+                  </label>
+                </div>
+
+                {newHasCustomSchedule && (
+                  <div style={{ marginTop: '0.8rem', display: 'flex', flexDirection: 'column', gap: '0.8rem', borderTop: '1px solid #E2E8F0', paddingTop: '0.8rem' }}>
+                    {[...schedules]
+                      .filter(s => s.isOpen)
+                      .sort((a, b) => {
+                        const dayA = a.dayOfWeek === 0 ? 7 : a.dayOfWeek;
+                        const dayB = b.dayOfWeek === 0 ? 7 : b.dayOfWeek;
+                        return dayA - dayB;
+                      })
+                      .map(day => {
+                        const dKey = String(day.dayOfWeek);
+                        const custom = newCustomSchedule[dKey] || { isOpen: false, start: '', end: '' };
+                        const businessHoursLabel = day.ranges.map(r => `${r.start} - ${r.end}`).join(', ');
+
+                        return (
+                          <div key={day.dayOfWeek} style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', padding: '0.45rem', background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '6px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <input
+                                  type="checkbox"
+                                  id={`custom-day-${day.dayOfWeek}`}
+                                  checked={custom.isOpen}
+                                  onChange={e => {
+                                    setNewCustomSchedule(prev => ({
+                                      ...prev,
+                                      [dKey]: { ...prev[dKey], isOpen: e.target.checked }
+                                    }));
+                                  }}
+                                  style={{ width: '14px', height: '14px', accentColor: 'var(--primary-color)', cursor: 'pointer' }}
+                                />
+                                <label htmlFor={`custom-day-${day.dayOfWeek}`} style={{ fontSize: '0.8rem', fontWeight: '600', color: custom.isOpen ? '#1E293B' : '#94A3B8', cursor: 'pointer' }}>
+                                  {DAYS_OF_WEEK[day.dayOfWeek]}
+                                </label>
+                              </div>
+                              <span style={{ fontSize: '0.7rem', color: '#64748B' }}>
+                                ({businessHoursLabel})
+                              </span>
+                            </div>
+                            
+                            {custom.isOpen && (
+                              <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', marginTop: '0.2rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                  <span style={{ fontSize: '0.72rem', color: '#64748B' }}>Desde:</span>
+                                  <input
+                                    type="time"
+                                    value={custom.start || ''}
+                                    onChange={e => {
+                                      setNewCustomSchedule(prev => ({
+                                        ...prev,
+                                        [dKey]: { ...prev[dKey], start: e.target.value }
+                                      }));
+                                    }}
+                                    style={{ padding: '0.2rem 0.4rem', fontSize: '0.8rem', borderRadius: '4px', border: '1px solid #CBD5E1', outline: 'none', color: '#1E293B' }}
+                                  />
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                  <span style={{ fontSize: '0.72rem', color: '#64748B' }}>Hasta:</span>
+                                  <input
+                                    type="time"
+                                    value={custom.end || ''}
+                                    onChange={e => {
+                                      setNewCustomSchedule(prev => ({
+                                        ...prev,
+                                        [dKey]: { ...prev[dKey], end: e.target.value }
+                                      }));
+                                    }}
+                                    style={{ padding: '0.2rem 0.4rem', fontSize: '0.8rem', borderRadius: '4px', border: '1px solid #CBD5E1', outline: 'none', color: '#1E293B' }}
+                                  />
+                                </div>
+                                <span style={{ fontSize: '0.68rem', color: '#94A3B8', fontStyle: 'italic' }}>
+                                  (Vacío = todo el día)
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                  </div>
+                )}
               </div>
 
               {/* Acciones */}

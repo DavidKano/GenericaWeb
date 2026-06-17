@@ -61,3 +61,27 @@ export const generateTimeSlots = (
 
   return slots;
 };
+
+export const getIntersectedRanges = (
+  businessRanges: TimeRange[],
+  custom?: { isOpen: boolean; start?: string; end?: string }
+): TimeRange[] => {
+  if (!custom) return businessRanges;
+  if (!custom.isOpen) return [];
+
+  const { start: customStart, end: customEnd } = custom;
+  if (!customStart && !customEnd) return businessRanges;
+
+  const intersected: TimeRange[] = [];
+  businessRanges.forEach(r => {
+    const s = customStart && customStart > r.start ? customStart : r.start;
+    const e = customEnd && customEnd < r.end ? customEnd : r.end;
+
+    if (s < e) {
+      intersected.push({ start: s, end: e });
+    }
+  });
+
+  return intersected;
+};
+

@@ -4,7 +4,7 @@ import { useData } from '../context/DataContext';
 import type { User, Appointment, BookingService, DaySchedule, BusinessConfig, CompanyData, BlockedDay, TeamMember } from '../services/models';
 import { INITIAL_SCHEDULES } from '../services/scheduleDefaults';
 import { INITIAL_BUSINESS_CONFIG } from '../services/configDefaults';
-import { generateTimeSlots } from '../utils/timeSlots';
+import { generateTimeSlots, getIntersectedRanges } from '../utils/timeSlots';
 import { Plus, XCircle, User as UserIcon, UserCheck, ChevronLeft, ChevronRight, Columns, Minus, MessageCircle, Bell, Clock, Briefcase, Calendar as LucideCalendar, Phone, Mail, Tag, LayoutDashboard, CreditCard } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
@@ -161,6 +161,16 @@ export const AdminDashboard: React.FC = () => {
     const schedule = schedules.find(s => s.dayOfWeek === dayOfWeek);
     
     if (!schedule || !schedule.isOpen) return [];
+
+    const custom = selectedService.hasCustomSchedule
+      ? (selectedService.customSchedule?.[dayOfWeek] ?? selectedService.customSchedule?.[String(dayOfWeek)])
+      : undefined;
+
+    if (selectedService.hasCustomSchedule && (!custom || !custom.isOpen)) {
+      return [];
+    }
+
+    const activeRanges = getIntersectedRanges(schedule.ranges, custom);
     
     const dateKey = mDate;
     if (blockedDays.some(b => b.date === dateKey && b.isFullDay !== false)) return [];
@@ -190,7 +200,7 @@ export const AdminDashboard: React.FC = () => {
       : [];
 
     return generateTimeSlots(
-      schedule.ranges,
+      activeRanges,
       selectedService.durationMin,
       selectedDate,
       existingApptRanges,

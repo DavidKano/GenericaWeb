@@ -58,6 +58,12 @@ export interface BookingService {
   color?: string;
   isActive: boolean;
   folderName?: string;
+  hasCustomSchedule?: boolean;
+  customSchedule?: Record<string, {
+    isOpen: boolean;
+    start?: string;
+    end?: string;
+  }>;
 }
 
 export interface Appointment {
